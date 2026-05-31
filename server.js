@@ -2,14 +2,13 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose'); // डेटाबेस टूल को बुलाना
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // Render के लिए पोर्ट को डायनेमिक रखा है
 
 // फॉर्म और JSON डेटा को समझने के लिए मिडलवेयर
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB डेटाबेस से कनेक्शन जोड़ना
-// पुराना mongoose.connect हटाकर इसकी जगह यह पूरा पेस्ट कर दो:
 mongoose.connect('mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/bhopal_real_estate?retryWrites=true&w=majority&appName=Cluster0', {
     tls: true,
     tlsAllowInvalidCertificates: true // क्लाउड सर्वर पर कनेक्शन एरर रोकने के लिए
@@ -25,7 +24,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// 2. प्रॉपर्टी का डेटा कैसा दिखेगा (Property Schema - जो बीच में कट गया था)
+// 2. प्रॉपर्टी का डेटा कैसा दिखेगा (Property Schema)
 const propertySchema = new mongoose.Schema({
     title: String,
     purpose: String,
@@ -43,22 +42,33 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// लॉगिन पेज का रास्ता
+app.get('/login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// डैशबोर्ड पेज का रास्ता
+app.get('/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
 // नए ब्रोकर का रजिस्ट्रेशन (Sign-Up) करने का रास्ता
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        const cleanEmail = email.toLowerCase().trim();
 
         // पहले चेक करना कि इस ईमेल से कोई और अकाउंट तो नहीं है
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: cleanEmail });
         if (existingUser) {
             return res.json({ success: false, message: 'यह ईमेल आईडी पहले से रजिस्टर्ड है!' });
         }
 
         // डेटाबेस में नया यूज़र सेव करना
-        const newUser = new User({ name, email, password });
+        const newUser = new User({ name, email: cleanEmail, password });
         await newUser.save();
 
-        console.log(`---- नया ब्रोकर रजिस्टर्ड हुआ: ${name} (${email}) ----`);
+        console.log(`---- नया ब्रोकर रजिस्टर्ड हुआ: ${name} (${cleanEmail}) ----`);
         res.json({ success: true, message: 'आपका अकाउंट सफलतापूर्वक बन गया है! अब लॉगिन करें।' });
     } catch (error) {
         console.error("साइन-अप में एरर:", error);
@@ -70,18 +80,21 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const cleanEmail = email.toLowerCase().trim();
 
         // डेटाबेस में ईमेल ढूंढना
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: cleanEmail });
 
         // अगर ईमेल मिल गया और पासवर्ड भी मैच हो गया
         if (user && user.password === password) {
-            res.json({ success: true, message: `लॉगिन सफल रहा! स्वागत है ${user.name}` });
+            // 💡 यहाँ सुधार किया: सफलता के संदेश के साथ 'name' भी भेज रहे हैं
+            res.json({ success: true, message: `लॉगिन सफल रहा! स्वागत है ${user.name}`, name: user.name });
         } else {
             res.json({ success: false, message: 'गलत ईमेल या पासवर्ड! कृपया दोबारा जाँचें।' });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: 'लॉगिन के समय सर्ver में गड़बड़ हुई।' });
+        console.error("लॉगिन सर्वर एरर:", error);
+        res.status(500).json({ success: false, message: 'लॉगिन के समय सर्वर में गड़बड़ हुई।' });
     }
 });
 
@@ -114,5 +127,5 @@ app.get('/api/get-properties', async (req, res) => {
 
 // सर्वर को एक्टिवेट करना
 app.listen(PORT, () => {
-    console.log(`Server चालू हो गया है! इस लिंक पर जाएँ: http://localhost:${PORT}`);
+    console.log(`Server चालू हो गया है! पोर्ट नंबर: ${PORT}`);
 });

@@ -50,6 +50,10 @@
 
                 if (result.success) {
                     alert(result.message); // स्वागत मैसेज दिखाएगा
+                    
+                    // 💡 यहाँ हमने लॉगिन करने वाले का असली नाम ब्राउज़र की मेमोरी में सुरक्षित रख लिया है
+                    localStorage.setItem('brokerName', result.name || 'Neeraj'); 
+                    
                     window.location.href = 'dashboard.html'; // सफल होने पर डैशबोर्ड पर भेजेगा
                 } else {
                     alert(result.message); // गलत पासवर्ड होने पर एरर दिखाएगा
@@ -78,8 +82,7 @@
 
                 if (result.success) {
                     alert(result.message); // "अकाउंट बन गया" का मैसेज
-                    // फॉर्म को खाली करना
-                    document.getElementById('signupForm').reset();
+                    document.getElementById('signupForm').reset(); // फॉर्म को खाली करना
                 } else {
                     alert(result.message); // "ईमेल पहले से रजिस्टर्ड है" का मैसेज
                 }
