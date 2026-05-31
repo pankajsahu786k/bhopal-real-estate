@@ -11,8 +11,8 @@
     <header class="dash-header">
         <div class="logo">Bhopal Properties (Dashboard)</div>
         <div class="user-profile">
-            <span>Welcome, Broker Rahul</span>
-            <a href="index.html" class="logout-btn">Log Out</a>
+            <span>Welcome, Broker <span id="broker-name">Loading...</span></span>
+            <a href="login.html" class="logout-btn" id="logoutBtn">Log Out</a>
         </div>
     </header>
 
@@ -44,14 +44,18 @@
                     </tr>
                 </thead>
                 <tbody id="propertyTableBody">
-                    </tbody>
+                </tbody>
             </table>
         </main>
     </div>
 
     <script>
-        // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
+        // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
         async function loadProperties() {
+            // 💡 ब्राउज़र की मेमोरी से लॉगिन करने वाले का असली नाम यहाँ सेट करना
+            const savedName = localStorage.getItem('brokerName') || 'Broker';
+            document.getElementById('broker-name').innerText = savedName;
+
             try {
                 // सर्वर के नए रास्ते से लिस्ट मांगना
                 const response = await fetch('/api/get-properties');
@@ -66,7 +70,7 @@
                     return;
                 }
 
-                // जितनी प्रॉपर्टी होंगी, उतनी रो (Rows) टेबल में जुड़ती जाएँगी
+                // जितनी प्रॉपर्टी होंगी, उतनी रो (Rows) टेबल में जुड़ती जाएँगी
                 properties.forEach(prop => {
                     const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
                     const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
@@ -74,7 +78,7 @@
 
                     const row = `
                         <tr>
-                            <td><img src="https://via.placeholder.com/80x50" alt="House"></td>
+                            <td><img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=80&h=50&q=80" alt="House" style="object-fit: cover; border-radius: 4px;"></td>
                             <td>${prop.title}</td>
                             <td>${prop.location}</td>
                             <td>${priceText}</td>
@@ -92,6 +96,11 @@
                 console.error("डेटा लोड करने में समस्या आई:", error);
             }
         }
+
+        // 💡 लॉग आउट बटन पर क्लिक करने का लॉजिक (पुरानी मेमोरी साफ करने के लिए)
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('brokerName');
+        });
 
         // पेज लोड होते ही फंक्शन को कॉल करना
         window.onload = loadProperties;
