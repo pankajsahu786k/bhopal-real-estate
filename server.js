@@ -148,4 +148,14 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
 // डेटाबेस से सारी प्रॉपर्टीज निकालकर डैशबोर्ड को भेजने का रास्ता
 app.get('/api/get-properties', async (req, res) => {
     try {
-        const properties = await Property.find
+        const properties = await Property.find(); 
+        res.json(properties);
+    } catch (error) {
+        res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' });
+    }
+});
+
+// सर्वर को एक्टिवेट करना
+app.listen(PORT, () => {
+    console.log(`Server चालू हो गया है! पोर्ट नंबर: ${PORT}`);
+});
