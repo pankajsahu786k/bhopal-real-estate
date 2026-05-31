@@ -34,8 +34,6 @@
 
             <div class="form-group">
                 <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
-                <div class="form-group">
-                <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
                 <select id="location" required>
                     <option value="">इलाका चुनें...</option>
                     
@@ -82,7 +80,6 @@
                     </optgroup>
                 </select>
             </div>
-            </div>
 
             <div class="form-group">
                 <label for="price">कीमत (Price in ₹ - सिर्फ नंबर डालें)</label>
@@ -92,6 +89,11 @@
             <div class="form-group">
                 <label for="desc">विवरण / Description</label>
                 <textarea id="desc" rows="4" placeholder="प्रॉपर्टी के बारे में और जानकारी लिखें..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="propertyImage" style="font-weight: bold;">प्रॉपर्टी की फोटो अपलोड करें (Property Image)</label>
+                <input type="file" id="propertyImage" accept="image/*" required style="padding: 8px 0;">
             </div>
 
             <button type="button" id="uploadBtn" class="submit-btn">Property अपलोड करें</button>
@@ -106,32 +108,42 @@
             const location = document.getElementById('location').value;
             const price = document.getElementById('price').value;
             const desc = document.getElementById('desc').value;
+            const imageInput = document.getElementById('propertyImage');
 
-            // अगर कोई भी फ़ील्ड खाली है तो यहीं रोक देना
-            if (!title || !purpose || !location || !price || !desc) {
-                alert("कृपया सभी जानकारियां सही-सही भरें!");
+            // अगर कोई भी फ़ील्ड या इमेज खाली है तो यहीं रोक देना
+            if (!title || !purpose || !location || !price || !desc || imageInput.files.length === 0) {
+                alert("कृपया सभी जानकारियां भरें और प्रॉपर्टी की फोटो अवश्य चुनें!");
                 return;
             }
 
-            // डेटा का पैकेट तैयार करना
-            const formData = `title=${encodeURIComponent(title)}&purpose=${encodeURIComponent(purpose)}&location=${encodeURIComponent(location)}&price=${encodeURIComponent(price)}&desc=${encodeURIComponent(desc)}`;
+            // 💡 नया बदलाव: फोटो भेजने के लिए FormData का पैकेट तैयार करना
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('purpose', purpose);
+            formData.append('location', location);
+            formData.append('price', price);
+            formData.append('desc', desc);
+            formData.append('propertyImage', imageInput.files[0]); // पहली सेलेक्टेड फाइल जोड़ना
 
-            // सर्वर को डेटा भेजना
-            const response = await fetch('/api/add-property', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: formData
-            });
+            try {
+                // सर्वर को डेटा भेजना
+                const response = await fetch('/api/add-property', {
+                    method: 'POST',
+                    // ध्यान दें: FormData भेजते समय Headers में Content-Type नहीं लिखा जाता
+                    body: formData 
+                });
 
-            const result = await response.json();
+                const result = await response.json();
 
-            if (result.success) {
-                alert(result.message);
-                window.location.href = 'dashboard.html'; // वापस डैशबोर्ड पर ले जाएँ
-            } else {
-                alert('कुछ गड़बड़ हो गई, कृपया दोबारा कोशिश करें।');
+                if (result.success) {
+                    alert(result.message);
+                    window.location.href = 'dashboard.html'; // वापस डैशबोर्ड पर ले जाएँ
+                } else {
+                    alert(result.message || 'कुछ गड़बड़ हो गई, कृपया दोबारा कोशिश करें।');
+                }
+            } catch (error) {
+                console.error("अपलोड एरर:", error);
+                alert('सर्वर से संपर्क नहीं हो पाया।');
             }
         });
     </script>
