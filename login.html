@@ -30,9 +30,10 @@
     </div>
 
     <script>
-        // लॉगिन लॉजिक
+        // ======= १. लॉगिन का बिल्कुल सही जावास्क्रिप्ट लॉजिक =======
         document.getElementById('loginForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
+            event.preventDefault(); // पेज को रीफ्रेश होने से रोकना
+            
             const emailInput = document.getElementById('loginEmail').value;
             const passwordInput = document.getElementById('loginPassword').value;
 
@@ -42,22 +43,28 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: emailInput, password: passwordInput })
                 });
+                
                 const result = await response.json();
 
                 if (result.success) {
                     alert("लॉगिन सफल रहा!");
+                    
+                    // ब्राउज़र की तिजोरी में नाम और साफ किया हुआ ईमेल लॉक करना
                     localStorage.setItem('brokerName', result.name);
                     localStorage.setItem('brokerEmail', emailInput.toLowerCase().trim());
+                    
+                    // सीधे डैशबोर्ड पर ले जाना
                     window.location.href = 'dashboard.html';
                 } else {
                     alert(result.message);
                 }
             } catch (error) {
-                alert("सर्वर से संपर्क नहीं हो पाया।");
+                console.error("लॉगिन एरर:", error);
+                alert("सर्वर से संपर्क नहीं हो पाया या कोई तकनीकी समस्या है।"); // 💡 सुधार: ब्राउज़र के अनुकूल सही एरर मैसेज
             }
         });
 
-        // साइन-अप लॉजिक
+        // ======= २. साइन-अप (रजिस्ट्रेशन) का जावास्क्रिप्ट लॉजिक =======
         document.getElementById('signupForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const name = document.getElementById('signupName').value;
