@@ -1,179 +1,142 @@
-const express = require('express');
-const path = require('path');
-const mongoose = require('mongoose'); // डेटाबेस टूल
-const multer = require('multer'); // फोटो अपलोड संभालने वाला टूल
-const fs = require('fs'); // फ़ोल्डर चेक करने के लिए टूल
-const app = express();
-const PORT = process.env.PORT || 3000;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Property - Bhopal Real Estate</title>
+    <link rel="stylesheet" href="add-property-style.css">
+</head>
+<body>
 
-// फॉर्म और JSON डेटा को समझने के लिए मिडलवेयर
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    <header class="form-header">
+        <div class="logo">Bhopal Properties (Broker Panel)</div>
+        <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+    </header>
 
-// सुनिश्चित करना कि 'uploads' नाम का फ़ोल्डर सर्वर पर मौजूद हो
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)){
-    fs.mkdirSync(uploadDir);
-}
+    <div class="form-container">
+        <h2>नयी प्रॉपर्टी की जानकारी भरें</h2>
+        <p>कृपया भोपाल में स्थित अपनी प्रॉपर्टी का सही विवरण दें ताकि ग्राहक आपसे संपर्क कर सकें।</p>
+        
+        <div id="propertyForm">
+            <div class="form-group">
+                <label for="title">Property का नाम / Title</label>
+                <input type="text" id="title" placeholder="जैसे: 3 BHK Luxury Apartment, Beautiful House" required>
+            </div>
 
-// मल्टार (Multer) की सेटिंग
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
-const upload = multer({ storage: storage });
+            <div class="form-group">
+                <label for="purpose">प्रॉपर्टी का प्रकार (Purpose)</label>
+                <select id="purpose" required>
+                    <option value="">चुनें...</option>
+                    <option value="Rent">किराये के लिए (For Rent)</option>
+                    <option value="Sell">बेचने के लिए (For Sale)</option>
+                </select>
+            </div>
 
-// अपलोड की गई फ़ोटोज़ को सीधे देखने की अनुमति देना
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+            <div class="form-group">
+                <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
+                <select id="location" required>
+                    <option value="">इलाका चुनें...</option>
+                    <optgroup label="मुख्य एवं व्यापारिक क्षेत्र (Central & Commercial)">
+                        <option value="MP Nagar Zone 1">MP Nagar Zone 1 (एम.पी. नगर जोन 1)</option>
+                        <option value="MP Nagar Zone 2">MP Nagar Zone 2 (एम.पी. नगर जोन 2)</option>
+                        <option value="New Market">New Market (न्यू मार्केट)</option>
+                        <option value="TT Nagar">TT Nagar (टी.टी. नगर)</option>
+                        <option value="Malviya Nagar">Malviya Nagar (मालवीय नगर)</option>
+                    </optgroup>
+                    <optgroup label="पॉश आवासीय क्षेत्र (Premium Residential)">
+                        <option value="Arera Colony">Arera Colony (अरेरा कॉलोनी)</option>
+                        <option value="Shahpura">Shahpura (शाहपुरा)</option>
+                        <option value="Chunabhatti">Chunabhatti (चूनाभट्टी)</option>
+                        <option value="Char Imli">Char Imli (चार इमली)</option>
+                        <option value="Gulmohar">Gulmohar (गुलमोहर)</option>
+                    </optgroup>
+                    <optgroup label="तेजी से विकसित होते क्षेत्र (Fast Growing)">
+                        <option value="Kolar Road">Kolar Road (कोलार रोड)</option>
+                        <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
+                        <option value="Ayodhya Bypass">Ayodhya Bypass (अयोध्या बाईपास)</option>
+                        <option value="Hoshangabad Road">Hoshangabad Road (होशंगाबाद रोड)</option>
+                        <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
+                        <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
+                    </optgroup>
+                    <optgroup label="स्टूडेंट एवं एजुकेशनल हब (Student Hub)">
+                        <option value="Indrapuri">Indrapuri (इंद्रपुरी)</option>
+                        <option value="Piplani">Piplani (पिपलानी)</option>
+                        <option value="Saket Nagar">Saket Nagar (साकेत नगर)</option>
+                        <option value="Sonagiri">Sonagiri (सोनागिरी)</option>
+                        <option value="Anand Nagar">Anand Nagar (आनंद नगर)</option>
+                    </optgroup>
+                    <optgroup label="पुराना भोपाल एवं अन्य मुख्य क्षेत्र (Old City & Others)">
+                        <option value="Kohefiza">Kohefiza (कोहेफिजा)</option>
+                        <option value="Lalghati">Lalghati (लालघाटी)</option>
+                        <option value="Bairagarh">Bairagarh (बैरागढ़)</option>
+                        <option value="Jahangirabad">Jahangirabad (जहांगीराबाद)</option>
+                        <option value="Karond">Karond (करौंद)</option>
+                        <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
+                    </optgroup>
+                </select>
+            </div>
 
-// MongoDB डेटाबेस से कनेक्शन जोड़ना
-mongoose.connect('mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/bhopal_real_estate?retryWrites=true&w=majority&appName=Cluster0', {
-    tls: true,
-    tlsAllowInvalidCertificates: true
-})
-.then(() => console.log('MongoDB Atlas से कनेक्शन सफल! 🚀'))
-.catch(err => console.error('डेटाबेस कनेक्शन एरर:', err));
+            <div class="form-group">
+                <label for="price">कीमत (Price in ₹ - सिर्फ नंबर डालें)</label>
+                <input type="number" id="price" placeholder="जैसे: 5000000 या 15000" required>
+            </div>
 
-// 1. यूज़र Schema
-const userSchema = new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true, required: true },
-    password: String
-});
-const User = mongoose.model('User', userSchema);
+            <div class="form-group">
+                <label for="desc">विवरण / Description</label>
+                <textarea id="desc" rows="4" placeholder="प्रॉपर्टी के बारे में और जानकारी लिखें..." required></textarea>
+            </div>
 
-// 2. प्रॉपर्टी Schema (brokerEmail के साथ)
-const propertySchema = new mongoose.Schema({
-    title: String,
-    purpose: String,
-    location: String,
-    price: Number,
-    desc: String,
-    image: String,
-    brokerEmail: String // प्राइवेसी के लिए मुख्य फ़ील्ड
-});
-const Property = mongoose.model('Property', propertySchema);
+            <div class="form-group">
+                <label for="propertyImage" style="font-weight: bold;">प्रॉपर्टी की फोटो अपलोड करें (Property Image)</label>
+                <input type="file" id="propertyImage" accept="image/*" required style="padding: 8px 0;">
+            </div>
 
-app.use(express.static(__dirname));
+            <button type="button" id="uploadBtn" class="submit-btn">Property अपलोड करें</button>
+        </div>
+    </div>
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+    <script>
+        document.getElementById('uploadBtn').addEventListener('click', async function() {
+            const title = document.getElementById('title').value;
+            const purpose = document.getElementById('purpose').value;
+            const location = document.getElementById('location').value;
+            const price = document.getElementById('price').value;
+            const desc = document.getElementById('desc').value;
+            const imageInput = document.getElementById('propertyImage');
 
-app.get('/login.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
+            if (!title || !purpose || !location || !price || !desc || imageInput.files.length === 0) {
+                alert("कृपया सभी जानकारियां भरें और प्रॉपर्टी की फोटो अवश्य चुनें!");
+                return;
+            }
 
-app.get('/dashboard.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('purpose', purpose);
+            formData.append('location', location);
+            formData.append('price', price);
+            formData.append('desc', desc);
+            formData.append('propertyImage', imageInput.files[0]);
 
-// साइन-अप रास्ता
-app.post('/api/signup', async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-        const cleanEmail = email.toLowerCase().trim();
+            const savedEmail = localStorage.getItem('brokerEmail') || '';
+            formData.append('brokerEmail', savedEmail);
 
-        const existingUser = await User.findOne({ email: cleanEmail });
-        if (existingUser) {
-            return res.json({ success: false, message: 'यह ईमेल आईडी पहले से रजिस्टर्ड है!' });
-        }
+            try {
+                const response = await fetch('/api/add-property', {
+                    method: 'POST',
+                    body: formData 
+                });
+                const result = await response.json();
 
-        const newUser = new User({ name, email: cleanEmail, password });
-        await newUser.save();
-        res.json({ success: true, message: 'आपका अकाउंट सफलतापूर्वक बन गया है! अब लॉगिन करें।' });
-    } catch (error) {
-        res.json({ success: false, message: 'अकाउंट बनाने में कोई तकनीकी खराबी आई।' });
-    }
-});
-
-// लॉगिन रास्ता (नाम रिस्पॉन्स में भेजने के साथ)
-app.post('/api/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const cleanEmail = email.toLowerCase().trim();
-        const user = await User.findOne({ email: cleanEmail });
-
-        if (user && user.password === password) {
-            res.json({ success: true, message: `लॉगिन सफल रहा!`, name: user.name });
-        } else {
-            res.json({ success: false, message: 'गलत ईमेल या密码! कृपया दोबारा जाँचें।' });
-        }
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'लॉगिन के समय सर्वर में गड़बड़ हुई।' });
-    }
-});
-
-// प्रॉपर्टी ऐड करने का रास्ता (Email लॉक करने के साथ)
-app.post('/api/add-property', upload.single('propertyImage'), async (req, res) => {
-    try {
-        const { title, purpose, location, price, desc, brokerEmail } = req.body;
-        const imagePath = req.file ? `/uploads/${req.file.filename}` : 'https://via.placeholder.com/350';
-
-        const newProperty = new Property({ 
-            title, purpose, location, price: Number(price), desc, image: imagePath,
-            brokerEmail: brokerEmail ? brokerEmail.toLowerCase().trim() : ''
+                if (result.success) {
+                    alert(result.message);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert(result.message || 'कुछ गड़बड़ हो गई, कृपया दोबारा कोशिश करें।');
+                }
+            } catch (error) {
+                alert('सर्वर से संपर्क नहीं हो पाया।');
+            }
         });
-        await newProperty.save();
-        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपलोड हो गई!' });
-    } catch (error) {
-        res.json({ success: false, message: 'डेटाबेस में सेव नहीं हो पाया।' });
-    }
-});
-
-// प्राइवेसी फिल्टर के साथ प्रॉपर्टीज भेजने का रास्ता
-app.get('/api/get-properties', async (req, res) => {
-    try {
-        const brokerEmail = req.query.email;
-        let properties = [];
-        if (brokerEmail) {
-            properties = await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() });
-        }
-        res.json(properties);
-    } catch (error) {
-        res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' });
-    }
-});
-
-// डिलीट रास्ता
-app.delete('/api/delete-property/:id', async (req, res) => {
-    try {
-        await Property.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक डिलीट हो गई!' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'सर्वर एरर।' });
-    }
-});
-
-// सिंगल प्रॉपर्टी ढूंढना (Edit के लिए)
-app.get('/api/get-property/:id', async (req, res) => {
-    try {
-        const property = await Property.findById(req.params.id);
-        res.json(property);
-    } catch (error) {
-        res.status(500).json({ message: 'डेटा खोजने में गड़बड़ हुई' });
-    }
-});
-
-// अपडेट रास्ता
-app.post('/api/update-property/:id', upload.single('propertyImage'), async (req, res) => {
-    try {
-        const { title, purpose, location, price, desc } = req.body;
-        const oldProperty = await Property.findById(req.params.id);
-        let imagePath = oldProperty.image;
-        if (req.file) imagePath = `/uploads/${req.file.filename}`;
-
-        await Property.findByIdAndUpdate(req.params.id, {
-            title, purpose, location, price: Number(price), desc, image: imagePath
-        });
-        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपडेट हो गई!' });
-    } catch (error) {
-        res.json({ success: false, message: 'अपडेट करने में गड़बड़ हुई।' });
-    }
-});
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    </script>
+</body>
+</html>
