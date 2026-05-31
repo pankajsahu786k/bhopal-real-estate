@@ -9,27 +9,89 @@
 <body>
 
     <div class="auth-container">
-        <!-- लॉगिन फॉर्म का हिस्सा -->
         <div class="login-form">
             <h2>लॉगिन करें</h2>
-            <form action="/login" method="POST">
-                <input type="email" placeholder="E-Main ID" required>
-                <input type="password" placeholder="Password" required>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="E-Mail ID" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
                 <button type="submit">Login</button>
             </form>
         </div>
 
-        <!-- साइन-अप फॉर्म का हिस्सा -->
         <div class="signup-form">
             <h2>खाता बनाएँ</h2>
-            <form action="/register" method="POST">
-                <input type="text" placeholder="Name" required>
-                <input type="email" placeholder="E-Mail ID" required>
-                <input type="password" placeholder="Password" required>
+            <form id="signupForm">
+                <input type="text" id="signupName" placeholder="Name" required>
+                <input type="email" id="signupEmail" placeholder="E-Mail ID" required>
+                <input type="password" id="signupPassword" placeholder="Password" required>
                 <button type="submit">Register</button>
             </form>
         </div>
     </div>
+
+    <script>
+        // ======= १. लॉगिन का जावास्क्रिप्ट लॉजिक =======
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // पेज को रीफ्रेश होने से रोकना
+
+            const emailInput = document.getElementById('loginEmail').value;
+            const passwordInput = document.getElementById('loginPassword').value;
+
+            try {
+                // सर्वर के लॉगिन रास्ते पर रिक्वेस्ट भेजना
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailInput, password: passwordInput })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    
+                    // 🎯 प्राइवेसी की चाबी: ब्राउज़र की याददाश्त में नाम और ईमेल सुरक्षित लॉक करना
+                    localStorage.setItem('brokerName', result.name);
+                    localStorage.setItem('brokerEmail', emailInput.toLowerCase().trim());
+                    
+                    // डैशबोर्ड पेज पर भेज देना
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error("लॉगिन एरर:", error);
+                alert("सर्वर से संपर्क नहीं हो पाया।");
+            }
+        });
+
+        // ======= २. साइन-अप (रजिस्ट्रेशन) का जावास्क्रिप्ट लॉजिक =======
+        document.getElementById('signupForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const result = await response.json();
+                alert(result.message);
+
+                if (result.success) {
+                    document.getElementById('signupForm').reset(); // फॉर्म खाली करना
+                }
+            } catch (error) {
+                console.error("साइन-अप एरर:", error);
+                alert("अकाउंट बनाने में समस्या आई।");
+            }
+        });
+    </script>
 
 </body>
 </html>
