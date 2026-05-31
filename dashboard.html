@@ -90,3 +90,126 @@
                 </tbody>
             </table>
         </main>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">Property की जानकारी सुधारें</h3>
+            <form id="editPropertyForm">
+                <input type="hidden" id="editPropId">
+                <div class="form-group"><label>Property का नाम / Title</label><input type="text" id="editTitle" required></div>
+                <div class="form-group"><label>प्रकार (Purpose)</label><select id="editPurpose" required><option value="Rent">किराये के लिए</option><option value="Sell">बेचने के लिए</option></select></div>
+                <div class="form-group"><label>लोकेशन (Location)</label><input type="text" id="editLocation" required></div>
+                <div class="form-group"><label>कीमत (Price in ₹)</label><input type="number" id="editPrice" required></div>
+                <div class="form-group"><label>विवरण / Description</label><textarea id="editDesc" rows="3" required></textarea></div>
+                <div class="form-group"><label>नई फोटो बदलें</label><input type="file" id="editImage" accept="image/*"></div>
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        async function loadProperties() {
+            const savedName = localStorage.getItem('brokerName');
+            const brokerEmail = localStorage.getItem('brokerEmail');
+
+            // 🔒 सुरक्षा कवच: अगर लॉग इन नहीं है या ईमेल गायब है, तो सीधे वापस भगाओ
+            if (!savedName || !brokerEmail) {
+                alert("कृपया पहले अपने अकाउंट से दोबारा लॉगिन करें!");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // स्क्रीन पर नाम सेट करना
+            document.getElementById('broker-name').innerText = savedName;
+
+            try {
+                // सर्वर से केवल इस लॉगिन ईमेल का डेटा मांगना
+                const response = await fetch(`/api/get-properties?email=${encodeURIComponent(brokerEmail)}`);
+                const properties = await response.json();
+                const tableBody = document.getElementById('propertyTableBody');
+                tableBody.innerHTML = ''; 
+
+                if (properties.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #7f8c8d;">कोई प्रॉपर्टी नहीं मिली। '+ Nayi Property Jodein' पर क्लिक करके अपलोड करें।</td></tr>`;
+                    return;
+                }
+
+                properties.forEach(prop => {
+                    const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
+                    const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
+                    const statusText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
+                    const propertyImgSrc = prop.image ? prop.image : 'https://via.placeholder.com/80x50';
+
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td><img src="${propertyImgSrc}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;"></td>
+                            <td>${prop.title}</td><td>${prop.location}</td><td>${priceText}</td>
+                            <td><span class="status ${statusClass}">${statusText}</span></td>
+                            <td>
+                                <button class="edit-btn" onclick="openEditModal('${prop._id}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteProperty('${prop._id}')">Delete</button>
+                            </td>
+                        </tr>`;
+                });
+            } catch (error) { 
+                console.error("डेटा लोड करने में समस्या:", error); 
+            }
+        }
+
+        // प्रॉपर्टी डिलीट करने का लॉजिक
+        async function deleteProperty(id) {
+            if (confirm("क्या आप वाकई इस प्रॉपर्टी को डिलीट करना चाहते हैं?")) {
+                await fetch(`/api/delete-property/${id}`, { method: 'DELETE' });
+                loadProperties();
+            }
+        }
+
+        // एडिट पॉप-अप खोलने का लॉजिक
+        async function openEditModal(id) {
+            const response = await fetch(`/api/get-property/${id}`);
+            const prop = await response.json();
+            document.getElementById('editPropId').value = prop._id;
+            document.getElementById('editTitle').value = prop.title;
+            document.getElementById('editPurpose').value = prop.purpose;
+            document.getElementById('editLocation').value = prop.location;
+            document.getElementById('editPrice').value = prop.price;
+            document.getElementById('editDesc').value = prop.desc;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        // एडिट सेव करने का लॉजिक
+        document.getElementById('editPropertyForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const id = document.getElementById('editPropId').value;
+            const formData = new FormData();
+            formData.append('title', document.getElementById('editTitle').value);
+            formData.append('purpose', document.getElementById('editPurpose').value);
+            formData.append('location', document.getElementById('editLocation').value);
+            formData.append('price', document.getElementById('editPrice').value);
+            formData.append('desc', document.getElementById('editDesc').value);
+            
+            const imgInput = document.getElementById('editImage');
+            if (imgInput.files.length > 0) formData.append('propertyImage', imgInput.files[0]);
+
+            await fetch(`/api/update-property/${id}`, { method: 'POST', body: formData });
+            closeEditModal();
+            loadProperties();
+        });
+
+        // लॉगआउट करने का लॉजिक
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.clear(); // लोकल स्टोरेज साफ करना
+        });
+
+        // पेज खुलते ही फंक्शन चलाना
+        window.onload = loadProperties;
+    </script>
+</body>
+</html>
