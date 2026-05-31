@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard - Bhopal Real Estate</title>
     <link rel="stylesheet" href="dashboard-style.css">
+    <style>
+        /* पॉप-अप फॉर्म (Modal) को सुंदर बनाने के लिए स्टाइलिंग */
+        .modal {
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center;
+        }
+        .modal-content {
+            background: white; 
+            padding: 25px; 
+            border-radius: 8px; 
+            width: 90%; 
+            max-width: 500px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
+            position: relative; 
+            max-height: 90vh; 
+            overflow-y: auto;
+        }
+        .close-btn {
+            position: absolute; 
+            top: 10px; 
+            right: 15px; 
+            font-size: 28px; 
+            cursor: pointer; 
+            color: #aaa;
+        }
+        .close-btn:hover { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;
+        }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .cancel-btn { padding: 10px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .save-btn { padding: 10px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    </style>
 </head>
 <body>
 
@@ -49,26 +92,72 @@
         </main>
     </div>
 
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">Property की जानकारी सुधारें (Full Edit)</h3>
+            
+            <form id="editPropertyForm">
+                <input type="hidden" id="editPropId">
+                
+                <div class="form-group">
+                    <label>Property का नाम / Title</label>
+                    <input type="text" id="editTitle" required>
+                </div>
+
+                <div class="form-group">
+                    <label>प्रकार (Purpose)</label>
+                    <select id="editPurpose" required>
+                        <option value="Rent">किराये के लिए (For Rent)</option>
+                        <option value="Sell">बेचने के लिए (For Sale)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>लोकेशन (Location)</label>
+                    <input type="text" id="editLocation" required>
+                </div>
+
+                <div class="form-group">
+                    <label>कीमत (Price in ₹)</label>
+                    <input type="number" id="editPrice" required>
+                </div>
+
+                <div class="form-group">
+                    <label>विवरण / Description</label>
+                    <textarea id="editDesc" rows="3" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>नई फोटो बदलें (अगर बदलनी हो तो ही चुनें)</label>
+                    <input type="file" id="editImage" accept="image/*">
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="save-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
-        // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
         async function loadProperties() {
             const savedName = localStorage.getItem('brokerName') || 'Broker';
             document.getElementById('broker-name').innerText = savedName;
 
             try {
-                // सर्वर से लिस्ट मांगना
                 const response = await fetch('/api/get-properties');
                 const properties = await response.json();
 
                 const tableBody = document.getElementById('propertyTableBody');
-                tableBody.innerHTML = ''; // पुरानी टेबल साफ करना
+                tableBody.innerHTML = ''; 
 
                 if (properties.length === 0) {
                     tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #7f8c8d;">कोई प्रॉपर्टी नहीं मिली। कृपया '+ Nayi Property Jodein' पर क्लिक करके अपलोड करें।</td></tr>`;
                     return;
                 }
 
-                // जितनी प्रॉपर्टी होंगी, उतनी रो (Rows) टेबल में जुड़ती जाएँगी
                 properties.forEach(prop => {
                     const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
                     const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
@@ -76,7 +165,7 @@
 
                     const propertyImgSrc = prop.image ? prop.image : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=80&h=50&q=80';
 
-                    // 💡 यहाँ सुधार किया: बटनों में onclick फंक्शन्स और प्रॉपर्टी की ID जोड़ दी है
+                    // 💡 यहाँ हमने फंक्शन का नाम बदलकर एकदम यूनिक 'openFullEditModal' रख दिया है
                     const row = `
                         <tr>
                             <td><img src="${propertyImgSrc}" alt="House" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;"></td>
@@ -85,7 +174,7 @@
                             <td>${priceText}</td>
                             <td><span class="status ${statusClass}">${statusText}</span></td>
                             <td>
-                                <button class="edit-btn" onclick="editPropertyPrice('${prop._id}', '${prop.price}')">Edit Price</button>
+                                <button class="edit-btn" onclick="openFullEditModal('${prop._id}')">Edit</button>
                                 <button class="delete-btn" onclick="deleteProperty('${prop._id}')">Delete</button>
                             </td>
                         </tr>
@@ -98,7 +187,7 @@
             }
         }
 
-        // 💡 १. प्रॉपर्टी डिलीट करने का फ्रंटएंड लॉजिक
+        // १. प्रॉपर्टी डिलीट करने का लॉजिक
         async function deleteProperty(id) {
             if (confirm("क्या आप वाकई इस प्रॉपर्टी को हमेशा के लिए डिलीट करना चाहते हैं?")) {
                 try {
@@ -109,7 +198,7 @@
                     
                     if (result.success) {
                         alert(result.message);
-                        loadProperties(); // तुरंत लिस्ट अपडेट करना
+                        loadProperties(); 
                     } else {
                         alert(result.message);
                     }
@@ -119,27 +208,51 @@
             }
         }
 
-        // 💡 २. प्रॉपर्टी की कीमत तुरंत बदलने (Edit Price) का लॉजिक
-        async function editPropertyPrice(id, oldPrice) {
-            const newPrice = prompt("प्रॉपर्टी की नई कीमत (Price) दर्ज करें:", oldPrice);
+        // 💡 २. नया बदला हुआ फंक्शन: एडिट पॉप-अप बॉक्स खोलना
+        async function openFullEditModal(id) {
+            try {
+                const response = await fetch(`/api/get-property/${id}`);
+                const prop = await response.json();
+
+                document.getElementById('editPropId').value = prop._id;
+                document.getElementById('editTitle').value = prop.title;
+                document.getElementById('editPurpose').value = prop.purpose;
+                document.getElementById('editLocation').value = prop.location;
+                document.getElementById('editPrice').value = prop.price;
+                document.getElementById('editDesc').value = prop.desc;
+
+                document.getElementById('editModal').style.display = 'flex';
+            } catch (error) {
+                console.error("डेटा लाने में एरर:", error);
+                alert("प्रॉपर्टी का डेटा लोड करने में समस्या आई।");
+            }
+        }
+
+        // ३. पॉप-अप फॉर्म को बंद करने का लॉजिक
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editPropertyForm').reset(); 
+        }
+
+        // ४. सुधारे हुए पूरे फॉर्म डेटा को सबमिट करना
+        document.getElementById('editPropertyForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
             
-            // अगर यूजर ने कैंसिल कर दिया या खाली छोड़ दिया तो रुक जाओ
-            if (newPrice === null || newPrice.trim() === "") return;
+            const id = document.getElementById('editPropId').value;
+            const formData = new FormData();
+            
+            formData.append('title', document.getElementById('editTitle').value);
+            formData.append('purpose', document.getElementById('editPurpose').value);
+            formData.append('location', document.getElementById('editLocation').value);
+            formData.append('price', document.getElementById('editPrice').value);
+            formData.append('desc', document.getElementById('editDesc').value);
+            
+            const imgInput = document.getElementById('editImage');
+            if (imgInput.files.length > 0) {
+                formData.append('propertyImage', imgInput.files[0]);
+            }
 
             try {
-                // पहले उस प्रॉपर्टी का बाकी डेटा ले आते हैं ताकि वो न बदले
-                const getResponse = await fetch(`/api/get-property/${id}`);
-                const currentData = await getResponse.json();
-
-                // अपडेट करने के लिए पैकेट बनाना
-                const formData = new FormData();
-                formData.append('title', currentData.title);
-                formData.append('purpose', currentData.purpose);
-                formData.append('location', currentData.location);
-                formData.append('price', newPrice); // नयी कीमत जोड़ना
-                formData.append('desc', currentData.desc);
-
-                // सर्वर के अपडेट वाले रास्ते पर डेटा पोस्ट करना
                 const response = await fetch(`/api/update-property/${id}`, {
                     method: 'POST',
                     body: formData
@@ -148,22 +261,21 @@
 
                 if (result.success) {
                     alert(result.message);
-                    loadProperties(); // डैशबोर्ड लिस्ट अपडेट करना
+                    closeEditModal(); 
+                    loadProperties(); 
                 } else {
                     alert(result.message);
                 }
             } catch (error) {
                 console.error("अपडेट एरर:", error);
-                alert("कीमत अपडेट करने में समस्या आई।");
+                alert("अपडेट करने में सर्वर से संपर्क नहीं हो पाया।");
             }
-        }
+        });
 
-        // लॉग आउट बटन पर क्लिक करने का लॉजिक
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('brokerName');
         });
 
-        // पेज लोड होते ही फंक्शन को कॉल करना
         window.onload = loadProperties;
     </script>
 
