@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bhopal Real Estate - Login & Signup</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="login-form">
+            <h2>लॉगिन करें</h2>
+            <form id="loginForm">
+                <input type="email" id="loginEmail" placeholder="ईमेल आईडी" required>
+                <input type="password" id="loginPassword" placeholder="पासवर्ड" required>
+                <button type="submit">लॉगिन</button>
+            </form>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+
+        <div class="signup-form">
+            <h2>खाता बनाएँ</h2>
+            <form id="signupForm">
+                <input type="text" id="signupName" placeholder="पूरा नाम" required>
+                <input type="email" id="signupEmail" placeholder="ईमेल आईडी" required>
+                <input type="password" id="signupPassword" placeholder="पासवर्ड" required>
+                <button type="submit">रजिस्टर करें</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // === एक्सीडेंट फ्री लॉगिन लॉजिक ===
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // पेज रीफ्रेश रोकना
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message); // स्वागत मैसेज दिखाएगा
+                    window.location.href = 'dashboard.html'; // सफल होने पर डैशबोर्ड पर भेजेगा
+                } else {
+                    alert(result.message); // गलत पासवर्ड होने पर एरर दिखाएगा
+                }
+            } catch (error) {
+                alert('सर्वर से संपर्क नहीं हो पाया।');
+            }
+        });
+
+        // === असली साइन-अप लॉजिक ===
+        document.getElementById('signupForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // पेज रीफ्रेश रोकना
+
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const response = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message); // "अकाउंट बन गया" का मैसेज
+                    // फॉर्म को खाली करना
+                    document.getElementById('signupForm').reset();
+                } else {
+                    alert(result.message); // "ईमेल पहले से रजिस्टर्ड है" का मैसेज
+                }
+            } catch (error) {
+                alert('साइन-अप सर्वर से संपर्क नहीं हो पाया।');
+            }
+        });
+    </script>
+
+</body>
+</html>

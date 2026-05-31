@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Property - Bhopal Real Estate</title>
+    <link rel="stylesheet" href="add-property-style.css">
+</head>
+<body>
+
+    <header class="form-header">
+        <div class="logo">Bhopal Properties (Broker Panel)</div>
+        <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+    </header>
+
+    <div class="form-container">
+        <h2>नयी प्रॉपर्टी की जानकारी भरें</h2>
+        <p>कृपया भोपाल में स्थित अपनी प्रॉपर्टी का सही विवरण दें ताकि ग्राहक आपसे संपर्क कर सकें।</p>
+        
+        <div id="propertyForm">
+            <div class="form-group">
+                <label for="title">Property का नाम / Title</label>
+                <input type="text" id="title" placeholder="जैसे: 3 BHK Luxury Apartment, Beautiful House" required>
+            </div>
+
+            <div class="form-group">
+                <label for="purpose">प्रॉपर्टी का प्रकार (Purpose)</label>
+                <select id="purpose" required>
+                    <option value="">चुनें...</option>
+                    <option value="Rent">किराये के लिए (For Rent)</option>
+                    <option value="Sell">बेचने के लिए (For Sale)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
+                <div class="form-group">
+                <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
+                <select id="location" required>
+                    <option value="">इलाका चुनें...</option>
+                    
+                    <optgroup label="मुख्य एवं व्यापारिक क्षेत्र (Central & Commercial)">
+                        <option value="MP Nagar Zone 1">MP Nagar Zone 1 (एम.पी. नगर जोन 1)</option>
+                        <option value="MP Nagar Zone 2">MP Nagar Zone 2 (एम.पी. नगर जोन 2)</option>
+                        <option value="New Market">New Market (न्यू मार्केट)</option>
+                        <option value="TT Nagar">TT Nagar (टी.टी. नगर)</option>
+                        <option value="Malviya Nagar">Malviya Nagar (मालवीय नगर)</option>
+                    </optgroup>
+
+                    <optgroup label="पॉश आवासीय क्षेत्र (Premium Residential)">
+                        <option value="Arera Colony">Arera Colony (अरेरा कॉलोनी)</option>
+                        <option value="Shahpura">Shahpura (शाहपुरा)</option>
+                        <option value="Chunabhatti">Chunabhatti (चूनाभट्टी)</option>
+                        <option value="Char Imli">Char Imli (चार इमली)</option>
+                        <option value="Gulmohar">Gulmohar (गुलमोहर)</option>
+                    </optgroup>
+
+                    <optgroup label="तेजी से विकसित होते क्षेत्र (Fast Growing)">
+                        <option value="Kolar Road">Kolar Road (कोलार रोड)</option>
+                        <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
+                        <option value="Ayodhya Bypass">Ayodhya Bypass (अयोध्या बाईपास)</option>
+                        <option value="Hoshangabad Road">Hoshangabad Road (होशंगाबाद रोड)</option>
+                        <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
+                        <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
+                    </optgroup>
+
+                    <optgroup label="स्टूडेंट एवं एजुकेशनल हब (Student Hub)">
+                        <option value="Indrapuri">Indrapuri (इंद्रपुरी)</option>
+                        <option value="Piplani">Piplani (पिपलानी)</option>
+                        <option value="Saket Nagar">Saket Nagar (साकेत नगर)</option>
+                        <option value="Sonagiri">Sonagiri (सोनागिरी)</option>
+                        <option value="Anand Nagar">Anand Nagar (आनंद नगर)</option>
+                    </optgroup>
+
+                    <optgroup label="पुराना भोपाल एवं अन्य मुख्य क्षेत्र (Old City & Others)">
+                        <option value="Kohefiza">Kohefiza (कोहेफिजा)</option>
+                        <option value="Lalghati">Lalghati (लालघाटी)</option>
+                        <option value="Bairagarh">Bairagarh (बैरागढ़)</option>
+                        <option value="Jahangirabad">Jahangirabad (जहांगीराबाद)</option>
+                        <option value="Karond">Karond (करौंद)</option>
+                        <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
+                    </optgroup>
+                </select>
+            </div>
+            </div>
+
+            <div class="form-group">
+                <label for="price">कीमत (Price in ₹ - सिर्फ नंबर डालें)</label>
+                <input type="number" id="price" placeholder="जैसे: 5000000 या 15000" required>
+            </div>
+
+            <div class="form-group">
+                <label for="desc">विवरण / Description</label>
+                <textarea id="desc" rows="4" placeholder="प्रॉपर्टी के बारे में और जानकारी लिखें..." required></textarea>
+            </div>
+
+            <button type="button" id="uploadBtn" class="submit-btn">Property अपलोड करें</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadBtn').addEventListener('click', async function() {
+            // सही तरीके से वैल्यूज निकालना
+            const title = document.getElementById('title').value;
+            const purpose = document.getElementById('purpose').value;
+            const location = document.getElementById('location').value;
+            const price = document.getElementById('price').value;
+            const desc = document.getElementById('desc').value;
+
+            // अगर कोई भी फ़ील्ड खाली है तो यहीं रोक देना
+            if (!title || !purpose || !location || !price || !desc) {
+                alert("कृपया सभी जानकारियां सही-सही भरें!");
+                return;
+            }
+
+            // डेटा का पैकेट तैयार करना
+            const formData = `title=${encodeURIComponent(title)}&purpose=${encodeURIComponent(purpose)}&location=${encodeURIComponent(location)}&price=${encodeURIComponent(price)}&desc=${encodeURIComponent(desc)}`;
+
+            // सर्वर को डेटा भेजना
+            const response = await fetch('/api/add-property', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                window.location.href = 'dashboard.html'; // वापस डैशबोर्ड पर ले जाएँ
+            } else {
+                alert('कुछ गड़बड़ हो गई, कृपया दोबारा कोशिश करें।');
+            }
+        });
+    </script>
+
+</body>
+</html>

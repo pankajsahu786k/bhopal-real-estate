@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Bhopal Real Estate</title>
+    <link rel="stylesheet" href="dashboard-style.css">
+</head>
+<body>
+
+    <header class="dash-header">
+        <div class="logo">Bhopal Properties (Dashboard)</div>
+        <div class="user-profile">
+            <span>Welcome, Broker Rahul</span>
+            <a href="index.html" class="logout-btn">Log Out</a>
+        </div>
+    </header>
+
+    <div class="dash-container">
+        <aside class="sidebar">
+            <ul>
+                <li><a href="#" class="active">My Properties</a></li>
+                <li><a href="add-property.html">Add New Property</a></li>
+                <li><a href="#">Profile Settings</a></li>
+                <li><a href="#">Messages / Enquiries</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-header">
+                <h2>Aapki Upload Ki Gayi Properties</h2>
+                <a href="add-property.html" class="add-btn">+ Nayi Property Jodein</a>
+            </div>
+
+            <table class="property-table">
+                <thead>
+                    <tr>
+                        <th>Property Image</th>
+                        <th>Title</th>
+                        <th>Location</th>
+                        <th>Price</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="propertyTableBody">
+                    </tbody>
+            </table>
+        </main>
+    </div>
+
+    <script>
+        // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
+        async function loadProperties() {
+            try {
+                // सर्वर के नए रास्ते से लिस्ट मांगना
+                const response = await fetch('/api/get-properties');
+                const properties = await response.json();
+
+                const tableBody = document.getElementById('propertyTableBody');
+                tableBody.innerHTML = ''; // पुरानी टेबल साफ करना
+
+                if (properties.length === 0) {
+                    // अगर लिस्ट खाली है तो यह मैसेज दिखेगा
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #7f8c8d;">कोई प्रॉपर्टी नहीं मिली। कृपया '+ Nayi Property Jodein' पर क्लिक करके अपलोड करें।</td></tr>`;
+                    return;
+                }
+
+                // जितनी प्रॉपर्टी होंगी, उतनी रो (Rows) टेबल में जुड़ती जाएँगी
+                properties.forEach(prop => {
+                    const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
+                    const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
+                    const statusText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
+
+                    const row = `
+                        <tr>
+                            <td><img src="https://via.placeholder.com/80x50" alt="House"></td>
+                            <td>${prop.title}</td>
+                            <td>${prop.location}</td>
+                            <td>${priceText}</td>
+                            <td><span class="status ${statusClass}">${statusText}</span></td>
+                            <td>
+                                <button class="edit-btn">Edit</button>
+                                <button class="delete-btn">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+
+            } catch (error) {
+                console.error("डेटा लोड करने में समस्या आई:", error);
+            }
+        }
+
+        // पेज लोड होते ही फंक्शन को कॉल करना
+        window.onload = loadProperties;
+    </script>
+
+</body>
+</html>

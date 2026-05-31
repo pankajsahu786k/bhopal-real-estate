@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bhopal Real Estate - Find Your Dream Home</title>
+    <link rel="stylesheet" href="home-style.css">
+</head>
+<body>
+
+    <header>
+        <div class="logo">Bhopal Properties</div>
+        <nav>
+            <ul>
+                <li><a href="#" onclick="loadAllProperties()">होम</a></li>
+                <li><a href="#" onclick="filterByPurpose('Rent')">किराए के लिए</a></li>
+                <li><a href="#" onclick="filterByPurpose('Sell')">खरीदने के लिए</a></li>
+                <li><a href="index.html" class="login-btn">लॉगिन / साइन-अप</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <h1>अपने सपनों का घर ढूँढें</h1>
+        <p>भोपाल में किराये और खरीदने के लिए बेहतरीन प्रॉपर्टीज़</p>
+        
+        <div class="search-box">
+            <select id="searchPurpose">
+                <option value="all">सब कुछ देखें</option>
+                <option value="Sell">खरीदें (Buy)</option>
+                <option value="Rent">किराए पर (Rent)</option>
+            </select>
+            
+            <select id="searchLocation">
+                <option value="">लोकेशन चुनें...</option>
+                <option value="MP Nagar Zone 1">MP Nagar Zone 1 (एम.पी. नगर जोन 1)</option>
+                <option value="MP Nagar Zone 2">MP Nagar Zone 2 (एम.पी. नगर जोन 2)</option>
+                <option value="New Market">New Market (न्यू मार्केट)</option>
+                <option value="TT Nagar">TT Nagar (टी.टी. नगर)</option>
+                <option value="Malviya Nagar">Malviya Nagar (मालवीय नगर)</option>
+                <option value="Arera Colony">Arera Colony (अरेरा कॉलोनी)</option>
+                <option value="Shahpura">Shahpura (शाहपुरा)</option>
+                <option value="Chunabhatti">Chunabhatti (चूनाभट्टी)</option>
+                <option value="Char Imli">Char Imli (चार इमली)</option>
+                <option value="Gulmohar">Gulmohar (गुलमोहर)</option>
+                <option value="Kolar Road">Kolar Road (कोलार रोड)</option>
+                <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
+                <option value="Ayodhya Bypass">Ayodhya Bypass (अयोध्या बाईपास)</option>
+                <option value="Hoshangabad Road">Hoshangabad Road (होशंगाबाद रोड)</option>
+                <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
+                <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
+                <option value="Indrapuri">Indrapuri (इंद्रपुरी)</option>
+                <option value="Piplani">Piplani (पिपलानी)</option>
+                <option value="Saket Nagar">Saket Nagar (साकेत नगर)</option>
+                <option value="Sonagiri">Sonagiri (सोनागिरी)</option>
+                <option value="Anand Nagar">Anand Nagar (आनंद नगर)</option>
+                <option value="Kohefiza">Kohefiza (कोहेफिजा)</option>
+                <option value="Lalghati">Lalghati (लालघाटी)</option>
+                <option value="Bairagarh">Bairagarh (बैरागढ़)</option>
+                <option value="Jahangirabad">Jahangirabad (जहांगीराबाद)</option>
+                <option value="Karond">Karond (करौंद)</option>
+                <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
+            </select>
+            
+            <button onclick="searchProperties()">सर्च करें</button>
+        </div>
+    </section>
+
+    <section class="properties-section" style="padding: 40px 20px; max-width: 1200px; margin: 0 auto;">
+        <h2 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">नवीनतम प्रॉपर्टीज (Latest Properties)</h2>
+        
+        <div id="propertiesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            </div>
+    </section>
+
+    <script>
+        let allPropertiesList = [];
+
+        async function loadAllProperties() {
+            try {
+                const response = await fetch('/api/get-properties');
+                allPropertiesList = await response.json();
+                displayProperties(allPropertiesList);
+            } catch (error) {
+                console.error("होमपेज डेटा लोड एरर:", error);
+            }
+        }
+
+        function displayProperties(list) {
+            const grid = document.getElementById('propertiesGrid');
+            grid.innerHTML = '';
+
+            if (list.length === 0) {
+                grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: #7f8c8d; font-size: 18px; padding: 40px;">इस केटेगरी या लोकेशन में अभी कोई प्रॉपर्टी उपलब्ध नहीं है।</p>`;
+                return;
+            }
+
+            list.forEach(prop => {
+                const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / महीना` : `₹ ${prop.price}`;
+                const badgeColor = prop.purpose === 'Rent' ? '#e67e22' : '#2ecc71';
+                const badgeText = prop.purpose === 'Rent' ? 'किराए के लिए' : 'बिक्री के लिए';
+
+                // 🔴 यहाँ हमने Unsplash की एक बेहतरीन रियल एस्टेट इमेज लिंक डाल दी है
+                const cardHTML = `
+                    <div class="property-card" style="background: white; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); overflow: hidden; border: 1px solid #e0e0e0; display: flex; flex-direction: column;">
+                        <div style="position: relative;">
+                            <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=350&q=80" alt="Property" style="width: 100%; height: 200px; object-fit: cover;">
+                            <span style="position: absolute; top: 10px; left: 10px; background: ${badgeColor}; color: white; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;">${badgeText}</span>
+                        </div>
+                        <div style="padding: 15px; flex-grow: 1;">
+                            <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 18px;">${prop.title}</h3>
+                            <p style="margin: 0 0 10px 0; color: #7f8c8d; font-size: 14px;">📍 <strong>${prop.location}</strong></p>
+                            <p style="margin: 0 0 15px 0; color: #555; font-size: 14px; line-height: 1.4;">${prop.desc}</p>
+                            <div style="font-size: 20px; font-weight: bold; color: #2c3e50; border-top: 1px solid #f1f1f1; padding-top: 10px; margin-top: auto;">${priceText}</div>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += cardHTML;
+            });
+        }
+
+        function searchProperties() {
+            const purposeInput = document.getElementById('searchPurpose').value;
+            const locationInput = document.getElementById('searchLocation').value;
+
+            let filtered = allPropertiesList;
+
+            if (purposeInput !== 'all') {
+                filtered = filtered.filter(p => p.purpose === purposeInput);
+            }
+
+            if (locationInput) {
+                filtered = filtered.filter(p => p.location === locationInput);
+            }
+
+            displayProperties(filtered);
+        }
+
+        // हेडर के लिंक्स पर क्लिक करने के लिए सीधा फ़िल्टर
+        function filterByPurpose(purpose) {
+            const filtered = allPropertiesList.filter(p => p.purpose === purpose);
+            displayProperties(filtered);
+        }
+
+        window.onload = loadAllProperties;
+    </script>
+
+</body>
+</html>
