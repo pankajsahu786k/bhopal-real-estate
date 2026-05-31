@@ -36,6 +36,7 @@
                 <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
                 <select id="location" required>
                     <option value="">इलाका चुनें...</option>
+                    
                     <optgroup label="मुख्य एवं व्यापारिक क्षेत्र (Central & Commercial)">
                         <option value="MP Nagar Zone 1">MP Nagar Zone 1 (एम.पी. नगर जोन 1)</option>
                         <option value="MP Nagar Zone 2">MP Nagar Zone 2 (एम.पी. नगर जोन 2)</option>
@@ -43,6 +44,7 @@
                         <option value="TT Nagar">TT Nagar (टी.टी. नगर)</option>
                         <option value="Malviya Nagar">Malviya Nagar (मालवीय नगर)</option>
                     </optgroup>
+
                     <optgroup label="पॉश आवासीय क्षेत्र (Premium Residential)">
                         <option value="Arera Colony">Arera Colony (अरेरा कॉलोनी)</option>
                         <option value="Shahpura">Shahpura (शाहपुरा)</option>
@@ -50,6 +52,7 @@
                         <option value="Char Imli">Char Imli (चार इमली)</option>
                         <option value="Gulmohar">Gulmohar (गुलमोहर)</option>
                     </optgroup>
+
                     <optgroup label="तेजी से विकसित होते क्षेत्र (Fast Growing)">
                         <option value="Kolar Road">Kolar Road (कोलार रोड)</option>
                         <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
@@ -58,6 +61,7 @@
                         <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
                         <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
                     </optgroup>
+
                     <optgroup label="स्टूडेंट एवं एजुकेशनल हब (Student Hub)">
                         <option value="Indrapuri">Indrapuri (इंद्रपुरी)</option>
                         <option value="Piplani">Piplani (पिपलानी)</option>
@@ -65,6 +69,7 @@
                         <option value="Sonagiri">Sonagiri (सोनागिरी)</option>
                         <option value="Anand Nagar">Anand Nagar (आनंद नगर)</option>
                     </optgroup>
+
                     <optgroup label="पुराना भोपाल एवं अन्य मुख्य क्षेत्र (Old City & Others)">
                         <option value="Kohefiza">Kohefiza (कोहेफिजा)</option>
                         <option value="Lalghati">Lalghati (लालघाटी)</option>
@@ -97,6 +102,7 @@
 
     <script>
         document.getElementById('uploadBtn').addEventListener('click', async function() {
+            // सही तरीके से वैल्यूज निकालना
             const title = document.getElementById('title').value;
             const purpose = document.getElementById('purpose').value;
             const location = document.getElementById('location').value;
@@ -104,11 +110,13 @@
             const desc = document.getElementById('desc').value;
             const imageInput = document.getElementById('propertyImage');
 
+            // अगर कोई भी फ़ील्ड या इमेज खाली है तो यहीं रोक देना
             if (!title || !purpose || !location || !price || !desc || imageInput.files.length === 0) {
                 alert("कृपया सभी जानकारियां भरें और प्रॉपर्टी की फोटो अवश्य चुनें!");
                 return;
             }
 
+            // 💡 फोटो और डेटा भेजने के लिए FormData का पैकेट तैयार करना
             const formData = new FormData();
             formData.append('title', title);
             formData.append('purpose', purpose);
@@ -117,26 +125,31 @@
             formData.append('desc', desc);
             formData.append('propertyImage', imageInput.files[0]);
 
+            // 🎯 प्राइवेसी के लिए सबसे ज़रूरी सुधार: ब्राउज़र की याददाश्त (Local Storage) से लॉग इन यूजर का ईमेल निकालकर पैकेट में जोड़ना
             const savedEmail = localStorage.getItem('brokerEmail') || '';
-            formData.append('brokerEmail', savedEmail);
+            formData.append('brokerEmail', savedEmail.toLowerCase().trim()); // ईमेल को पूरी तरह साफ करके बैकएंड को भेजें
 
             try {
+                // सर्वर को डेटा भेजना
                 const response = await fetch('/api/add-property', {
                     method: 'POST',
-                    body: formData 
+                    body: formData // FormData भेजते समय Headers में Content-Type नहीं लिखा जाता
                 });
+
                 const result = await response.json();
 
                 if (result.success) {
                     alert(result.message);
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'dashboard.html'; // वापस डैशबोर्ड पर ले जाएँ
                 } else {
                     alert(result.message || 'कुछ गड़बड़ हो गई, कृपया दोबारा कोशिश करें।');
                 }
             } catch (error) {
+                console.error("अपलोड एरर:", error);
                 alert('सर्वर से संपर्क नहीं हो पाया।');
             }
         });
     </script>
+
 </body>
 </html>
