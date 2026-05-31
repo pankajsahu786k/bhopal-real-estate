@@ -142,12 +142,17 @@
     </div>
 
     <script>
+        // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
         async function loadProperties() {
             const savedName = localStorage.getItem('brokerName') || 'Broker';
+            // 💡 प्राइवेसी सुधार: ब्राउज़र की मेमोरी से लॉग इन करने वाले का ईमेल निकालना
+            const brokerEmail = localStorage.getItem('brokerEmail') || '';
+
             document.getElementById('broker-name').innerText = savedName;
 
             try {
-                const response = await fetch('/api/get-properties');
+                // 💡 सुधार: सर्वर से प्रॉपर्टी मांगते समय ईमेल को क्वेरी पैरामीटर (?email=...) में सुरक्षित भेज रहे हैं
+                const response = await fetch(`/api/get-properties?email=${encodeURIComponent(brokerEmail)}`);
                 const properties = await response.json();
 
                 const tableBody = document.getElementById('propertyTableBody');
@@ -165,7 +170,6 @@
 
                     const propertyImgSrc = prop.image ? prop.image : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=80&h=50&q=80';
 
-                    // 💡 यहाँ हमने फंक्शन का नाम बदलकर एकदम यूनिक 'openFullEditModal' रख दिया है
                     const row = `
                         <tr>
                             <td><img src="${propertyImgSrc}" alt="House" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;"></td>
@@ -174,7 +178,7 @@
                             <td>${priceText}</td>
                             <td><span class="status ${statusClass}">${statusText}</span></td>
                             <td>
-                                <button class="edit-btn" onclick="openFullEditModal('${prop._id}')">Edit</button>
+                                <button class="edit-btn" onclick="openEditModal('${prop._id}')">Edit</button>
                                 <button class="delete-btn" onclick="deleteProperty('${prop._id}')">Delete</button>
                             </td>
                         </tr>
@@ -187,7 +191,7 @@
             }
         }
 
-        // १. प्रॉपर्टी डिलीट करने का लॉजिक
+        // १. प्रॉपर्टी डिलीट करने का फ्रंटएंड लॉजिक
         async function deleteProperty(id) {
             if (confirm("क्या आप वाकई इस प्रॉपर्टी को हमेशा के लिए डिलीट करना चाहते हैं?")) {
                 try {
@@ -208,8 +212,8 @@
             }
         }
 
-        // 💡 २. नया बदला हुआ फंक्शन: एडिट पॉप-अप बॉक्स खोलना
-        async function openFullEditModal(id) {
+        // २. एडिट पॉप-अप बॉक्स खोलना और उसमें पुराना डेटा ऑटोमैटिक भरना
+        async function openEditModal(id) {
             try {
                 const response = await fetch(`/api/get-property/${id}`);
                 const prop = await response.json();
@@ -234,7 +238,7 @@
             document.getElementById('editPropertyForm').reset(); 
         }
 
-        // ४. सुधारे हुए पूरे फॉर्म डेटा को सबमिट करना
+        // ४. सुधारे हुए पूरे फॉर्म डेटा को डेटाबेस में सबमिट (Save) करना
         document.getElementById('editPropertyForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             
@@ -272,8 +276,10 @@
             }
         });
 
+        // लॉग आउट बटन पर क्लिक करने का लॉजिक (प्राइवेसी को क्लीन रखने के लिए)
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('brokerName');
+            localStorage.removeItem('brokerEmail'); // 💡 लॉग आउट होते ही ईमेल भी क्लियर
         });
 
         window.onload = loadProperties;

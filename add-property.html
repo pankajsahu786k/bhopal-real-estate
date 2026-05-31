@@ -125,11 +125,15 @@
             formData.append('desc', desc);
             formData.append('propertyImage', imageInput.files[0]); // पहली सेलेक्टेड फाइल जोड़ना
 
+            // 🎯 प्राइवेसी के लिए असली सुधार: ब्राउज़र की याददाश्त से लॉग इन यूजर का ईमेल निकालकर पैकेट में जोड़ना
+            const savedEmail = localStorage.getItem('brokerEmail') || '';
+            formData.append('brokerEmail', savedEmail);
+
             try {
                 // सर्वर को डेटा भेजना
                 const response = await fetch('/api/add-property', {
                     method: 'POST',
-                    // ध्यान दें: FormData भेजते समय Headers में Content-Type नहीं लिखा जाता
+                    // FormData भेजते समय Headers में Content-Type नहीं लिखा जाता
                     body: formData 
                 });
 
