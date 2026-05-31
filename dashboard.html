@@ -52,7 +52,7 @@
     <script>
         // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
         async function loadProperties() {
-            // 💡 ब्राउज़र की मेमोरी से लॉगिन करने वाले का असली नाम यहाँ सेट करना
+            // ब्राउज़र की मेमोरी से लॉगिन करने वाले का असली नाम यहाँ सेट करना
             const savedName = localStorage.getItem('brokerName') || 'Broker';
             document.getElementById('broker-name').innerText = savedName;
 
@@ -76,9 +76,12 @@
                     const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
                     const statusText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
 
+                    // 💡 यहाँ सुधार किया गया है: अगर डेटाबेस में इमेज का रास्ता है तो वो दिखाओ, नहीं तो डिफ़ॉल्ट इमेज दिखाओ
+                    const propertyImgSrc = prop.image ? prop.image : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=80&h=50&q=80';
+
                     const row = `
                         <tr>
-                            <td><img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=80&h=50&q=80" alt="House" style="object-fit: cover; border-radius: 4px;"></td>
+                            <td><img src="${propertyImgSrc}" alt="House" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;"></td>
                             <td>${prop.title}</td>
                             <td>${prop.location}</td>
                             <td>${priceText}</td>
@@ -97,7 +100,7 @@
             }
         }
 
-        // 💡 लॉग आउट बटन पर क्लिक करने का लॉजिक (पुरानी मेमोरी साफ करने के लिए)
+        // लॉग आउट बटन पर क्लिक करने का लॉजिक (पुरानी मेमोरी साफ करने के लिए)
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('brokerName');
         });
