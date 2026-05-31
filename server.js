@@ -9,9 +9,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB डेटाबेस से कनेक्शन जोड़ना
-mongoose.connect('mongodb://127.0.0.1:27017/bhopal_real_estate')
-    .then(() => console.log('जादू! MongoDB डेटाबेस सफलतापूर्वक कनेक्ट हो गया है...'))
-    .catch((err) => console.error('डेटाबेस कनेक्ट करने में गड़बड़ हुई:', err));
+mongoose.connect('mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/bhopal_real_estate?retryWrites=true&w=majority&appName=Cluster0')
+.then(() => console.log('MongoDB Atlas (क्लाउड डेटाबेस) से कनेक्शन सफल हो गया! 🚀'))
+.catch(err => console.error('डेटाबेस कनेक्शन एरर:', err));
 
 // 1. यूज़र (Broker) का डेटा कैसा दिखेगा (User Schema)
 const userSchema = new mongoose.Schema({
