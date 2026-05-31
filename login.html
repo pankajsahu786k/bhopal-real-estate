@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bhopal Real Estate - Login & Signup</title>
+    <title>Real Estate Website - Login/Signup</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,61 +12,54 @@
         <div class="login-form">
             <h2>लॉगिन करें</h2>
             <form id="loginForm">
-                <input type="email" id="loginEmail" placeholder="ईमेल आईडी" required>
-                <input type="password" id="loginPassword" placeholder="पासवर्ड" required>
-                <button type="submit">लॉगिन</button>
+                <input type="email" id="loginEmail" placeholder="E-Mail ID" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">Login</button>
             </form>
         </div>
-
-        <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
 
         <div class="signup-form">
             <h2>खाता बनाएँ</h2>
             <form id="signupForm">
-                <input type="text" id="signupName" placeholder="पूरा नाम" required>
-                <input type="email" id="signupEmail" placeholder="ईमेल आईडी" required>
-                <input type="password" id="signupPassword" placeholder="पासवर्ड" required>
-                <button type="submit">रजिस्टर करें</button>
+                <input type="text" id="signupName" placeholder="Name" required>
+                <input type="email" id="signupEmail" placeholder="E-Mail ID" required>
+                <input type="password" id="signupPassword" placeholder="Password" required>
+                <button type="submit">Register</button>
             </form>
         </div>
     </div>
 
     <script>
-        // === एक्सीडेंट फ्री लॉगिन लॉजिक ===
+        // लॉगिन लॉजिक
         document.getElementById('loginForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // पेज रीफ्रेश रोकना
-
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
+            event.preventDefault();
+            const emailInput = document.getElementById('loginEmail').value;
+            const passwordInput = document.getElementById('loginPassword').value;
 
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ email: emailInput, password: passwordInput })
                 });
-
                 const result = await response.json();
 
                 if (result.success) {
-                    alert(result.message); // स्वागत मैसेज दिखाएगा
-                    
-                    // 💡 यहाँ हमने लॉगिन करने वाले का असली नाम ब्राउज़र की मेमोरी में सुरक्षित रख लिया है
-                    localStorage.setItem('brokerName', result.name || 'Neeraj'); 
-                    
-                    window.location.href = 'dashboard.html'; // सफल होने पर डैशबोर्ड पर भेजेगा
+                    alert("लॉगिन सफल रहा!");
+                    localStorage.setItem('brokerName', result.name);
+                    localStorage.setItem('brokerEmail', emailInput.toLowerCase().trim());
+                    window.location.href = 'dashboard.html';
                 } else {
-                    alert(result.message); // गलत पासवर्ड होने पर एरर दिखाएगा
+                    alert(result.message);
                 }
             } catch (error) {
-                alert('सर्वर से संपर्क नहीं हो पाया।');
+                alert("सर्वर से संपर्क नहीं हो पाया।");
             }
         });
 
-        // === असली साइन-अप लॉजिक ===
+        // साइन-अप लॉजिक
         document.getElementById('signupForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // पेज रीफ्रेश रोकना
-
+            event.preventDefault();
             const name = document.getElementById('signupName').value;
             const email = document.getElementById('signupEmail').value;
             const password = document.getElementById('signupPassword').value;
@@ -77,20 +70,13 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name, email, password })
                 });
-
                 const result = await response.json();
-
-                if (result.success) {
-                    alert(result.message); // "अकाउंट बन गया" का मैसेज
-                    document.getElementById('signupForm').reset(); // फॉर्म को खाली करना
-                } else {
-                    alert(result.message); // "ईमेल पहले से रजिस्टर्ड है" का मैसेज
-                }
+                alert(result.message);
+                if (result.success) document.getElementById('signupForm').reset();
             } catch (error) {
-                alert('साइन-अप सर्वर से संपर्क नहीं हो पाया।');
+                alert("अकाउंट बनाने में समस्या आई।");
             }
         });
     </script>
-
 </body>
 </html>
