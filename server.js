@@ -16,7 +16,7 @@ if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
 }
 
-// 💡 मल्टार (Multer) की设置: फोटो कहाँ और किस नाम से सेव होगी
+// 💡 मल्टार (Multer) की सेटिंग: फोटो कहाँ और किस नाम से सेव होगी
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/'); // सारी फ़ोटोज़ 'uploads' फ़ोल्डर में जाएँगी
@@ -47,13 +47,15 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 // 2. प्रॉपर्टी का डेटा कैसा दिखेगा (Property Schema)
+// 🎯 सुधार: प्राइवेसी बनाए रखने के लिए हमने इसमें 'brokerEmail' जोड़ दिया है
 const propertySchema = new mongoose.Schema({
     title: String,
     purpose: String,
     location: String,
     price: Number,
     desc: String,
-    image: String // फोटो का रास्ता स्टोर करने के लिए
+    image: String, // फोटो का रास्ता स्टोर करने के लिए
+    brokerEmail: String // 💡 यह बताएगा कि प्रॉपर्टी किस ब्रोकर की है
 });
 const Property = mongoose.model('Property', propertySchema);
 
@@ -116,10 +118,11 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// नयी प्रॉपर्टी को फोटो के साथ डेटाबेस में सेव करने का नया रास्ता
+// नयी प्रॉपर्टी को फोटो और ब्रोकर ईमेल के साथ डेटाबेस में सेव करने का नया रास्ता
 app.post('/api/add-property', upload.single('propertyImage'), async (req, res) => {
     try {
-        const { title, purpose, location, price, desc } = req.body;
+        // 💡 सुधार: फ्रंटएंड से आ रहे 'brokerEmail' को भी यहाँ निकाला
+        const { title, purpose, location, price, desc, brokerEmail } = req.body;
         const imagePath = req.file ? `/uploads/${req.file.filename}` : 'https://via.placeholder.com/350';
 
         const newProperty = new Property({ 
@@ -128,12 +131,13 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
             location, 
             price: Number(price), 
             desc, 
-            image: imagePath 
+            image: imagePath,
+            brokerEmail: brokerEmail ? brokerEmail.toLowerCase().trim() : '' // 🎯 डेटाबेस में ईमेल लॉक किया
         });
         
         await newProperty.save();
 
-        console.log("---- नयी प्रॉपर्टी फोटो के साथ DATABASE में सेव हो गई! ----");
+        console.log(`---- नयी प्रॉपर्टी ${title} ब्रोकर (${brokerEmail}) के साथ DATABASE में सेव हो गई! ----`);
         res.json({ success: true, message: 'प्रॉपर्टी फोटो के साथ सफलतापूर्वक अपलोड हो गई!' });
     } catch (error) {
         console.error("सेव करने में एरर आई:", error);
@@ -141,17 +145,29 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
     }
 });
 
-// डेटाबेस से सारी प्रॉपर्टीज निकालकर डैशबोर्ड को भेजने का रास्ता
+// 🎯 प्राइवेसी फिल्टर: सिर्फ उसी ब्रोकर की प्रॉपर्टीज भेजना जो लॉग इन है
 app.get('/api/get-properties', async (req, res) => {
     try {
-        const properties = await Property.find(); 
+        // फ्रंटएंड से भेजे गए ईमेल को Query Parameter से पढ़ना (जैसे: ?email=user@gmail.com)
+        const brokerEmail = req.query.email;
+
+        let properties;
+        if (brokerEmail) {
+            // 💡 अगर ईमेल मिला, तो केवल उसी ईमेल की प्रॉपर्टीज ढूंढो
+            properties = await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() });
+        } else {
+            // अगर सुरक्षा कारणों से ईमेल नहीं मिला, तो खाली एरे भेजो (ताकि कोई दूसरों का डेटा न चुरा सके)
+            properties = [];
+        }
+        
         res.json(properties);
     } catch (error) {
+        console.error("डेटा लाने में गड़बड़:", error);
         res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' });
     }
 });
 
-// 💡 1. डेटाबेस से प्रॉपर्टी डिलीट करने का नया रास्ता (Delete Route)
+// 💡 डेटाबेस से प्रॉपर्टी डिलीट करने का रास्ता
 app.delete('/api/delete-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
@@ -164,11 +180,11 @@ app.delete('/api/delete-property/:id', async (req, res) => {
         }
     } catch (error) {
         console.error("डिलीट करने में एरर:", error);
-        res.status(500).json({ success: false, message: 'सर्वर में कोई गड़बड़ हुई।' });
+        res.status(500).json({ success: false, message: 'सर्वर में कोई गड़बड़ हुई।' });
     }
 });
 
-// 💡 2. किसी एक प्रॉपर्टी का पुराना डेटा एडिट करने के लिए ढूंढना (Get Single Property for Edit)
+// 💡 किसी एक प्रॉपर्टी का पुराना डेटा एडिट करने के लिए ढूंढना
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
@@ -178,21 +194,19 @@ app.get('/api/get-property/:id', async (req, res) => {
             res.status(404).json({ message: 'प्रॉपर्टी नहीं मिली' });
         }
     } catch (error) {
-        res.status(500).json({ message: 'डेटा खोजने में गड़बड़ हुई' });
+        res.status(500).json({ message: 'डेटा खोजने में गड़बड़ हुई' });
     }
 });
 
-// 💡 3. एडिट किए हुए डेटा को डेटाबेस में अपडेट करना (Update Route)
+// 💡 एडिट किए हुए डेटा को डेटाबेस में अपडेट करना
 app.post('/api/update-property/:id', upload.single('propertyImage'), async (req, res) => {
     try {
         const propertyId = req.params.id;
         const { title, purpose, location, price, desc } = req.body;
         
-        // पुराना डेटा ढूंढना ताकि अगर नई फोटो न अपलोड हो, तो पुरानी वाली बची रहे
         const oldProperty = await Property.findById(propertyId);
         let imagePath = oldProperty.image;
 
-        // अगर यूजर ने नई फोटो चुनी है, तो नया रास्ता सेव करेंगे
         if (req.file) {
             imagePath = `/uploads/${req.file.filename}`;
         }
@@ -210,7 +224,7 @@ app.post('/api/update-property/:id', upload.single('propertyImage'), async (req,
         res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपडेट हो गई!' });
     } catch (error) {
         console.error("अपडेट करने में एरर:", error);
-        res.json({ success: false, message: 'डेटाबेस अपडेट करने में गड़बड़ हुई।' });
+        res.json({ success: false, message: 'डेटाबेस अपडेट करने में गड़बड़ हुई।' });
     }
 });
 
