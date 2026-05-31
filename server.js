@@ -9,7 +9,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB डेटाबेस से कनेक्शन जोड़ना
-mongoose.connect('mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/bhopal_real_estate?retryWrites=true&w=majority&appName=Cluster0')
+// पुराना mongoose.connect हटाकर इसकी जगह यह पूरा पेस्ट कर दो:
+mongoose.connect('mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/bhopal_real_estate?retryWrites=true&w=majority&appName=Cluster0', {
+    tls: true,
+    tlsAllowInvalidCertificates: true // क्लाउड सर्वर पर कनेक्शन एरर रोकने के लिए
+})
 .then(() => console.log('MongoDB Atlas (क्लाउड डेटाबेस) से कनेक्शन सफल हो गया! 🚀'))
 .catch(err => console.error('डेटाबेस कनेक्शन एरर:', err));
 
