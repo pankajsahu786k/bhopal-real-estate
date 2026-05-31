@@ -52,12 +52,11 @@
     <script>
         // जैसे ही डैशबोर्ड पेज ब्राउज़र में खुलेगा, यह फंक्शन अपने आप चल पड़ेगा
         async function loadProperties() {
-            // ब्राउज़र की मेमोरी से लॉगिन करने वाले का असली नाम यहाँ सेट करना
             const savedName = localStorage.getItem('brokerName') || 'Broker';
             document.getElementById('broker-name').innerText = savedName;
 
             try {
-                // सर्वर के नए रास्ते से लिस्ट मांगना
+                // सर्वर से लिस्ट मांगना
                 const response = await fetch('/api/get-properties');
                 const properties = await response.json();
 
@@ -65,7 +64,6 @@
                 tableBody.innerHTML = ''; // पुरानी टेबल साफ करना
 
                 if (properties.length === 0) {
-                    // अगर लिस्ट खाली है तो यह मैसेज दिखेगा
                     tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #7f8c8d;">कोई प्रॉपर्टी नहीं मिली। कृपया '+ Nayi Property Jodein' पर क्लिक करके अपलोड करें।</td></tr>`;
                     return;
                 }
@@ -76,9 +74,9 @@
                     const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
                     const statusText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
 
-                    // 💡 यहाँ सुधार किया गया है: अगर डेटाबेस में इमेज का रास्ता है तो वो दिखाओ, नहीं तो डिफ़ॉल्ट इमेज दिखाओ
                     const propertyImgSrc = prop.image ? prop.image : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=80&h=50&q=80';
 
+                    // 💡 यहाँ सुधार किया: बटनों में onclick फंक्शन्स और प्रॉपर्टी की ID जोड़ दी है
                     const row = `
                         <tr>
                             <td><img src="${propertyImgSrc}" alt="House" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;"></td>
@@ -87,8 +85,8 @@
                             <td>${priceText}</td>
                             <td><span class="status ${statusClass}">${statusText}</span></td>
                             <td>
-                                <button class="edit-btn">Edit</button>
-                                <button class="delete-btn">Delete</button>
+                                <button class="edit-btn" onclick="editPropertyPrice('${prop._id}', '${prop.price}')">Edit Price</button>
+                                <button class="delete-btn" onclick="deleteProperty('${prop._id}')">Delete</button>
                             </td>
                         </tr>
                     `;
@@ -100,7 +98,67 @@
             }
         }
 
-        // लॉग आउट बटन पर क्लिक करने का लॉजिक (पुरानी मेमोरी साफ करने के लिए)
+        // 💡 १. प्रॉपर्टी डिलीट करने का फ्रंटएंड लॉजिक
+        async function deleteProperty(id) {
+            if (confirm("क्या आप वाकई इस प्रॉपर्टी को हमेशा के लिए डिलीट करना चाहते हैं?")) {
+                try {
+                    const response = await fetch(`/api/delete-property/${id}`, {
+                        method: 'DELETE'
+                    });
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert(result.message);
+                        loadProperties(); // तुरंत लिस्ट अपडेट करना
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (error) {
+                    alert("प्रॉपर्टी डिलीट नहीं हो पाई, सर्वर एरर।");
+                }
+            }
+        }
+
+        // 💡 २. प्रॉपर्टी की कीमत तुरंत बदलने (Edit Price) का लॉजिक
+        async function editPropertyPrice(id, oldPrice) {
+            const newPrice = prompt("प्रॉपर्टी की नई कीमत (Price) दर्ज करें:", oldPrice);
+            
+            // अगर यूजर ने कैंसिल कर दिया या खाली छोड़ दिया तो रुक जाओ
+            if (newPrice === null || newPrice.trim() === "") return;
+
+            try {
+                // पहले उस प्रॉपर्टी का बाकी डेटा ले आते हैं ताकि वो न बदले
+                const getResponse = await fetch(`/api/get-property/${id}`);
+                const currentData = await getResponse.json();
+
+                // अपडेट करने के लिए पैकेट बनाना
+                const formData = new FormData();
+                formData.append('title', currentData.title);
+                formData.append('purpose', currentData.purpose);
+                formData.append('location', currentData.location);
+                formData.append('price', newPrice); // नयी कीमत जोड़ना
+                formData.append('desc', currentData.desc);
+
+                // सर्वर के अपडेट वाले रास्ते पर डेटा पोस्ट करना
+                const response = await fetch(`/api/update-property/${id}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    loadProperties(); // डैशबोर्ड लिस्ट अपडेट करना
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error("अपडेट एरर:", error);
+                alert("कीमत अपडेट करने में समस्या आई।");
+            }
+        }
+
+        // लॉग आउट बटन पर क्लिक करने का लॉजिक
         document.getElementById('logoutBtn').addEventListener('click', function() {
             localStorage.removeItem('brokerName');
         });

@@ -16,13 +16,12 @@ if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
 }
 
-// 💡 मल्टार (Multer) की सेटिंग: फोटो कहाँ और किस नाम से सेव होगी
+// 💡 मल्टार (Multer) की设置: फोटो कहाँ और किस नाम से सेव होगी
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'uploads/'); // सारी फ़ोटोज़ 'uploads' फ़ोल्डर में जाएँगी
     },
     filename: function (req, file, cb) {
-        // फोटो का नाम यूनिक बनाने के लिए टाइमस्टैम्प जोड़ना (जैसे: 17171717-home.jpg)
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
@@ -54,7 +53,7 @@ const propertySchema = new mongoose.Schema({
     location: String,
     price: Number,
     desc: String,
-    image: String // 💡 नया फ़ील्ड: फोटो का रास्ता स्टोर करने के लिए
+    image: String // फोटो का रास्ता स्टोर करने के लिए
 });
 const Property = mongoose.model('Property', propertySchema);
 
@@ -109,7 +108,7 @@ app.post('/api/login', async (req, res) => {
         if (user && user.password === password) {
             res.json({ success: true, message: `लॉगिन सफल रहा! स्वागत है ${user.name}`, name: user.name });
         } else {
-            res.json({ success: false, message: 'गलत ईमेल या密码! कृपया दोबारा जाँचें।' });
+            res.json({ success: false, message: 'गलत ईमेल या पासवर्ड! कृपया दोबारा जाँचें।' });
         }
     } catch (error) {
         console.error("लॉगिन सर्वर एरर:", error);
@@ -117,15 +116,12 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// 💡 नयी प्रॉपर्टी को फोटो के साथ डेटाबेस में सेव करने का नया रास्ता
+// नयी प्रॉपर्टी को फोटो के साथ डेटाबेस में सेव करने का नया रास्ता
 app.post('/api/add-property', upload.single('propertyImage'), async (req, res) => {
     try {
         const { title, purpose, location, price, desc } = req.body;
-        
-        // अगर यूजर ने फोटो अपलोड की है तो उसका सही रास्ता निकालना वरना डिफॉल्ट इमेज डालना
         const imagePath = req.file ? `/uploads/${req.file.filename}` : 'https://via.placeholder.com/350';
 
-        // डेटाबेस में नया डॉक्यूमेंट फोटो के लिंक के साथ बनाना
         const newProperty = new Property({ 
             title, 
             purpose, 
@@ -135,7 +131,7 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
             image: imagePath 
         });
         
-        await newProperty.save(); // मोंगोडीबी की तिजोरी में लॉक करना
+        await newProperty.save();
 
         console.log("---- नयी प्रॉपर्टी फोटो के साथ DATABASE में सेव हो गई! ----");
         res.json({ success: true, message: 'प्रॉपर्टी फोटो के साथ सफलतापूर्वक अपलोड हो गई!' });
@@ -152,6 +148,69 @@ app.get('/api/get-properties', async (req, res) => {
         res.json(properties);
     } catch (error) {
         res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' });
+    }
+});
+
+// 💡 1. डेटाबेस से प्रॉपर्टी डिलीट करने का नया रास्ता (Delete Route)
+app.delete('/api/delete-property/:id', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        const deletedProperty = await Property.findByIdAndDelete(propertyId);
+        
+        if (deletedProperty) {
+            res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक डिलीट हो गई!' });
+        } else {
+            res.json({ success: false, message: 'प्रॉपर्टी नहीं मिली।' });
+        }
+    } catch (error) {
+        console.error("डिलीट करने में एरर:", error);
+        res.status(500).json({ success: false, message: 'सर्वर में कोई गड़बड़ हुई।' });
+    }
+});
+
+// 💡 2. किसी एक प्रॉपर्टी का पुराना डेटा एडिट करने के लिए ढूंढना (Get Single Property for Edit)
+app.get('/api/get-property/:id', async (req, res) => {
+    try {
+        const property = await Property.findById(req.params.id);
+        if (property) {
+            res.json(property);
+        } else {
+            res.status(404).json({ message: 'प्रॉपर्टी नहीं मिली' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: 'डेटा खोजने में गड़बड़ हुई' });
+    }
+});
+
+// 💡 3. एडिट किए हुए डेटा को डेटाबेस में अपडेट करना (Update Route)
+app.post('/api/update-property/:id', upload.single('propertyImage'), async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        const { title, purpose, location, price, desc } = req.body;
+        
+        // पुराना डेटा ढूंढना ताकि अगर नई फोटो न अपलोड हो, तो पुरानी वाली बची रहे
+        const oldProperty = await Property.findById(propertyId);
+        let imagePath = oldProperty.image;
+
+        // अगर यूजर ने नई फोटो चुनी है, तो नया रास्ता सेव करेंगे
+        if (req.file) {
+            imagePath = `/uploads/${req.file.filename}`;
+        }
+
+        const updatedData = {
+            title,
+            purpose,
+            location,
+            price: Number(price),
+            desc,
+            image: imagePath
+        };
+
+        await Property.findByIdAndUpdate(propertyId, updatedData);
+        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपडेट हो गई!' });
+    } catch (error) {
+        console.error("अपडेट करने में एरर:", error);
+        res.json({ success: false, message: 'डेटाबेस अपडेट करने में गड़बड़ हुई।' });
     }
 });
 
