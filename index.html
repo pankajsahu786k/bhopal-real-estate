@@ -89,10 +89,11 @@
     <script>
         let allPropertiesList = [];
 
-        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन (Render सर्वर से कनेक्टेड)
+        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन (Cache Trick के साथ)
         async function loadAllProperties() {
             try {
-                const response = await fetch('/api/get-properties'); // बिना ईमेल के रिक्वेस्ट
+                // 🚀 ब्राउज़र का कैश (Cache) तोड़ने के लिए टाइमस्टैम्प ट्रिक
+                const response = await fetch('/api/get-properties?nocache=' + new Date().getTime()); 
                 allPropertiesList = await response.json();
                 displayProperties(allPropertiesList);
             } catch (error) {
@@ -130,13 +131,13 @@
             });
         }
 
-        // 📑 'किराए' या 'बेचने' के आधार पर क्विक फ़िल्टर
+        // 📑 'किराए' या 'बेचने' के आधार पर क्विक फ़िल्टर
         function filterByPurpose(purpose) {
             const filtered = allPropertiesList.filter(p => p.purpose === purpose);
             displayProperties(filtered);
         }
 
-        // 🔍 सर्च बटन का फंक्शन (जो ड्रॉपडाउन के हिसाब से फ़िल्टर करेगा)
+        // 🔍 सर्च बटन का फंक्शन (जो ड्रॉपडाउन के हिसाब से फ़िल्टर करेगा)
         function searchProperties() {
             const purpose = document.getElementById('searchPurpose').value;
             const location = document.getElementById('searchLocation').value;
@@ -153,18 +154,8 @@
             displayProperties(filtered);
         }
 
-        // पेज लोड होते ही अपने आप डेटा खींचना शुरू करें
-        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन (Render सर्वर से कनेक्टेड)
-async function loadAllProperties() {
-    try {
-        // 🚀 ब्राउज़र का कैश (Cache) तोड़ने के लिए हमने एक टाइमस्टैम्प ट्रिक लगा दी है
-        const response = await fetch('/api/get-properties?nocache=' + new Date().getTime()); 
-        allPropertiesList = await response.json();
-        displayProperties(allPropertiesList);
-    } catch (error) {
-        console.error("होमपेज डेटा लोड एरर:", error);
-    }
-}
+        // 🚀 पेज लोड होते ही अपने आप डेटा खींचना शुरू करें (यह लाइन बहुत ज़रूरी है!)
+        window.onload = loadAllProperties;
     </script>
 </body>
 </html>
