@@ -6,7 +6,7 @@
     <title>Bhopal Real Estate - Find Your Dream Home</title>
     <link rel="stylesheet" href="home-style.css">
     <style>
-        /* प्रॉपर्टी कार्ड्स को सुंदर दिखाने के लिए एडिशनल स्टाइल */
+        /* प्रॉपर्टी कार्ड्स को सुंदर दिखाने के लिए स्टाइल */
         .property-card { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid #eee; display: flex; flex-direction: column; }
         .property-img { width: 100%; height: 200px; object-fit: cover; }
         .property-details { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
@@ -89,7 +89,7 @@
     <script>
         let allPropertiesList = [];
 
-        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन
+        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन (Render सर्वर से कनेक्टेड)
         async function loadAllProperties() {
             try {
                 const response = await fetch('/api/get-properties'); // बिना ईमेल के रिक्वेस्ट
@@ -130,13 +130,13 @@
             });
         }
 
-        // 📑 'किराए' या 'बेचने' के आधार पर क्विक फ़िल्टर (Navbar के लिए)
+        // 📑 'किराए' या 'बेचने' के आधार पर क्विक फ़िल्टर
         function filterByPurpose(purpose) {
             const filtered = allPropertiesList.filter(p => p.purpose === purpose);
             displayProperties(filtered);
         }
 
-        // 🔍 सर्च बटन का बेसिक फंक्शन (अगले स्टेप में इसे और एडवांस करेंगे)
+        // 🔍 सर्च बटन का फंक्शन (जो ड्रॉपडाउन के हिसाब से फ़िल्टर करेगा)
         function searchProperties() {
             const purpose = document.getElementById('searchPurpose').value;
             const location = document.getElementById('searchLocation').value;
@@ -153,7 +153,7 @@
             displayProperties(filtered);
         }
 
-        // पेज लोड होते ही डेटा खींचना शुरू करें
+        // पेज लोड होते ही अपने आप डेटा खींचना शुरू करें
         window.onload = loadAllProperties;
     </script>
 </body>
