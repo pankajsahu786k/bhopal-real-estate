@@ -154,7 +154,17 @@
         }
 
         // पेज लोड होते ही अपने आप डेटा खींचना शुरू करें
-        window.onload = loadAllProperties;
+        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन (Render सर्वर से कनेक्टेड)
+async function loadAllProperties() {
+    try {
+        // 🚀 ब्राउज़र का कैश (Cache) तोड़ने के लिए हमने एक टाइमस्टैम्प ट्रिक लगा दी है
+        const response = await fetch('/api/get-properties?nocache=' + new Date().getTime()); 
+        allPropertiesList = await response.json();
+        displayProperties(allPropertiesList);
+    } catch (error) {
+        console.error("होमपेज डेटा लोड एरर:", error);
+    }
+}
     </script>
 </body>
 </html>
