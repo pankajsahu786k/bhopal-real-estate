@@ -17,10 +17,9 @@ app.use(express.static(__dirname));
 // ☁️ CLOUDINARY SETUP (फोटो की तिजोरी)
 // ==========================================
 cloudinary.config({
-cloud_name: 'duy3lpjoj',
-api_key: '228275812572669',
-api_secret: 'यहाँ_कॉपी_किया_हुआ_सीक्रेट_पेस्ट_करना'
-});
+    cloud_name: 'duy3lpjoj',
+    api_key: '228275812572669',
+    api_secret: 'यहाँ_अपना_असली_सीक्रेट_पेस्ट_करें' // 👈 अपना असली सीक्रेट यहाँ डालें!
 });
 
 const storage = new CloudinaryStorage({
@@ -124,7 +123,7 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
             location: req.body.location,
             price: req.body.price,
             desc: req.body.desc,
-            image: req.file ? req.file.path : '', // 👈 अब फोटो Cloudinary के लिंक से सेव होगी
+            image: req.file ? req.file.path : '',
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown'
         });
         await newProperty.save();
@@ -159,7 +158,7 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 
         profile.phone = req.body.phone;
         profile.dealingAreas = dealingAreas;
-        if (req.file) profile.photo = req.file.path; // 👈 अब फोटो Cloudinary के लिंक से सेव होगी
+        if (req.file) profile.photo = req.file.path;
 
         await profile.save();
         res.json({ success: true, message: 'Profile कामयाबी से अपडेट हो गई!' });
