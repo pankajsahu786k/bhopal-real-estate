@@ -19,7 +19,7 @@ app.use(express.static(__dirname));
 cloudinary.config({
     cloud_name: 'duy3lpjoj',
     api_key: '228275812572669',
-    api_secret: 'यहाँ_अपना_असली_सीक्रेट_पेस्ट_करें' // 👈 अपना असली सीक्रेट यहाँ डालें!
+    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI' // 👈 अपना असली सीक्रेट यहाँ डालें!
 });
 
 const storage = new CloudinaryStorage({
