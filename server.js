@@ -19,7 +19,7 @@ app.use(express.static(__dirname));
 // ==========================================
 const mongoURI = 'mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/?appName=Cluster0';
 
-mongoose.connect(mongoURI)
+mongoose.connect(mongoURI, { family: 4 })
     .then(() => console.log('✅ MongoDB Database Connected Successfully!'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
@@ -39,7 +39,7 @@ const propertySchema = new mongoose.Schema({
     location: String,
     price: Number,
     desc: String,
-    image: String, 
+    image: String,
     brokerEmail: String
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
@@ -58,7 +58,7 @@ const brokerProfileSchema = new mongoose.Schema({
     brokerEmail: { type: String, unique: true, required: true },
     phone: String,
     photo: String,
-    dealingAreas: [String] 
+    dealingAreas: [String]
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
@@ -66,25 +66,25 @@ const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 // 3️⃣ MULTER SETUP (फोटो अपलोड करने के लिए)
 // ==========================================
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './uploads'); 
+    destination: function(req, file, cb) {
+        cb(null, './uploads');
     },
-    filename: function (req, file, cb) {
+    filename: function(req, file, cb) {
         cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-'));
     }
 });
 const upload = multer({ storage: storage });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ==========================================
 // 4️⃣ API ROUTES (बैकएंड के सारे रास्ते)
 // ==========================================
-app.post('/api/signup', async (req, res) => {
+app.post('/api/signup', async(req, res) => {
     try {
         const { name, email, password } = req.body;
         const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
         if (existingUser) return res.status(400).json({ success: false, message: 'यह ईमेल पहले से रजिस्टर है!' });
-        
+
         const newUser = new User({ name, email: email.toLowerCase().trim(), password });
         await newUser.save();
         res.json({ success: true, message: 'खाता सफलतापूर्वक बन गया! अब आप लॉगिन कर सकते हैं।' });
@@ -93,7 +93,7 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: email.toLowerCase().trim(), password });
@@ -107,7 +107,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-app.get('/api/get-properties', async (req, res) => {
+app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
         let properties = [];
@@ -122,7 +122,7 @@ app.get('/api/get-properties', async (req, res) => {
     }
 });
 
-app.post('/api/add-property', upload.single('propertyImage'), async (req, res) => {
+app.post('/api/add-property', upload.single('propertyImage'), async(req, res) => {
     try {
         const newProperty = new Property({
             title: req.body.title,
@@ -130,7 +130,7 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
             location: req.body.location,
             price: req.body.price,
             desc: req.body.desc,
-            image: req.file ? '/uploads/' + req.file.filename : '', 
+            image: req.file ? '/uploads/' + req.file.filename : '',
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown'
         });
         await newProperty.save();
@@ -140,11 +140,11 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
     }
 });
 
-app.get('/api/get-profile', async (req, res) => {
+app.get('/api/get-profile', async(req, res) => {
     try {
         const email = req.query.email;
         if (!email) return res.status(400).json({ message: 'Email ज़रूरी है' });
-        
+
         let profile = await BrokerProfile.findOne({ brokerEmail: email.toLowerCase().trim() });
         if (!profile) {
             profile = { brokerEmail: email, phone: '', photo: '', dealingAreas: [] };
@@ -155,7 +155,7 @@ app.get('/api/get-profile', async (req, res) => {
     }
 });
 
-app.post('/api/update-profile', upload.single('brokerPhoto'), async (req, res) => {
+app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) => {
     try {
         const email = req.body.brokerEmail.toLowerCase().trim();
         const dealingAreas = req.body.dealingAreas ? req.body.dealingAreas.split(',') : [];

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add New Property - Bhopal Real Estate</title>
     <link rel="stylesheet" href="add-property-style.css">
 </head>
+
 <body>
 
     <header class="form-header">
@@ -16,8 +18,9 @@
     <div class="form-container">
         <h2>नयी प्रॉपर्टी की जानकारी भरें</h2>
         <p>कृपया भोपाल में स्थित अपनी प्रॉपर्टी का सही विवरण दें ताकि ग्राहक आपसे संपर्क कर सकें।</p>
-        
-        <div id="propertyForm">
+
+        <form id="propertyForm" onsubmit="submitProperty(event)">
+
             <div class="form-group">
                 <label for="title">Property का नाम / Title</label>
                 <input type="text" id="title" placeholder="जैसे: 3 BHK Luxury Apartment, Beautiful House" required>
@@ -58,4 +61,95 @@
                         <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
                         <option value="Ayodhya Bypass">Ayodhya Bypass (अयोध्या बाईपास)</option>
                         <option value="Hoshangabad Road">Hoshangabad Road (होशंगाबाद रोड)</option>
-                        <option value="
+                        <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
+                        <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
+                    </optgroup>
+
+                    <optgroup label="अन्य प्रमुख क्षेत्र (Other Major Areas)">
+                        <option value="Indrapuri">Indrapuri (इन्द्रपुरी)</option>
+                        <option value="Piplani">Piplani (पिपलानी)</option>
+                        <option value="Kohefiza">Kohefiza (कोहेफिजा)</option>
+                        <option value="Lalghati">Lalghati (लालघाटी)</option>
+                        <option value="Karond">Karond (करोंद)</option>
+                        <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="price">कीमत / Price (₹)</label>
+                <input type="number" id="price" placeholder="जैसे: 15000 (किराया) या 5000000 (बिक्री)" required>
+            </div>
+
+            <div class="form-group">
+                <label for="desc">प्रॉपर्टी के बारे में जानकारी (Description)</label>
+                <textarea id="desc" rows="4" placeholder="सुविधाएं, कमरों की संख्या, पार्किंग आदि की जानकारी दें..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="propertyImage">प्रॉपर्टी की फोटो (Upload Image)</label>
+                <input type="file" id="propertyImage" accept="image/*" required>
+            </div>
+
+            <button type="submit" class="submit-btn">प्रॉपर्टी पब्लिश करें (Publish Property)</button>
+        </form>
+    </div>
+
+    <script>
+        // चेक करें कि ब्रोकर लॉगिन है या नहीं
+        document.addEventListener('DOMContentLoaded', () => {
+            const brokerEmail = localStorage.getItem('brokerEmail');
+            if (!brokerEmail) {
+                alert('कृपया पहले लॉगिन करें!');
+                window.location.href = 'index.html'; // या आपका जो भी लॉगिन पेज हो
+            }
+        });
+
+        // फॉर्म सबमिट करने का फंक्शन
+        async function submitProperty(event) {
+            event.preventDefault(); // पेज को रिफ्रेश होने से रोकना
+
+            const submitBtn = document.querySelector('.submit-btn');
+            submitBtn.innerText = "अपलोड हो रहा है... (Please Wait)";
+            submitBtn.disabled = true;
+
+            const brokerEmail = localStorage.getItem('brokerEmail');
+
+            // फोटो के साथ डेटा भेजने के लिए FormData का इस्तेमाल
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('purpose', document.getElementById('purpose').value);
+            formData.append('location', document.getElementById('location').value);
+            formData.append('price', document.getElementById('price').value);
+            formData.append('desc', document.getElementById('desc').value);
+            formData.append('brokerEmail', brokerEmail);
+            formData.append('propertyImage', document.getElementById('propertyImage').files[0]);
+
+            try {
+                // यह रिक्वेस्ट सीधे आपके सर्वर (server.js) के 'add-property' रूट पर जाएगी
+                const response = await fetch('/api/add-property', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ प्रॉपर्टी सफलतापूर्वक जुड़ गई!');
+                    window.location.href = 'dashboard.html'; // अपलोड होने के बाद डैशबोर्ड पर भेजें
+                } else {
+                    alert('❌ ' + data.message);
+                    submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                alert('❌ सर्वर से जुड़ने में समस्या आई।');
+                submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
+                submitBtn.disabled = false;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+
+</html>
