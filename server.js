@@ -3,7 +3,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
+const multer = require('multer');
+const fs = require('fs'); // 👈 यह नया जोड़ा है
 
+// ⚙️ ऑटोमैटिक uploads फोल्डर बनाने का कोड (Render के लिए)
+if (!fs.existsSync('./uploads')) {
+    fs.mkdirSync('./uploads');
+}
 const app = express();
 
 // ==========================================
