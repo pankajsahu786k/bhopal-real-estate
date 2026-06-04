@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-const multer = require('multer');
-const fs = require('fs'); // 👈 यह नया जोड़ा है
+const fs = require('fs'); // 👈 यह नया जोड़ा है
 
 // ⚙️ ऑटोमैटिक uploads फोल्डर बनाने का कोड (Render के लिए)
 if (!fs.existsSync('./uploads')) {
@@ -187,5 +186,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is running LIVE on port ${PORT}`);
 });
-
-// 👉 पंकज भाई, चेक करना कि यहां तक कॉपी हुआ है या नहीं 👈
