@@ -3,21 +3,34 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-const fs = require('fs'); // 👈 यह नया जोड़ा है
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// ⚙️ ऑटोमैटिक uploads फोल्डर बनाने का कोड (Render के लिए)
-if (!fs.existsSync('./uploads')) {
-    fs.mkdirSync('./uploads');
-}
 const app = express();
 
-// ==========================================
-// ⚙️ मिडिलवेयर (Middleware)
-// ==========================================
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
+
+// ==========================================
+// ☁️ CLOUDINARY SETUP (फोटो की तिजोरी)
+// ==========================================
+cloudinary.config({
+cloud_name: 'duy3lpjoj',
+api_key: '228275812572669',
+api_secret: 'यहाँ_कॉपी_किया_हुआ_सीक्रेट_पेस्ट_करना'
+});
+});
+
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'bhopal_properties', // Cloudinary में इस नाम का फोल्डर बनेगा
+        allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
+    }
+});
+const upload = multer({ storage: storage });
 
 // ==========================================
 // 1️⃣ MONGODB DATABASE CONNECTION
@@ -29,7 +42,7 @@ mongoose.connect(mongoURI, { family: 4 })
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // ==========================================
-// 2️⃣ DATABASE SCHEMAS (तिजोरी के खाके)
+// 2️⃣ DATABASE SCHEMAS
 // ==========================================
 const userSchema = new mongoose.Schema({
     name: String,
@@ -49,16 +62,6 @@ const propertySchema = new mongoose.Schema({
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
-const enquirySchema = new mongoose.Schema({
-    propertyId: String,
-    propertyTitle: String,
-    ownerEmail: String,
-    customerName: String,
-    customerPhone: String,
-    message: String
-}, { timestamps: true });
-const Enquiry = mongoose.model('Enquiry', enquirySchema);
-
 const brokerProfileSchema = new mongoose.Schema({
     brokerEmail: { type: String, unique: true, required: true },
     phone: String,
@@ -68,21 +71,7 @@ const brokerProfileSchema = new mongoose.Schema({
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
 // ==========================================
-// 3️⃣ MULTER SETUP (फोटो अपलोड करने के लिए)
-// ==========================================
-const storage = multer.diskStorage({
-    destination: function(req, file, cb) {
-        cb(null, './uploads');
-    },
-    filename: function(req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-'));
-    }
-});
-const upload = multer({ storage: storage });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// ==========================================
-// 4️⃣ API ROUTES (बैकएंड के सारे रास्ते)
+// 4️⃣ API ROUTES
 // ==========================================
 app.post('/api/signup', async(req, res) => {
     try {
@@ -92,9 +81,9 @@ app.post('/api/signup', async(req, res) => {
 
         const newUser = new User({ name, email: email.toLowerCase().trim(), password });
         await newUser.save();
-        res.json({ success: true, message: 'खाता सफलतापूर्वक बन गया! अब आप लॉगिन कर सकते हैं।' });
+        res.json({ success: true, message: 'खाता सफलतापूर्वक बन गया!' });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'साइन-अप में सर्वर एरर' });
+        res.status(500).json({ success: false, message: 'सर्वर एरर' });
     }
 });
 
@@ -108,7 +97,7 @@ app.post('/api/login', async(req, res) => {
             res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड' });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: 'लॉगिन में सर्वर एरर' });
+        res.status(500).json({ success: false, message: 'सर्वर एरर' });
     }
 });
 
@@ -135,7 +124,7 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
             location: req.body.location,
             price: req.body.price,
             desc: req.body.desc,
-            image: req.file ? '/uploads/' + req.file.filename : '',
+            image: req.file ? req.file.path : '', // 👈 अब फोटो Cloudinary के लिंक से सेव होगी
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown'
         });
         await newProperty.save();
@@ -170,7 +159,7 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 
         profile.phone = req.body.phone;
         profile.dealingAreas = dealingAreas;
-        if (req.file) profile.photo = '/uploads/' + req.file.filename;
+        if (req.file) profile.photo = req.file.path; // 👈 अब फोटो Cloudinary के लिंक से सेव होगी
 
         await profile.save();
         res.json({ success: true, message: 'Profile कामयाबी से अपडेट हो गई!' });
