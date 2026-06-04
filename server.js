@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
-const multer = require('multer'); // फोटो अपलोड के लिए
+const multer = require('multer');
 
 const app = express();
 
@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname)); // HTML, CSS और JS फाइलों के लिए
+app.use(express.static(__dirname));
 
 // ==========================================
 // 1️⃣ MONGODB DATABASE CONNECTION
@@ -23,12 +23,9 @@ mongoose.connect(mongoURI)
     .then(() => console.log('✅ MongoDB Database Connected Successfully!'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-
 // ==========================================
 // 2️⃣ DATABASE SCHEMAS (तिजोरी के खाके)
 // ==========================================
-
-// 🧑‍💼 1. यूज़र अकाउंट (Login/Signup) मॉडल
 const userSchema = new mongoose.Schema({
     name: String,
     email: { type: String, unique: true, required: true },
@@ -36,7 +33,6 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// 🏠 2. प्रॉपर्टी का मॉडल
 const propertySchema = new mongoose.Schema({
     title: String,
     purpose: String,
@@ -48,7 +44,6 @@ const propertySchema = new mongoose.Schema({
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
-// 📨 3. कस्टमर मैसेज (Enquiry) का मॉडल
 const enquirySchema = new mongoose.Schema({
     propertyId: String,
     propertyTitle: String,
@@ -59,38 +54,31 @@ const enquirySchema = new mongoose.Schema({
 }, { timestamps: true });
 const Enquiry = mongoose.model('Enquiry', enquirySchema);
 
-// 👤 4. ब्रोकर प्रोफाइल का मॉडल
 const brokerProfileSchema = new mongoose.Schema({
     brokerEmail: { type: String, unique: true, required: true },
     phone: String,
     photo: String,
-    dealingAreas: [String] // भोपाल के चुने हुए इलाके
+    dealingAreas: [String] 
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
-
 
 // ==========================================
 // 3️⃣ MULTER SETUP (फोटो अपलोड करने के लिए)
 // ==========================================
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './uploads'); // 'uploads' नाम का फोल्डर होना चाहिए
+        cb(null, './uploads'); 
     },
     filename: function (req, file, cb) {
         cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '-'));
     }
 });
 const upload = multer({ storage: storage });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // फोटो दिखाने के लिए
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); 
 
 // ==========================================
 // 4️⃣ API ROUTES (बैकएंड के सारे रास्ते)
 // ==========================================
-
-// ------------------------------------------
-// 🔐 LOGIN / SIGNUP ROUTES
-// ------------------------------------------
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -119,14 +107,10 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// ------------------------------------------
-// 🏠 PROPERTY ROUTES (Add, Get, Update, Delete)
-// ------------------------------------------
 app.get('/api/get-properties', async (req, res) => {
     try {
         const brokerEmail = req.query.email;
         let properties = [];
-        // 🔒 अगर ईमेल है (डैशबोर्ड) तो सिर्फ उसकी प्रॉपर्टी दिखाओ, वर्ना पब्लिक के लिए सारी दिखाओ
         if (brokerEmail && brokerEmail.trim() !== "" && brokerEmail !== "undefined") {
             properties = await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() });
         } else {
@@ -152,4 +136,50 @@ app.post('/api/add-property', upload.single('propertyImage'), async (req, res) =
         await newProperty.save();
         res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपलोड हो गई!' });
     } catch (error) {
-        res.status(500).json({ success: false, message
+        res.status(500).json({ success: false, message: 'प्रॉपर्टी अपलोड करने में सर्वर एरर' });
+    }
+});
+
+app.get('/api/get-profile', async (req, res) => {
+    try {
+        const email = req.query.email;
+        if (!email) return res.status(400).json({ message: 'Email ज़रूरी है' });
+        
+        let profile = await BrokerProfile.findOne({ brokerEmail: email.toLowerCase().trim() });
+        if (!profile) {
+            profile = { brokerEmail: email, phone: '', photo: '', dealingAreas: [] };
+        }
+        res.json(profile);
+    } catch (error) {
+        res.status(500).json({ message: 'Profile data लाने में दिक्कत हुई' });
+    }
+});
+
+app.post('/api/update-profile', upload.single('brokerPhoto'), async (req, res) => {
+    try {
+        const email = req.body.brokerEmail.toLowerCase().trim();
+        const dealingAreas = req.body.dealingAreas ? req.body.dealingAreas.split(',') : [];
+
+        let profile = await BrokerProfile.findOne({ brokerEmail: email });
+        if (!profile) profile = new BrokerProfile({ brokerEmail: email });
+
+        profile.phone = req.body.phone;
+        profile.dealingAreas = dealingAreas;
+        if (req.file) profile.photo = '/uploads/' + req.file.filename;
+
+        await profile.save();
+        res.json({ success: true, message: 'Profile कामयाबी से अपडेट हो गई!' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Profile अपडेट सर्वर एरर' });
+    }
+});
+
+// ==========================================
+// 5️⃣ SERVER START
+// ==========================================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running LIVE on port ${PORT}`);
+});
+
+// 👉 पंकज भाई, चेक करना कि यहां तक कॉपी हुआ है या नहीं 👈
