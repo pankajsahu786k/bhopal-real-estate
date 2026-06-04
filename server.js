@@ -19,13 +19,13 @@ app.use(express.static(__dirname));
 cloudinary.config({
     cloud_name: 'duy3lpjoj',
     api_key: '228275812572669',
-    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI' // 👈 अपना असली सीक्रेट यहाँ डालें!
+    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'bhopal_properties', // Cloudinary में इस नाम का फोल्डर बनेगा
+        folder: 'bhopal_properties',
         allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
     }
 });
@@ -123,7 +123,7 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
             location: req.body.location,
             price: req.body.price,
             desc: req.body.desc,
-            image: req.file ? req.file.path : '',
+            image: req.file ? (req.file.path || req.file.url) : '', // 👈 यहाँ मैंने सही फिक्स कर दिया है
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown'
         });
         await newProperty.save();
@@ -158,7 +158,7 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 
         profile.phone = req.body.phone;
         profile.dealingAreas = dealingAreas;
-        if (req.file) profile.photo = req.file.path;
+        if (req.file) profile.photo = (req.file.path || req.file.url); // 👈 यहाँ भी सही फिक्स कर दिया है
 
         await profile.save();
         res.json({ success: true, message: 'Profile कामयाबी से अपडेट हो गई!' });
@@ -174,4 +174,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is running LIVE on port ${PORT}`);
 });
-// Render deployment trigger - 5 June
+// Render deployment trigger - Final Fix
