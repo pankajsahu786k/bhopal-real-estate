@@ -17,7 +17,7 @@ app.use(express.static(__dirname));
 // ☁️ CLOUDINARY SETUP (फोटो की तिजोरी)
 // ==========================================
 cloudinary.config({
-    cloud_name: 'duy3lpjoj',
+    cloud_name: 'duy3ipjoj',
     api_key: '228275812572669',
     api_secret: '0VVartpd4kavLNXs66kmCAmUeCI' // 👈 आपकी असली चाबी सेट कर दी है!
 });
