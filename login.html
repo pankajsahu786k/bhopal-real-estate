@@ -30,9 +30,9 @@
     </div>
 
     <script>
-        // ======= १. लॉगिन का बिल्कुल सही जावास्क्रिप्ट लॉजिक =======
+        // ======= 1. लॉगिन का जावास्क्रिप्ट लॉजिक =======
         document.getElementById('loginForm').addEventListener('submit', async function(event) {
-            event.preventDefault(); // पेज को रीफ्रेश होने से रोकना
+            event.preventDefault(); 
             
             const emailInput = document.getElementById('loginEmail').value;
             const passwordInput = document.getElementById('loginPassword').value;
@@ -49,22 +49,27 @@
                 if (result.success) {
                     alert("लॉगिन सफल रहा!");
                     
-                    // ब्राउज़र की तिजोरी में नाम और साफ किया हुआ ईमेल लॉक करना
+                    // ब्राउज़र की तिजोरी में डेटा लॉक करना
                     localStorage.setItem('brokerName', result.name);
                     localStorage.setItem('brokerEmail', emailInput.toLowerCase().trim());
+                    localStorage.setItem('userRole', result.role); // 👈 नया फीचर
                     
-                    // सीधे डैशबोर्ड पर ले जाना
-                    window.location.href = 'dashboard.html';
+                    // 🚦 ट्रैफिक पुलिस
+                    if (result.role === 'admin') {
+                        window.location.href = 'admin-dashboard.html'; 
+                    } else {
+                        window.location.href = 'dashboard.html'; 
+                    }
                 } else {
                     alert(result.message);
                 }
             } catch (error) {
                 console.error("लॉगिन एरर:", error);
-                alert("सर्वर से संपर्क नहीं हो पाया या कोई तकनीकी समस्या है।"); // 💡 सुधार: ब्राउज़र के अनुकूल सही एरर मैसेज
+                alert("सर्वर से संपर्क नहीं हो पाया या कोई तकनीकी समस्या है।");
             }
         });
 
-        // ======= २. साइन-अप (रजिस्ट्रेशन) का जावास्क्रिप्ट लॉजिक =======
+        // ======= 2. साइन-अप (रजिस्ट्रेशन) का लॉजिक =======
         document.getElementById('signupForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const name = document.getElementById('signupName').value;
@@ -85,5 +90,6 @@
             }
         });
     </script>
+    
 </body>
 </html>

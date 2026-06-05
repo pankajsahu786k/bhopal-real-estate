@@ -85,6 +85,7 @@ p {
 
 /* Button */
 
+/* Button */
 .submit-btn {
     background-color: #27ae60;
     color: white;
@@ -93,9 +94,9 @@ p {
     font-size: 16px;
     font-weight: bold;
     border-radius: 4px;
-    cursor: poi width: 100%;
+    cursor: pointer; /* 👈 इसे पूरा और सही कर दिया है */
+    width: 100%;     /* 👈 इसे अलग लाइन में सेट कर दिया है */
 }
-
 .submit-btn:hover {
     background-color: #219653;
 }
