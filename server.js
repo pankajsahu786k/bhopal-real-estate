@@ -133,8 +133,6 @@ app.get('/api/get-profile', async(req, res) => {
 
 // 🔍 TRACKER 1: प्रॉपर्टी अपलोड
 app.post('/api/add-property', upload.single('propertyImage'), async(req, res) => {
-    console.log("👉 [ADD-PROPERTY] Button Clicked! Checking data...");
-    console.log("👉 Uploaded File Details:", req.file);
     try {
         const newProperty = new Property({
             title: req.body.title,
@@ -146,18 +144,14 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown'
         });
         await newProperty.save();
-        console.log("✅ Property Saved Successfully!");
         res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपलोड हो गई!' });
     } catch (error) {
-        console.error("❌ DB Error:", error);
         res.status(500).json({ success: false, message: 'प्रॉपर्टी अपलोड करने में सर्वर एरर' });
     }
 });
 
 // 🔍 TRACKER 2: प्रोफाइल अपलोड
 app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) => {
-    console.log("👉 [UPDATE-PROFILE] Button Clicked! Checking data...");
-    console.log("👉 Uploaded File Details:", req.file);
     try {
         const email = req.body.brokerEmail.toLowerCase().trim();
         const dealingAreas = req.body.dealingAreas ? req.body.dealingAreas.split(',') : [];
@@ -169,10 +163,8 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
         if (req.file) profile.photo = (req.file.path || req.file.url);
 
         await profile.save();
-        console.log("✅ Profile Saved Successfully!");
         res.json({ success: true, message: 'Profile कामयाबी से अपडेट हो गई!' });
     } catch (error) {
-        console.error("❌ DB Error:", error);
         res.status(500).json({ success: false, message: 'Profile अपडेट सर्वर एरर' });
     }
 });
@@ -180,21 +172,51 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 // ==========================================
 // 👑 ADMIN API ROUTES (नया एडमिन खजाना)
 // ==========================================
+
+// 🚨 एडमिन पावर: सारा डेटा मंगाना (डैशबोर्ड के लिए)
 app.get('/api/admin/all-data', async (req, res) => {
     try {
-        // डेटाबेस से सारे यूज़र्स और प्रॉपर्टीज़ गिनना
-        const totalUsers = await User.countDocuments();
-        const properties = await Property.find().sort({ createdAt: -1 }); // सबसे नई प्रॉपर्टी सबसे ऊपर
+        const users = await User.find({}, '-password').sort({ createdAt: -1 });
+        const properties = await Property.find().sort({ createdAt: -1 }); 
 
         res.json({ 
             success: true, 
-            totalUsers: totalUsers, 
+            totalUsers: users.length, 
             totalProperties: properties.length,
-            properties: properties 
+            properties: properties,
+            users: users 
         });
     } catch (error) {
         console.error("Admin API Error:", error);
         res.status(500).json({ success: false, message: 'डेटा लाने में दिक्कत हुई' });
+    }
+});
+
+// 🚨 एडमिन पावर 1: किसी भी प्रॉपर्टी को डिलीट करना
+app.delete('/api/admin/delete-property/:id', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        await Property.findByIdAndDelete(propertyId);
+        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक डिलीट कर दी गई!' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'प्रॉपर्टी डिलीट करने में सर्वर एरर' });
+    }
+});
+
+// 🚨 एडमिन पावर 2: किसी भी यूज़र/ब्रोकर को डिलीट करना
+app.delete('/api/admin/delete-user/:id', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findByIdAndDelete(userId);
+        
+        if (user) {
+            await Property.deleteMany({ brokerEmail: user.email.toLowerCase().trim() });
+            await BrokerProfile.deleteOne({ brokerEmail: user.email.toLowerCase().trim() });
+        }
+
+        res.json({ success: true, message: 'यूज़र और उसकी सभी प्रॉपर्टीज़ डिलीट कर दी गईं!' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'यूज़र डिलीट करने में सर्वर एरर' });
     }
 });
 
@@ -203,8 +225,6 @@ app.get('/api/admin/all-data', async (req, res) => {
 // ==========================================
 app.use((err, req, res, next) => {
     console.error("🔥🔥🔥 असली एरर यहाँ फंसा है (REAL ERROR) 🔥🔥🔥");
-    console.error("ERROR MESSAGE:", err.message);
-    console.error("FULL ERROR DETAILS:", err);
     res.status(500).json({ success: false, message: 'Server upload error caught by trap', error: err.message });
 });
 

@@ -15,7 +15,7 @@
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); flex: 1; text-align: center; }
         .card h3 { margin: 0 0 10px 0; color: #34495e; }
         .card h2 { margin: 0; color: #27ae60; font-size: 36px; }
-        .section-title { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; color: #2c3e50; }
+        .section-title { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; color: #2c3e50; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -50,6 +50,11 @@
             </div>
         </div>
 
+        <h3 class="section-title">👥 सभी यूज़र्स (Brokers) की लिस्ट</h3>
+        <div id="allUsersList" style="margin-bottom: 40px;">
+            <p>यूज़र्स का डेटा लोड हो रहा है...</p>
+        </div>
+
         <h3 class="section-title">🏢 सभी प्रॉपर्टीज़ की लिस्ट</h3>
         <div id="allPropertiesList">
             <p>डेटा लोड हो रहा है...</p>
@@ -77,7 +82,34 @@
                     document.getElementById('totalUsers').innerText = result.totalUsers;
                     document.getElementById('totalProperties').innerText = result.totalProperties;
 
-                    // प्रॉपर्टीज़ की लिस्ट बनाना
+                    // ==========================================
+                    // 👥 यूज़र्स की लिस्ट बनाना
+                    // ==========================================
+                    const usersContainer = document.getElementById('allUsersList');
+                    usersContainer.innerHTML = ''; 
+
+                    if (result.users && result.users.length === 0) {
+                        usersContainer.innerHTML = '<p>कोई यूज़र नहीं मिला।</p>';
+                    } else if (result.users) {
+                        result.users.forEach(user => {
+                            usersContainer.innerHTML += `
+                                <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #3498db; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <h4 style="margin: 0 0 5px 0; color: #2c3e50;">👤 ${user.name}</h4>
+                                        <p style="margin: 0; color: #7f8c8d; font-size: 14px;">ईमेल: ${user.email} | रोल: <b>${user.role}</b></p>
+                                    </div>
+                                    <div>
+                                        <button onclick="loginAsUser('${user.name}', '${user.email}')" style="background: #2980b9; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">👁️ देखें</button>
+                                        <button onclick="deleteUser('${user._id}', '${user.name}')" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ डिलीट</button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    // ==========================================
+                    // 🏢 प्रॉपर्टीज़ की लिस्ट बनाना
+                    // ==========================================
                     const listContainer = document.getElementById('allPropertiesList');
                     listContainer.innerHTML = ''; 
 
@@ -86,7 +118,6 @@
                         return;
                     }
 
-                    // हर प्रॉपर्टी का एक कार्ड बनाकर दिखाना
                     result.properties.forEach(prop => {
                         listContainer.innerHTML += `
                             <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
@@ -96,7 +127,7 @@
                                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #2980b9;">अपलोड करने वाला: ${prop.brokerEmail}</p>
                                 </div>
                                 <div>
-                                    <button style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Delete</button>
+                                    <button onclick="deleteProperty('${prop._id}')" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Delete</button>
                                 </div>
                             </div>
                         `;
@@ -108,8 +139,53 @@
             }
         }
 
+        // ==========================================
+        // 👻 GHOST LOGIN & DELETE FUNCTIONS
+        // ==========================================
+        
+        // 👻 भेष बदलने का फंक्शन (Ghost Login)
+        function loginAsUser(userName, userEmail) {
+            if(confirm("क्या आप " + userName + " के डैशबोर्ड में जाना चाहते हैं?")) {
+                localStorage.setItem('brokerName', userName);
+                localStorage.setItem('brokerEmail', userEmail);
+                window.location.href = 'dashboard.html';
+            }
+        }
+
+        // 🗑️ प्रॉपर्टी डिलीट करने का फंक्शन
+        async function deleteProperty(propertyId) {
+            if (confirm("क्या आप सच में इस प्रॉपर्टी को डिलीट करना चाहते हैं?")) {
+                try {
+                    const response = await fetch(`/api/admin/delete-property/${propertyId}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message);
+                        loadAdminData(); // स्क्रीन अपडेट करने के लिए
+                    }
+                } catch (error) {
+                    alert("डिलीट करने में कोई गड़बड़ हुई!");
+                }
+            }
+        }
+
+        // 🗑️ यूज़र डिलीट करने का फंक्शन
+        async function deleteUser(userId, userName) {
+            if (confirm(`चेतावनी: क्या आप सच में ${userName} को डिलीट करना चाहते हैं? इससे उसकी सारी प्रॉपर्टीज़ भी डिलीट हो जाएंगी!`)) {
+                try {
+                    const response = await fetch(`/api/admin/delete-user/${userId}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message);
+                        loadAdminData(); // स्क्रीन अपडेट करने के लिए
+                    }
+                } catch (error) {
+                    alert("यूज़र डिलीट करने में समस्या आई!");
+                }
+            }
+        }
+
         // 4. पेज खुलते ही डेटा लोड करना शुरू करो
         loadAdminData();
     </script>
-    </body>
+</body>
 </html>
