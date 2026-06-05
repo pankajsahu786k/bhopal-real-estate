@@ -19,7 +19,7 @@ app.use(express.static(__dirname));
 cloudinary.config({
     cloud_name: 'duy3ipjoj',
     api_key: '228275812572669',
-    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI' // 👈 आपकी असली चाबी सेट कर दी है!
+    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI' // 👈 आपकी असली चाबी 
 });
 
 const storage = new CloudinaryStorage({
@@ -44,9 +44,10 @@ mongoose.connect(mongoURI, { family: 4 })
 // 2️⃣ DATABASE SCHEMAS
 // ==========================================
 const userSchema = new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true, required: true },
-    password: { type: String, required: true }
+    name: String, 
+    email: { type: String, unique: true, required: true }, 
+    password: { type: String, required: true },
+    role: { type: String, default: 'user' } // 👈 नया फीचर
 });
 const User = mongoose.model('User', userSchema);
 
@@ -89,8 +90,21 @@ app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: email.toLowerCase().trim(), password });
-        if (user) res.json({ success: true, name: user.name, email: user.email });
-        else res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड' });
+        
+        if (user) {
+            // 👑 Admin सेट करने का खुफिया तरीका
+            let userRole = user.role || 'user';
+            
+            // 👈 आपकी पर्सनल ईमेल जो अब पूरे सिस्टम की 'मालिक' (Admin) है
+            const adminEmail = "devilking786k@sahu.com"; 
+            if (user.email === adminEmail.toLowerCase().trim()) {
+                userRole = 'admin';
+            }
+
+            res.json({ success: true, name: user.name, email: user.email, role: userRole }); 
+        } else {
+            res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड' });
+        }
     } catch (error) {
         res.status(500).json({ success: false, message: 'सर्वर एरर' });
     }
@@ -164,7 +178,28 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 });
 
 // ==========================================
-// 🚨 THE BUG TRAP (महा-जाल - असली एरर पकड़ने के लिए)
+// 👑 ADMIN API ROUTES (नया एडमिन खजाना)
+// ==========================================
+app.get('/api/admin/all-data', async (req, res) => {
+    try {
+        // डेटाबेस से सारे यूज़र्स और प्रॉपर्टीज़ गिनना
+        const totalUsers = await User.countDocuments();
+        const properties = await Property.find().sort({ createdAt: -1 }); // सबसे नई प्रॉपर्टी सबसे ऊपर
+
+        res.json({ 
+            success: true, 
+            totalUsers: totalUsers, 
+            totalProperties: properties.length,
+            properties: properties 
+        });
+    } catch (error) {
+        console.error("Admin API Error:", error);
+        res.status(500).json({ success: false, message: 'डेटा लाने में दिक्कत हुई' });
+    }
+});
+
+// ==========================================
+// 🚨 THE BUG TRAP (महा-जाल - असली एरर पकड़ने के लिए)
 // ==========================================
 app.use((err, req, res, next) => {
     console.error("🔥🔥🔥 असली एरर यहाँ फंसा है (REAL ERROR) 🔥🔥🔥");
