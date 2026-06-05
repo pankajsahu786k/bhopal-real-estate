@@ -20,59 +20,13 @@
 </head>
 <body>
 
-    // 1. एडमिन का नाम दिखाना
-        document.getElementById('adminName').innerText = localStorage.getItem('brokerName') || "Admin";
-
-        // 2. लॉगआउट फंक्शन
-        function logoutAdmin() {
-            localStorage.clear();
-            window.location.href = 'index.html';
+    <script>
+        const role = localStorage.getItem('userRole');
+        if (role !== 'admin') {
+            alert("❌ एक्सेस मना है! आप एडमिन नहीं हैं।");
+            window.location.href = 'login.html'; 
         }
-
-        // 3. बैकएंड से सारा डेटा लाना
-        async function loadAdminData() {
-            try {
-                const response = await fetch('/api/admin/all-data');
-                const result = await response.json();
-
-                if (result.success) {
-                    // डैशबोर्ड के कार्ड्स में नंबर अपडेट करना
-                    document.getElementById('totalUsers').innerText = result.totalUsers;
-                    document.getElementById('totalProperties').innerText = result.totalProperties;
-
-                    // प्रॉपर्टीज़ की लिस्ट बनाना
-                    const listContainer = document.getElementById('allPropertiesList');
-                    listContainer.innerHTML = ''; // "डेटा लोड हो रहा है..." वाला मैसेज हटाना
-
-                    if (result.properties.length === 0) {
-                        listContainer.innerHTML = '<p>अभी तक कोई प्रॉपर्टी अपलोड नहीं हुई है।</p>';
-                        return;
-                    }
-
-                    // हर प्रॉपर्टी का एक कार्ड बनाकर दिखाना
-                    result.properties.forEach(prop => {
-                        listContainer.innerHTML += `
-                            <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <h4 style="margin: 0 0 5px 0;">${prop.title} (${prop.purpose})</h4>
-                                    <p style="margin: 0; color: #7f8c8d; font-size: 14px;">लोकेशन: ${prop.location} | कीमत: ₹${prop.price}</p>
-                                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #2980b9;">अपलोड करने वाला: ${prop.brokerEmail}</p>
-                                </div>
-                                <div>
-                                    <button style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Delete</button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-            } catch (error) {
-                console.error("डेटा लोड करने में एरर:", error);
-                document.getElementById('allPropertiesList').innerHTML = '<p style="color:red;">डेटा लाने में समस्या आई।</p>';
-            }
-        }
-
-        // 4. पेज खुलते ही डेटा लोड करना शुरू करो
-        loadAdminData();
+    </script>
 
     <div class="admin-header">
         <h1>👑 Admin Dashboard - Bhopal Real Estate</h1>
@@ -103,15 +57,59 @@
     </div>
 
     <script>
-        // एडमिन का नाम दिखाना
+        // 1. एडमिन का नाम दिखाना
         document.getElementById('adminName').innerText = localStorage.getItem('brokerName') || "Admin";
 
-        // लॉगआउट फंक्शन
+        // 2. लॉगआउट फंक्शन
         function logoutAdmin() {
             localStorage.clear();
-            window.location.href = 'index.html';
+            window.location.href = 'login.html'; 
         }
-    </script>
 
-</body>
+        // 3. बैकएंड से सारा डेटा लाना
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/api/admin/all-data');
+                const result = await response.json();
+
+                if (result.success) {
+                    // डैशबोर्ड के कार्ड्स में नंबर अपडेट करना
+                    document.getElementById('totalUsers').innerText = result.totalUsers;
+                    document.getElementById('totalProperties').innerText = result.totalProperties;
+
+                    // प्रॉपर्टीज़ की लिस्ट बनाना
+                    const listContainer = document.getElementById('allPropertiesList');
+                    listContainer.innerHTML = ''; 
+
+                    if (result.properties.length === 0) {
+                        listContainer.innerHTML = '<p>अभी तक कोई प्रॉपर्टी अपलोड नहीं हुई है।</p>';
+                        return;
+                    }
+
+                    // हर प्रॉपर्टी का एक कार्ड बनाकर दिखाना
+                    result.properties.forEach(prop => {
+                        listContainer.innerHTML += `
+                            <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <h4 style="margin: 0 0 5px 0;">${prop.title} (${prop.purpose})</h4>
+                                    <p style="margin: 0; color: #7f8c8d; font-size: 14px;">लोकेशन: ${prop.location} | कीमत: ₹${prop.price}</p>
+                                    <p style="margin: 5px 0 0 0; font-size: 12px; color: #2980b9;">अपलोड करने वाला: ${prop.brokerEmail}</p>
+                                </div>
+                                <div>
+                                    <button style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Delete</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error("डेटा लोड करने में एरर:", error);
+                document.getElementById('allPropertiesList').innerHTML = '<p style="color:red;">डेटा लाने में समस्या आई।</p>';
+            }
+        }
+
+        // 4. पेज खुलते ही डेटा लोड करना शुरू करो
+        loadAdminData();
+    </script>
+    </body>
 </html>
