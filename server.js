@@ -44,8 +44,8 @@ mongoose.connect(mongoURI, { family: 4 })
 // 2️⃣ DATABASE SCHEMAS
 // ==========================================
 const userSchema = new mongoose.Schema({
-    name: String, 
-    email: { type: String, unique: true, required: true }, 
+    name: String,
+    email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     role: { type: String, default: 'user' } // 👈 नया फीचर
 });
@@ -90,18 +90,18 @@ app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: email.toLowerCase().trim(), password });
-        
+
         if (user) {
             // 👑 Admin सेट करने का खुफिया तरीका
             let userRole = user.role || 'user';
-            
+
             // 👈 आपकी पर्सनल ईमेल जो अब पूरे सिस्टम की 'मालिक' (Admin) है
-            const adminEmail = "devilking786k@sahu.com"; 
+            const adminEmail = "devilking786k@sahu.com";
             if (user.email === adminEmail.toLowerCase().trim()) {
                 userRole = 'admin';
             }
 
-            res.json({ success: true, name: user.name, email: user.email, role: userRole }); 
+            res.json({ success: true, name: user.name, email: user.email, role: userRole });
         } else {
             res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड' });
         }
@@ -119,6 +119,25 @@ app.get('/api/get-properties', async(req, res) => {
         } else properties = await Property.find({});
         res.json(properties);
     } catch (error) { res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' }); }
+});
+// 🚨 नया रूट: किसी एक खास प्रॉपर्टी की पूरी कुंडली निकालना
+app.get('/api/get-property/:id', async(req, res) => {
+    try {
+        const propertyId = req.params.id;
+        const property = await Property.findById(propertyId);
+
+        if (!property) {
+            return res.status(404).json({ success: false, message: 'प्रॉपर्टी नहीं मिली!' });
+        }
+
+        // उस प्रॉपर्टी के ब्रोकर की डिटेल्स भी निकाल लेते हैं (ताकि यूज़र सीधा कॉल कर सके)
+        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: property.brokerEmail });
+
+        res.json({ success: true, property: property, brokerProfile: brokerProfile });
+    } catch (error) {
+        console.error("Single Property Error:", error);
+        res.status(500).json({ success: false, message: 'सर्वर एरर' });
+    }
 });
 
 app.get('/api/get-profile', async(req, res) => {
@@ -174,17 +193,17 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 // ==========================================
 
 // 🚨 एडमिन पावर: सारा डेटा मंगाना (डैशबोर्ड के लिए)
-app.get('/api/admin/all-data', async (req, res) => {
+app.get('/api/admin/all-data', async(req, res) => {
     try {
         const users = await User.find({}, '-password').sort({ createdAt: -1 });
-        const properties = await Property.find().sort({ createdAt: -1 }); 
+        const properties = await Property.find().sort({ createdAt: -1 });
 
-        res.json({ 
-            success: true, 
-            totalUsers: users.length, 
+        res.json({
+            success: true,
+            totalUsers: users.length,
             totalProperties: properties.length,
             properties: properties,
-            users: users 
+            users: users
         });
     } catch (error) {
         console.error("Admin API Error:", error);
@@ -193,7 +212,7 @@ app.get('/api/admin/all-data', async (req, res) => {
 });
 
 // 🚨 एडमिन पावर 1: किसी भी प्रॉपर्टी को डिलीट करना
-app.delete('/api/admin/delete-property/:id', async (req, res) => {
+app.delete('/api/admin/delete-property/:id', async(req, res) => {
     try {
         const propertyId = req.params.id;
         await Property.findByIdAndDelete(propertyId);
@@ -204,11 +223,11 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
 });
 
 // 🚨 एडमिन पावर 2: किसी भी यूज़र/ब्रोकर को डिलीट करना
-app.delete('/api/admin/delete-user/:id', async (req, res) => {
+app.delete('/api/admin/delete-user/:id', async(req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findByIdAndDelete(userId);
-        
+
         if (user) {
             await Property.deleteMany({ brokerEmail: user.email.toLowerCase().trim() });
             await BrokerProfile.deleteOne({ brokerEmail: user.email.toLowerCase().trim() });

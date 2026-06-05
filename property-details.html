@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Details - Bhopal Real Estate</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+        }
+        
+        header {
+            background: white;
+            padding: 15px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+            text-decoration: none;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+        }
+        /* लेफ्ट साइड: प्रॉपर्टी की जानकारी */
+        
+        .main-info {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+        
+        .main-img {
+            width: 100%;
+            height: 450px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .badge-rent {
+            background-color: #f1c40f;
+            color: #2c3e50;
+        }
+        
+        .badge-sell {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+        }
+        
+        .location {
+            color: #7f8c8d;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .price {
+            font-size: 28px;
+            font-weight: 700;
+            color: #27ae60;
+            margin-bottom: 30px;
+        }
+        
+        .description-title {
+            font-size: 18px;
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .description {
+            color: #555;
+            line-height: 1.6;
+        }
+        /* राइट साइड: ब्रोकर का कार्ड */
+        
+        .broker-card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .broker-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .broker-name {
+            font-size: 20px;
+            color: #2c3e50;
+            margin: 0 0 5px 0;
+        }
+        
+        .contact-btn {
+            display: block;
+            background: #27ae60;
+            color: white;
+            text-decoration: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: 0.3s;
+        }
+        
+        .contact-btn:hover {
+            background: #219653;
+        }
+        
+        @media (max-width: 768px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+            .main-img {
+                height: 250px;
+            }
+            header {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <a href="index.html" class="logo">Bhopal Properties</a>
+    </header>
+
+    <div class="container">
+        <a href="index.html" class="back-btn">← वापस होम पर जाएं</a>
+
+        <div id="loadingMessage" style="text-align: center; padding: 50px; font-size: 18px;">प्रॉपर्टी की डिटेल्स लोड हो रही हैं... ⏳</div>
+
+        <div class="details-grid" id="propertyContent" style="display: none;">
+            <div class="main-info">
+                <img id="propImage" src="" class="main-img" alt="Property">
+                <span id="propBadge" class="badge"></span>
+                <h1 id="propTitle"></h1>
+                <p class="location" id="propLocation"></p>
+                <div class="price" id="propPrice"></div>
+
+                <div class="description-title">प्रॉपर्टी के बारे में</div>
+                <p class="description" id="propDesc"></p>
+            </div>
+
+            <div class="broker-card">
+                <h3 style="margin-top:0; color:#7f8c8d; font-size: 14px;">प्रॉपर्टी ओनर / ब्रोकर</h3>
+                <img id="brokerImg" src="https://via.placeholder.com/100" class="broker-photo" alt="Broker">
+                <h2 class="broker-name" id="brokerEmail"></h2>
+                <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0;">वेरिफाइड पार्टनर ✅</p>
+
+                <a href="#" id="callBtn" class="contact-btn">📞 कॉल करें</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // URL से प्रॉपर्टी की ID निकालना (जैसे जादू से)
+        const urlParams = new URLSearchParams(window.location.search);
+        const propertyId = urlParams.get('id');
+
+        async function fetchPropertyDetails() {
+            if (!propertyId) {
+                document.getElementById('loadingMessage').innerHTML = "❌ कोई प्रॉपर्टी सेलेक्ट नहीं की गई!";
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/get-property/${propertyId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const prop = result.property;
+                    const broker = result.brokerProfile;
+
+                    // डेटा को HTML में सेट करना
+                    document.getElementById('propImage').src = prop.image || 'https://via.placeholder.com/800x450';
+                    document.getElementById('propTitle').innerText = prop.title;
+                    document.getElementById('propLocation').innerText = `📍 ${prop.location}, Bhopal`;
+                    document.getElementById('propDesc').innerText = prop.desc;
+                    document.getElementById('brokerEmail').innerText = prop.brokerEmail.split('@')[0]; // ईमेल का पहला हिस्सा नाम की तरह दिखाना
+
+                    // बैज और प्राइस सेट करना
+                    const badge = document.getElementById('propBadge');
+                    if (prop.purpose === 'Rent') {
+                        badge.className = 'badge badge-rent';
+                        badge.innerText = 'For Rent';
+                        document.getElementById('propPrice').innerText = `₹ ${prop.price} / महीना`;
+                    } else {
+                        badge.className = 'badge badge-sell';
+                        badge.innerText = 'For Sale';
+                        document.getElementById('propPrice').innerText = `₹ ${prop.price}`;
+                    }
+
+                    // ब्रोकर का डेटा अगर हो तो सेट करना
+                    if (broker) {
+                        if (broker.photo) document.getElementById('brokerImg').src = broker.photo;
+                        if (broker.phone) document.getElementById('callBtn').href = `tel:${broker.phone}`;
+                        else document.getElementById('callBtn').style.display = 'none'; // अगर नंबर नहीं है तो बटन छिपा दो
+                    } else {
+                        document.getElementById('callBtn').style.display = 'none';
+                    }
+
+                    // लोडिंग हटाकर असली डेटा दिखाना
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('propertyContent').style.display = 'grid';
+
+                } else {
+                    document.getElementById('loadingMessage').innerHTML = "❌ प्रॉपर्टी नहीं मिली या डिलीट हो गई है।";
+                }
+            } catch (error) {
+                document.getElementById('loadingMessage').innerHTML = "❌ सर्वर से संपर्क नहीं हो पाया।";
+            }
+        }
+
+        // पेज खुलते ही डेटा मंगाना
+        window.onload = fetchPropertyDetails;
+    </script>
+</body>
+
+</html>

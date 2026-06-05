@@ -369,8 +369,9 @@
                 const badgeText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
                 const imgSrc = prop.image ? prop.image : 'https://via.placeholder.com/350x200';
 
+                // 👇 यहाँ हमने onclick लगाया है ताकि क्लिक करते ही नया पेज खुले
                 grid.innerHTML += `
-                    <div class="property-card">
+                    <div class="property-card" onclick="window.location.href='property-details.html?id=${prop._id}'">
                         <div class="image-container">
                             <img src="${imgSrc}" class="property-img" alt="Property Image">
                         </div>
@@ -389,9 +390,13 @@
         function filterByPurpose(purpose) {
             const filtered = allPropertiesList.filter(p => p.purpose === purpose);
             displayProperties(filtered);
+            // क्लिक करते ही स्क्रीन को नीचे स्क्रॉल करना
+            document.querySelector('.properties-section').scrollIntoView({
+                behavior: 'smooth'
+            });
         }
 
-        // 🔍 सर्च बटन का फंक्शन (जो ड्रॉपडाउन के हिसाब से फ़िल्टर करेगा)
+        // 🔍 सर्च बटन का स्मार्ट फंक्शन (फ़िल्टर + ऑटो-स्क्रॉल)
         function searchProperties() {
             const purpose = document.getElementById('searchPurpose').value;
             const location = document.getElementById('searchLocation').value;
@@ -406,10 +411,14 @@
             }
 
             displayProperties(filtered);
+
+            // 🚀 स्मार्ट फीचर: सर्च करते ही स्क्रीन अपने-आप प्रॉपर्टीज वाले हिस्से पर खिसक जाएगी
+            document.querySelector('.properties-section').scrollIntoView({
+                behavior: 'smooth'
+            });
         }
 
-        // 🚀 पेज लोड होते ही अपने आप डेटा खींचना शुरू करें (यह लाइन बहुत ज़रूरी है!)
-
+        // 🚀 पेज लोड होते ही अपने आप डेटा खींचना शुरू करें
         window.onload = loadAllProperties;
     </script>
 </body>
