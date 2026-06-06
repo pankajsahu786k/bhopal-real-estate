@@ -68,6 +68,8 @@
                 <h2 class="broker-name" id="brokerEmail"></h2>
                 <p style="color: #7f8c8d; font-size: 14px; margin: 5px 0;">वेरिफाइड पार्टनर ✅</p>
                 <a href="#" id="callBtn" class="contact-btn">📞 कॉल करें</a>
+                <a href="#" id="whatsappBtn" class="contact-btn" style="background: #25D366; margin-top: 10px;">💬 WhatsApp करें</a>  
+                <a href="#" id="callBtn" class="contact-btn">📞 कॉल करें</a>
             </div>
         </div>
     </div>
@@ -107,10 +109,32 @@
                         document.getElementById('propPrice').innerText = `₹ ${prop.price}`;
                     }
 
-                    if (broker) {
+                  if (broker) {
                         if (broker.photo) document.getElementById('brokerImg').src = broker.photo;
-                        if (broker.phone) document.getElementById('callBtn').href = `tel:${broker.phone}`;
-                        else document.getElementById('callBtn').style.display = 'none'; 
+                        
+                        if (broker.phone) {
+                            // 📞 1. कॉल बटन चालू करें
+                            document.getElementById('callBtn').href = `tel:${broker.phone}`;
+                            
+                            // 💬 2. WhatsApp बटन चालू करें (स्मार्ट मैसेज के साथ)
+                            let waNumber = broker.phone.replace(/\D/g, ''); // फोन नंबर से फालतू स्पेस या डैश हटाएं
+                            if(waNumber.length === 10) waNumber = '91' + waNumber; // इंडिया का कोड (91) जोड़ें
+                            
+                            // ऑटोमैटिक टाइप होने वाला मैसेज
+                            const waMessage = encodeURIComponent(`Hello, I saw your property "${prop.title}" at ${prop.location} on Bhopal Real Estate. Is it available?`);
+                            
+                            document.getElementById('whatsappBtn').href = `https://wa.me/${waNumber}?text=${waMessage}`;
+                            // बटन पर क्लिक करते ही WhatsApp नए टैब में खुलेगा
+                            document.getElementById('whatsappBtn').target = "_blank"; 
+                            
+                        } else {
+                            // अगर नंबर नहीं है तो दोनों बटन छिपा दें
+                            document.getElementById('callBtn').style.display = 'none'; 
+                            document.getElementById('whatsappBtn').style.display = 'none'; 
+                        }
+                    } else {
+                        document.getElementById('callBtn').style.display = 'none';
+                        document.getElementById('whatsappBtn').style.display = 'none';
                     } else {
                         document.getElementById('callBtn').style.display = 'none';
                     }
