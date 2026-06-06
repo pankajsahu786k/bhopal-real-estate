@@ -1,276 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bhopal Real Estate - Find Your Dream Home</title>
-    <link rel="stylesheet" href="home-style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
-        /* पूरे पेज का नया प्रीमियम फॉन्ट */
+        body { font-family: 'Poppins', sans-serif; background-color: #f8f9fa; margin: 0; }
         
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f8f9fa;
-            /* हल्का और प्रीमियम बैकग्राउंड */
-        }
-        /* 🌟 प्रॉपर्टी कार्ड का नया 3D और होवर लुक */
-        
-        .property-card {
-            background: white;
-            border-radius: 12px;
-            /* गोल किनारे */
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            /* सॉफ्ट शैडो */
-            border: 1px solid #f1f2f6;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.3s ease;
-            /* एनीमेशन के लिए */
-            cursor: pointer;
-        }
-        /* 🖱️ जब माउस कार्ड पर जाए (Hover Effect) */
-        
-        .property-card:hover {
-            transform: translateY(-8px);
-            /* हल्का सा ऊपर उठेगा */
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
-            /* शैडो गहरी होगी */
-        }
-        /* प्रॉपर्टी की फोटो का स्टाइल */
-        
-        .image-container {
-            overflow: hidden;
-            /* ज़ूम होने पर फोटो कार्ड से बाहर न जाए */
-            width: 100%;
-            height: 220px;
-        }
-        
-        .property-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.4s ease;
-            /* फोटो ज़ूम एनीमेशन */
-        }
-        /* 🖱️ माउस ले जाने पर फोटो हल्की सी ज़ूम होगी */
-        
-        .property-card:hover .property-img {
-            transform: scale(1.08);
-        }
-        /* प्रॉपर्टी की जानकारी वाला हिस्सा */
-        
-        .property-details {
-            padding: 20px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            position: relative;
-            /* बैज को सेट करने के लिए */
-            background: white;
-            z-index: 1;
-        }
-        
-        .prop-title {
-            font-size: 19px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin: 0;
-        }
-        
-        .prop-loc {
-            font-size: 14px;
-            color: #7f8c8d;
-            margin: 0;
-        }
-        
-        .prop-price {
-            font-size: 18px;
-            font-weight: 700;
-            color: #27ae60;
-            margin: 0;
-        }
-        
-        .prop-desc {
-            font-size: 14px;
-            color: #555;
-            margin: 0;
-            line-height: 1.5;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            /* 👈 बस यह एक नई लाइन यहाँ जोड़ दें */
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        /* 🏷️ प्रीमियम फ्लोटिंग बैज (Rent/Sell) */
-        
-        .badge {
-            position: absolute;
-            top: -15px;
-            right: 20px;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .badge-rent {
-            background-color: #f1c40f;
-            color: #2c3e50;
-        }
-        
-        .badge-sell {
-            background-color: #e74c3c;
-            color: white;
-        }
-        /* ==========================================
-           🌟 1. हैडर और नेविगेशन बार (Top Menu)
-           ========================================== */
-        
-        header {
-            background: white;
-            padding: 15px 50px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .logo {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-        
-        nav ul {
-            list-style: none;
-            display: flex;
-            gap: 20px;
-            margin: 0;
-            padding: 0;
-            align-items: center;
-        }
-        
-        nav a {
-            text-decoration: none;
-            color: #34495e;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        
-        nav a:hover {
-            color: #27ae60;
-        }
-        
-        .login-btn {
-            background: #27ae60;
-            color: white !important;
-            padding: 8px 20px;
-            border-radius: 25px;
-        }
-        
-        .login-btn:hover {
-            background: #219653;
-        }
-        /* ==========================================
-           🌟 2. हीरो बैनर (Main Background)
-           ========================================== */
-        
-        .hero {
-            background: linear-gradient(135deg, #2c3e50, #3498db);
-            /* प्रीमियम नीला ग्रेडिएंट */
-            color: white;
-            text-align: center;
-            padding: 80px 20px;
-        }
-        
-        .hero h1 {
-            font-size: 42px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        
-        .hero p {
-            font-size: 18px;
-            margin-bottom: 30px;
-            opacity: 0.9;
-        }
-        /* ==========================================
-           🌟 3. स्मार्ट सर्च बॉक्स (Search Bar)
-           ========================================== */
-        
-        .search-box {
-            background: white;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 10px;
-            border-radius: 50px;
-            /* गोल किनारे वाला बॉक्स */
-            display: flex;
-            gap: 10px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            /* 3D परछाई */
-        }
-        
-        .search-box select {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            background: #f8f9fa;
-            border-radius: 30px;
-            font-size: 15px;
-            color: #333;
-            outline: none;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-        }
-        
-        .search-box button {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        
-        .search-box button:hover {
-            background: #c0392b;
-        }
-        /* मोबाइल के लिए सेटिंग */
-        
+        /* 🌟 हैडर और नेविगेशन बार */
+        header { background: white; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 24px; font-weight: 700; color: #2c3e50; }
+        nav ul { list-style: none; display: flex; gap: 20px; margin: 0; padding: 0; align-items: center; }
+        nav a { text-decoration: none; color: #34495e; font-weight: 500; transition: color 0.3s; }
+        nav a:hover { color: #27ae60; }
+        .login-btn { background: #27ae60; color: white !important; padding: 8px 20px; border-radius: 25px; }
+        .login-btn:hover { background: #219653; }
+
+        /* 🌟 हीरो बैनर */
+        .hero { background: linear-gradient(135deg, #2c3e50, #3498db); color: white; text-align: center; padding: 80px 20px; }
+        .hero h1 { font-size: 42px; font-weight: 700; margin-bottom: 10px; }
+        .hero p { font-size: 18px; margin-bottom: 30px; opacity: 0.9; }
+
+        /* 🌟 स्मार्ट सर्च बॉक्स */
+        .search-box { background: white; max-width: 800px; margin: 0 auto; padding: 10px; border-radius: 50px; display: flex; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .search-box select { flex: 1; padding: 12px 20px; border: none; background: #f8f9fa; border-radius: 30px; font-size: 15px; color: #333; outline: none; font-family: 'Poppins', sans-serif; cursor: pointer; }
+        .search-box button { background: #e74c3c; color: white; border: none; padding: 12px 30px; border-radius: 30px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.3s; }
+        .search-box button:hover { background: #c0392b; }
+
+        /* 🌟 3D प्रॉपर्टी कार्ड्स */
+        .property-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 1px solid #f1f2f6; display: flex; flex-direction: column; transition: all 0.3s ease; cursor: pointer; }
+        .property-card:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(0,0,0,0.12); }
+        .image-container { overflow: hidden; width: 100%; height: 220px; }
+        .property-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+        .property-card:hover .property-img { transform: scale(1.08); }
+        .property-details { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; gap: 10px; position: relative; background: white; z-index: 1; }
+        .prop-title { font-size: 19px; font-weight: 600; color: #2c3e50; margin: 0; }
+        .prop-loc { font-size: 14px; color: #7f8c8d; margin: 0; }
+        .prop-price { font-size: 18px; font-weight: 700; color: #27ae60; margin: 0; }
+        .prop-desc { font-size: 14px; color: #555; margin: 0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .badge { position: absolute; top: -15px; right: 20px; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .badge-rent { background-color: #f1c40f; color: #2c3e50; }
+        .badge-sell { background-color: #e74c3c; color: white; }
+
         @media (max-width: 768px) {
-            .search-box {
-                flex-direction: column;
-                border-radius: 15px;
-                padding: 15px;
-            }
-            .search-box select,
-            .search-box button {
-                border-radius: 8px;
-            }
-            header {
-                padding: 15px 20px;
-                flex-direction: column;
-                gap: 15px;
-            }
+            .search-box { flex-direction: column; border-radius: 15px; padding: 15px; }
+            .search-box select, .search-box button { border-radius: 8px; }
+            header { padding: 15px 20px; flex-direction: column; gap: 15px; }
         }
     </style>
 </head>
-
 <body>
 
     <header>
@@ -288,63 +67,41 @@
     <section class="hero">
         <h1>अपने सपनों का घर ढूँढें</h1>
         <p>भोपाल में किराये और खरीदने के लिए बेहतरीन प्रॉपर्टीज़</p>
-
         <div class="search-box">
             <select id="searchPurpose">
                 <option value="all">सब कुछ देखें</option>
                 <option value="Sell">खरीदें (Buy)</option>
                 <option value="Rent">किराए पर (Rent)</option>
             </select>
-
             <select id="searchLocation">
                 <option value="">लोकेशन चुनें...</option>
-                <option value="MP Nagar Zone 1">MP Nagar Zone 1 (एम.पी. नगर जोन 1)</option>
-                <option value="MP Nagar Zone 2">MP Nagar Zone 2 (एम.पी. नगर जोन 2)</option>
-                <option value="New Market">New Market (न्यू मार्केट)</option>
-                <option value="TT Nagar">TT Nagar (टी.टी. नगर)</option>
-                <option value="Malviya Nagar">Malviya Nagar (मालवीय नगर)</option>
-                <option value="Arera Colony">Arera Colony (अरेरा कॉलोनी)</option>
-                <option value="Shahpura">Shahpura (शाहपुरा)</option>
-                <option value="Chunabhatti">Chunabhatti (चूनाभट्टी)</option>
-                <option value="Char Imli">Char Imli (चार इमली)</option>
-                <option value="Gulmohar">Gulmohar (गुलमोहर)</option>
-                <option value="Kolar Road">Kolar Road (कोलार रोड)</option>
-                <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
-                <option value="Ayodhya Bypass">Ayodhya Bypass (अयोध्या बाईपास)</option>
-                <option value="Hoshangabad Road">Hoshangabad Road (होशंगाबाद रोड)</option>
-                <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
-                <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
-                <option value="Indrapuri">Indrapuri (इंद्रपुरी)</option>
-                <option value="Piplani">Piplani (पिपलानी)</option>
-                <option value="Saket Nagar">Saket Nagar (साकेत नगर)</option>
-                <option value="Sonagiri">Sonagiri (सोनागिरी)</option>
-                <option value="Anand Nagar">Anand Nagar (आनंद नगर)</option>
-                <option value="Kohefiza">Kohefiza (कोहेफिजा)</option>
-                <option value="Lalghati">Lalghati (लालघाटी)</option>
-                <option value="Bairagarh">Bairagarh (बैरागढ़)</option>
-                <option value="Jahangirabad">Jahangirabad (जहांगीराबाद)</option>
-                <option value="Karond">Karond (करौंद)</option>
-                <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
+                <option value="MP Nagar Zone 1">MP Nagar Zone 1</option>
+                <option value="MP Nagar Zone 2">MP Nagar Zone 2</option>
+                <option value="New Market">New Market</option>
+                <option value="TT Nagar">TT Nagar</option>
+                <option value="Malviya Nagar">Malviya Nagar</option>
+                <option value="Arera Colony">Arera Colony</option>
+                <option value="Shahpura">Shahpura</option>
+                <option value="Kolar Road">Kolar Road</option>
+                <option value="Awadhpuri">Awadhpuri</option>
+                <option value="Hoshangabad Road">Hoshangabad Road</option>
+                <option value="Indrapuri">Indrapuri</option>
+                <option value="Piplani">Piplani</option>
             </select>
-
             <button onclick="searchProperties()">सर्च करें</button>
         </div>
     </section>
 
     <section class="properties-section" style="padding: 40px 20px; max-width: 1200px; margin: 0 auto;">
         <h2 style="text-align: center; margin-bottom: 30px; color: #2c3e50;">नवीनतम प्रॉपर्टीज (Latest Properties)</h2>
-
-        <div id="propertiesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-        </div>
+        <div id="propertiesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;"></div>
     </section>
 
     <script>
         let allPropertiesList = [];
 
-        // 🌐 डेटाबेस से सारी प्रॉपर्टीज लोड करने का फंक्शन (Cache Trick के साथ)
         async function loadAllProperties() {
             try {
-                // 🚀 ब्राउज़र का कैश (Cache) तोड़ने के लिए टाइमस्टैम्प ट्रिक
                 const response = await fetch('/api/get-properties?nocache=' + new Date().getTime());
                 allPropertiesList = await response.json();
                 displayProperties(allPropertiesList);
@@ -353,7 +110,6 @@
             }
         }
 
-        // 🎴 स्क्रीन पर प्रॉपर्टीज के कार्ड बनाकर दिखाने का फंक्शन
         function displayProperties(list) {
             const grid = document.getElementById('propertiesGrid');
             grid.innerHTML = '';
@@ -369,7 +125,6 @@
                 const badgeText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
                 const imgSrc = prop.image ? prop.image : 'https://via.placeholder.com/350x200';
 
-                // 👇 यहाँ हमने onclick लगाया है ताकि क्लिक करते ही नया पेज खुले
                 grid.innerHTML += `
                     <div class="property-card" onclick="window.location.href='property-details.html?id=${prop._id}'">
                         <div class="image-container">
@@ -386,41 +141,25 @@
             });
         }
 
-        // 📑 'किराए' या 'बेचने' के आधार पर क्विक फ़िल्टर
         function filterByPurpose(purpose) {
             const filtered = allPropertiesList.filter(p => p.purpose === purpose);
             displayProperties(filtered);
-            // क्लिक करते ही स्क्रीन को नीचे स्क्रॉल करना
-            document.querySelector('.properties-section').scrollIntoView({
-                behavior: 'smooth'
-            });
+            document.querySelector('.properties-section').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // 🔍 सर्च बटन का स्मार्ट फंक्शन (फ़िल्टर + ऑटो-स्क्रॉल)
         function searchProperties() {
             const purpose = document.getElementById('searchPurpose').value;
             const location = document.getElementById('searchLocation').value;
-
             let filtered = allPropertiesList;
 
-            if (purpose !== 'all') {
-                filtered = filtered.filter(p => p.purpose === purpose);
-            }
-            if (location !== '') {
-                filtered = filtered.filter(p => p.location === location);
-            }
+            if (purpose !== 'all') filtered = filtered.filter(p => p.purpose === purpose);
+            if (location !== '') filtered = filtered.filter(p => p.location === location);
 
             displayProperties(filtered);
-
-            // 🚀 स्मार्ट फीचर: सर्च करते ही स्क्रीन अपने-आप प्रॉपर्टीज वाले हिस्से पर खिसक जाएगी
-            document.querySelector('.properties-section').scrollIntoView({
-                behavior: 'smooth'
-            });
+            document.querySelector('.properties-section').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // 🚀 पेज लोड होते ही अपने आप डेटा खींचना शुरू करें
         window.onload = loadAllProperties;
     </script>
 </body>
-
 </html>

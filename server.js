@@ -19,7 +19,7 @@ app.use(express.static(__dirname));
 cloudinary.config({
     cloud_name: 'duy3ipjoj',
     api_key: '228275812572669',
-    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI' // 👈 आपकी असली चाबी 
+    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
 const storage = new CloudinaryStorage({
@@ -44,10 +44,10 @@ mongoose.connect(mongoURI, { family: 4 })
 // 2️⃣ DATABASE SCHEMAS
 // ==========================================
 const userSchema = new mongoose.Schema({
-    name: String,
-    email: { type: String, unique: true, required: true },
+    name: String, 
+    email: { type: String, unique: true, required: true }, 
     password: { type: String, required: true },
-    role: { type: String, default: 'user' } // 👈 नया फीचर
+    role: { type: String, default: 'user' }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -71,7 +71,7 @@ const brokerProfileSchema = new mongoose.Schema({
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
 // ==========================================
-// 4️⃣ API ROUTES (WITH TRACKERS 🔍)
+// 4️⃣ API ROUTES
 // ==========================================
 app.post('/api/signup', async(req, res) => {
     try {
@@ -90,18 +90,14 @@ app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: email.toLowerCase().trim(), password });
-
+        
         if (user) {
-            // 👑 Admin सेट करने का खुफिया तरीका
             let userRole = user.role || 'user';
-
-            // 👈 आपकी पर्सनल ईमेल जो अब पूरे सिस्टम की 'मालिक' (Admin) है
-            const adminEmail = "devilking786k@sahu.com";
+            const adminEmail = "devilking786k@sahu.com"; 
             if (user.email === adminEmail.toLowerCase().trim()) {
                 userRole = 'admin';
             }
-
-            res.json({ success: true, name: user.name, email: user.email, role: userRole });
+            res.json({ success: true, name: user.name, email: user.email, role: userRole }); 
         } else {
             res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड' });
         }
@@ -120,25 +116,6 @@ app.get('/api/get-properties', async(req, res) => {
         res.json(properties);
     } catch (error) { res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' }); }
 });
-// 🚨 नया रूट: किसी एक खास प्रॉपर्टी की पूरी कुंडली निकालना
-app.get('/api/get-property/:id', async(req, res) => {
-    try {
-        const propertyId = req.params.id;
-        const property = await Property.findById(propertyId);
-
-        if (!property) {
-            return res.status(404).json({ success: false, message: 'प्रॉपर्टी नहीं मिली!' });
-        }
-
-        // उस प्रॉपर्टी के ब्रोकर की डिटेल्स भी निकाल लेते हैं (ताकि यूज़र सीधा कॉल कर सके)
-        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: property.brokerEmail });
-
-        res.json({ success: true, property: property, brokerProfile: brokerProfile });
-    } catch (error) {
-        console.error("Single Property Error:", error);
-        res.status(500).json({ success: false, message: 'सर्वर एरर' });
-    }
-});
 
 app.get('/api/get-profile', async(req, res) => {
     try {
@@ -150,7 +127,19 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Profile data लाने में दिक्कत हुई' }); }
 });
 
-// 🔍 TRACKER 1: प्रॉपर्टी अपलोड
+// 🚨 नया रूट: किसी एक खास प्रॉपर्टी की पूरी कुंडली निकालना
+app.get('/api/get-property/:id', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        const property = await Property.findById(propertyId);
+        if (!property) return res.status(404).json({ success: false, message: 'प्रॉपर्टी नहीं मिली!' });
+        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: property.brokerEmail });
+        res.json({ success: true, property: property, brokerProfile: brokerProfile });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'सर्वर एरर' });
+    }
+});
+
 app.post('/api/add-property', upload.single('propertyImage'), async(req, res) => {
     try {
         const newProperty = new Property({
@@ -169,18 +158,15 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
     }
 });
 
-// 🔍 TRACKER 2: प्रोफाइल अपलोड
 app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) => {
     try {
         const email = req.body.brokerEmail.toLowerCase().trim();
         const dealingAreas = req.body.dealingAreas ? req.body.dealingAreas.split(',') : [];
         let profile = await BrokerProfile.findOne({ brokerEmail: email });
         if (!profile) profile = new BrokerProfile({ brokerEmail: email });
-
         profile.phone = req.body.phone;
         profile.dealingAreas = dealingAreas;
         if (req.file) profile.photo = (req.file.path || req.file.url);
-
         await profile.save();
         res.json({ success: true, message: 'Profile कामयाबी से अपडेट हो गई!' });
     } catch (error) {
@@ -189,30 +175,19 @@ app.post('/api/update-profile', upload.single('brokerPhoto'), async(req, res) =>
 });
 
 // ==========================================
-// 👑 ADMIN API ROUTES (नया एडमिन खजाना)
+// 👑 ADMIN API ROUTES
 // ==========================================
-
-// 🚨 एडमिन पावर: सारा डेटा मंगाना (डैशबोर्ड के लिए)
-app.get('/api/admin/all-data', async(req, res) => {
+app.get('/api/admin/all-data', async (req, res) => {
     try {
         const users = await User.find({}, '-password').sort({ createdAt: -1 });
-        const properties = await Property.find().sort({ createdAt: -1 });
-
-        res.json({
-            success: true,
-            totalUsers: users.length,
-            totalProperties: properties.length,
-            properties: properties,
-            users: users
-        });
+        const properties = await Property.find().sort({ createdAt: -1 }); 
+        res.json({ success: true, totalUsers: users.length, totalProperties: properties.length, properties: properties, users: users });
     } catch (error) {
-        console.error("Admin API Error:", error);
         res.status(500).json({ success: false, message: 'डेटा लाने में दिक्कत हुई' });
     }
 });
 
-// 🚨 एडमिन पावर 1: किसी भी प्रॉपर्टी को डिलीट करना
-app.delete('/api/admin/delete-property/:id', async(req, res) => {
+app.delete('/api/admin/delete-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
         await Property.findByIdAndDelete(propertyId);
@@ -222,34 +197,25 @@ app.delete('/api/admin/delete-property/:id', async(req, res) => {
     }
 });
 
-// 🚨 एडमिन पावर 2: किसी भी यूज़र/ब्रोकर को डिलीट करना
-app.delete('/api/admin/delete-user/:id', async(req, res) => {
+app.delete('/api/admin/delete-user/:id', async (req, res) => {
     try {
         const userId = req.params.id;
         const user = await User.findByIdAndDelete(userId);
-
         if (user) {
             await Property.deleteMany({ brokerEmail: user.email.toLowerCase().trim() });
             await BrokerProfile.deleteOne({ brokerEmail: user.email.toLowerCase().trim() });
         }
-
         res.json({ success: true, message: 'यूज़र और उसकी सभी प्रॉपर्टीज़ डिलीट कर दी गईं!' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'यूज़र डिलीट करने में सर्वर एरर' });
     }
 });
 
-// ==========================================
-// 🚨 THE BUG TRAP (महा-जाल - असली एरर पकड़ने के लिए)
-// ==========================================
 app.use((err, req, res, next) => {
     console.error("🔥🔥🔥 असली एरर यहाँ फंसा है (REAL ERROR) 🔥🔥🔥");
     res.status(500).json({ success: false, message: 'Server upload error caught by trap', error: err.message });
 });
 
-// ==========================================
-// 5️⃣ SERVER START
-// ==========================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is running LIVE on port ${PORT}`);
