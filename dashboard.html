@@ -132,19 +132,40 @@
             </div>
 
             <table class="property-table">
-                <thead>
-                    <tr>
-                        <th>Property Image</th>
-                        <th>Title</th>
-                        <th>Location</th>
-                        <th>Price</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="propertyTableBody">
-                </tbody>
-            </table>
+    <thead>
+        <tr>
+            <th>Image</th>
+            <th>Title</th>
+            <th>Location</th>
+            <th>Price</th>
+            <th>Views 👁️</th> <th>Leads 📞</th> <th>Action</th>
+        </tr>
+    </thead>
+    <tbody id="propertyTableBody">
+        </tbody>
+</table>
+
+<script>
+    // loadProperties फंक्शन के अंदर यह बदलाव करें:
+    properties.forEach(prop => {
+        const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
+        let propertyImgSrc = prop.images && prop.images.length > 0 ? prop.images[0] : 'https://via.placeholder.com/80x50';
+        
+        tableBody.innerHTML += `
+            <tr>
+                <td><img src="${propertyImgSrc}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;"></td>
+                <td>${prop.title}</td>
+                <td>${prop.location}</td>
+                <td>${priceText}</td>
+                <td style="font-weight:bold; color:#2980b9;">${prop.views || 0}</td>
+                <td style="font-weight:bold; color:#27ae60;">${prop.clicks || 0}</td>
+                <td>
+                    <button class="edit-btn" onclick="openEditModal('${prop._id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteProperty('${prop._id}')">Delete</button>
+                </td>
+            </tr>`;
+    });
+</script>
         </main>
     </div>
 
