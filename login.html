@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Bhopal Properties</title>
+    <title>Login - Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         
         body { 
-            /* 🏡 मैचिंग प्रीमियम रियल एस्टेट बैकग्राउंड */
             background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
-                        url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed; 
+                        url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed; 
             min-height: 100vh; 
             display: flex; 
             justify-content: center; 
@@ -19,7 +18,6 @@
             padding: 20px;
         }
 
-        /* ✨ प्रीमियम ग्लास इफ़ेक्ट कार्ड */
         .login-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(15px);
@@ -38,12 +36,11 @@
 
         .logo { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; letter-spacing: -0.5px; }
         .logo span { color: #27ae60; }
-        .subtitle { color: #576574; font-size: 14px; margin-bottom: 30px; line-height: 1.4; }
+        .subtitle { color: #576574; font-size: 14px; margin-bottom: 30px; }
         
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 14px; }
         
-        /* मोबाइल-फ्रेंडली इनपुट बॉक्स */
         .input-group input { 
             width: 100%; padding: 15px; border: 2px solid transparent; border-radius: 12px; 
             font-size: 15px; transition: all 0.3s ease; outline: none; background: #f1f2f6;
@@ -55,163 +52,97 @@
             box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15); 
         }
         
-        /* ऐक्शन बटन्स */
-        .action-btn {
-            width: 100%; padding: 15px; background: #3498db; color: white; border: none;
+        .login-btn {
+            width: 100%; padding: 15px; background: #27ae60; color: white; border: none;
             border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
             transition: all 0.3s ease; margin-top: 10px;
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
         }
         
-        .action-btn:hover { 
-            background: #2980b9; transform: translateY(-2px); 
-            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4); 
+        .login-btn:hover { 
+            background: #219653; transform: translateY(-2px); 
+            box-shadow: 0 8px 20px rgba(39, 174, 96, 0.4); 
         }
-
-        .action-btn.success { background: #27ae60; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2); }
-        .action-btn.success:hover { background: #219653; box-shadow: 0 8px 20px rgba(39, 174, 96, 0.4); }
         
-        .bottom-link { margin-top: 25px; font-size: 14px; color: #576574; }
-        .bottom-link a { color: #2980b9; text-decoration: none; font-weight: 600; transition: color 0.3s ease; }
-        .bottom-link a:hover { color: #1a5276; text-decoration: underline; }
+        .signup-link { margin-top: 25px; font-size: 14px; color: #576574; }
+        .signup-link a { color: #2980b9; text-decoration: none; font-weight: 600; transition: color 0.3s ease; }
+        .signup-link a:hover { color: #1a5276; text-decoration: underline; }
         
-        /* अलर्ट मैसेज बॉक्स */
-        #messageBox { 
-            padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; 
-            display: none; font-weight: 500; text-align: left;
+        #errorMsg { 
+            background: #ffeaa7; color: #d63031; padding: 10px; border-radius: 8px; 
+            font-size: 14px; margin-bottom: 20px; display: none; font-weight: 500; 
+            border-left: 4px solid #d63031;
         }
-        .msg-error { background: #ffeaa7; color: #d63031; border-left: 4px solid #d63031; }
-        .msg-success { background: #dff9fb; color: #27ae60; border-left: 4px solid #27ae60; }
-        
-        #step2 { display: none; }
     </style>
 </head>
 <body>
 
     <div class="login-card">
-        <div class="logo">Sign Up 🚀</div>
-        <p class="subtitle" id="formSubtitle">Create your broker account to start listing properties in Bhopal.</p>
+        <div class="logo">Bhopal <span>Properties</span> 🏠</div>
+        <p class="subtitle">Welcome back! Please login to your account.</p>
         
-        <div id="messageBox"></div>
+        <div id="errorMsg">Invalid email or password.</div>
         
-        <form id="signupForm">
-            <div id="step1">
-                <div class="input-group">
-                    <label>Full Name</label>
-                    <input type="text" id="name" placeholder="Pankaj Sahu" required>
-                </div>
-                <div class="input-group">
-                    <label>Email Address</label>
-                    <input type="email" id="email" placeholder="name@example.com" required>
-                </div>
-                <div class="input-group">
-                    <label>Password</label>
-                    <input type="password" id="password" placeholder="Minimum 6 characters" required minlength="6">
-                </div>
-                <button type="submit" class="action-btn" id="signupBtn">Create Account</button>
+        <form id="loginForm">
+            <div class="input-group">
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="name@example.com" required>
             </div>
-        </form>
-
-        <form id="otpForm">
-            <div id="step2">
-                <div class="input-group">
-                    <label>Enter OTP</label>
-                    <input type="text" id="otpCode" placeholder="••••" required autocomplete="off" maxlength="4" style="text-align: center; font-size: 22px; letter-spacing: 8px;">
-                    <p style="font-size: 12px; color: #576574; margin-top: 8px; text-align: center;">* Please check your Render logs for the OTP.</p>
-                </div>
-                <button type="submit" class="action-btn success" id="verifyBtn">Verify & Register</button>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
             </div>
+            <button type="submit" class="login-btn" id="loginBtn">Log In 🚀</button>
         </form>
         
-        <div class="bottom-link" id="loginLinkArea">
-            Already have an account? <a href="login.html">Log In here</a>
+        <div class="signup-link">
+            Don't have an account? <a href="signup.html">Sign Up here</a>
         </div>
     </div>
 
     <script>
-        const msgBox = document.getElementById('messageBox');
-        let userEmailForOtp = "";
-
-        function showMessage(text, isError = false) {
-            msgBox.innerText = text;
-            msgBox.style.display = "block";
-            msgBox.className = isError ? "msg-error" : "msg-success";
-        }
-
-        // --- STEP 1: Request OTP ---
-        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const btn = document.getElementById('signupBtn');
-            btn.innerText = "Sending OTP... ⏳";
-            btn.style.opacity = "0.8";
-            msgBox.style.display = "none";
+            const btn = document.getElementById('loginBtn');
+            const errorMsg = document.getElementById('errorMsg');
             
-            const name = document.getElementById('name').value;
+            btn.innerText = "Verifying... ⏳";
+            btn.style.opacity = "0.8";
+            errorMsg.style.display = "none";
+            
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             
             try {
-                const res = await fetch('/api/signup', {
+                const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success && data.requireOtp) {
-                    userEmailForOtp = email;
-                    
-                    document.getElementById('step1').style.display = "none";
-                    document.getElementById('step2').style.display = "block";
-                    document.getElementById('formSubtitle').innerText = "We've generated a secure OTP. Check your server logs.";
-                    showMessage("✅ OTP generated successfully.");
-                } else {
-                    showMessage("❌ " + data.message, true);
-                    btn.innerText = "Create Account";
-                    btn.style.opacity = "1";
-                }
-            } catch (error) {
-                showMessage("❌ Server Error! Please try again.", true);
-                btn.innerText = "Create Account";
-                btn.style.opacity = "1";
-            }
-        });
-
-        // --- STEP 2: Verify OTP ---
-        document.getElementById('otpForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('verifyBtn');
-            btn.innerText = "Verifying... ⏳";
-            btn.style.opacity = "0.8";
-            msgBox.style.display = "none";
-            
-            const otp = document.getElementById('otpCode').value;
-            
-            try {
-                const res = await fetch('/api/verify-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: userEmailForOtp, otp: otp })
+                    body: JSON.stringify({ email, password })
                 });
                 
                 const data = await res.json();
                 
                 if (data.success) {
-                    btn.innerText = "Verified! ✅";
-                    showMessage("🎉 " + data.message);
+                    localStorage.setItem('brokerName', data.name);
+                    localStorage.setItem('brokerEmail', data.email);
+                    localStorage.setItem('userRole', data.role);
+                    
+                    btn.innerText = "Login Successful! ✅";
+                    btn.style.background = "#2ecc71";
                     
                     setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
+                        window.location.href = data.role === 'admin' ? 'admin-dashboard.html' : 'dashboard.html';
+                    }, 1000);
                 } else {
-                    showMessage("❌ " + data.message, true);
-                    btn.innerText = "Verify & Register";
+                    errorMsg.innerText = "❌ " + data.message;
+                    errorMsg.style.display = "block";
+                    btn.innerText = "Log In 🚀";
                     btn.style.opacity = "1";
                 }
             } catch (error) {
-                showMessage("❌ Server Error during verification.", true);
-                btn.innerText = "Verify & Register";
+                errorMsg.innerText = "❌ Server Error! Please try again.";
+                errorMsg.style.display = "block";
+                btn.innerText = "Log In 🚀";
                 btn.style.opacity = "1";
             }
         });
