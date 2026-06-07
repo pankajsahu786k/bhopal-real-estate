@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Create Account - Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -15,10 +15,11 @@
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            padding: 20px;
+            padding: 15px; /* मोबाइल पर किनारों से गैप के लिए */
+            overflow-x: hidden; /* स्क्रीन हिलने से रोकेगा */
         }
 
-        /* ✨ PC और Mobile दोनों के लिए परफेक्ट ग्लास कार्ड */
+        /* ✨ PC और Mobile दोनों के लिए परफेक्ट कार्ड */
         .signup-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(15px);
@@ -28,20 +29,19 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             border: 1px solid rgba(255, 255, 255, 0.2);
             width: 100%;
-            max-width: 450px; /* PC पर ज्यादा चौड़ा नहीं होगा */
+            max-width: 420px; 
             text-align: center;
         }
 
         .logo { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; }
         .logo span { color: #3498db; }
-        .subtitle { color: #576574; font-size: 14px; margin-bottom: 30px; line-height: 1.5; }
+        .subtitle { color: #576574; font-size: 14px; margin-bottom: 25px; line-height: 1.5; }
         
-        .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 14px; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 13px; }
         
-        /* इनपुट बॉक्स - मोबाइल पर टाइप करने में आसान */
         .input-group input { 
-            width: 100%; padding: 15px; border: 2px solid transparent; border-radius: 12px; 
+            width: 100%; padding: 14px; border: 2px solid transparent; border-radius: 12px; 
             font-size: 15px; transition: all 0.3s ease; outline: none; background: #f1f2f6;
             color: #2c3e50; font-weight: 500;
         }
@@ -62,12 +62,12 @@
         .action-btn.success { background: #27ae60; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2); }
         .action-btn.success:hover { background: #219653; }
         
-        .bottom-link { margin-top: 25px; font-size: 14px; color: #576574; }
+        .bottom-link { margin-top: 20px; font-size: 14px; color: #576574; }
         .bottom-link a { color: #2c3e50; text-decoration: none; font-weight: 700; transition: color 0.3s ease; }
         .bottom-link a:hover { color: #3498db; text-decoration: underline; }
         
         #messageBox { 
-            padding: 12px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; 
+            padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 15px; 
             display: none; font-weight: 500; text-align: left;
         }
         .msg-error { background: #ffeaa7; color: #d63031; border-left: 4px solid #d63031; }
@@ -75,12 +75,14 @@
         
         #step2 { display: none; }
 
-        /* 📱 Mobile Adjustments */
+        /* 📱 Mobile Specific Adjustments (फोन के लिए जादू) */
         @media (max-width: 480px) {
-            .signup-card { padding: 30px 20px; border-radius: 20px; }
+            .signup-card { padding: 25px 20px; border-radius: 20px; }
             .logo { font-size: 24px; }
+            .subtitle { font-size: 13px; margin-bottom: 20px; }
             .input-group input { padding: 12px; font-size: 14px; }
             .action-btn { padding: 14px; font-size: 15px; }
+            #otpCode { font-size: 20px !important; letter-spacing: 6px !important; }
         }
     </style>
 </head>
@@ -88,7 +90,7 @@
 
     <div class="signup-card">
         <div class="logo">Create <span>Account</span> ✨</div>
-        <p class="subtitle" id="formSubtitle">Register as a broker and start managing properties in Bhopal.</p>
+        <p class="subtitle" id="formSubtitle">Register as a broker and start managing properties.</p>
         
         <div id="messageBox"></div>
         
@@ -115,7 +117,7 @@
                 <div class="input-group">
                     <label>Enter OTP Code</label>
                     <input type="text" id="otpCode" placeholder="••••" required autocomplete="off" maxlength="4" style="text-align: center; font-size: 24px; letter-spacing: 10px;">
-                    <p style="font-size: 12px; color: #576574; margin-top: 8px; text-align: center;">* Check your server logs for the OTP.</p>
+                    <p style="font-size: 11px; color: #576574; margin-top: 8px; text-align: center;">* Check your server logs for the OTP.</p>
                 </div>
                 <button type="submit" class="action-btn success" id="verifyBtn">Verify Account</button>
             </div>
