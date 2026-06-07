@@ -4,7 +4,6 @@ const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const nodemailer = require('nodemailer'); 
 
 const app = express();
 
@@ -55,7 +54,7 @@ const propertySchema = new mongoose.Schema({
     title: String, purpose: String, location: String, price: Number, desc: String,
     images: [{ type: String }], videoLink: { type: String, default: '' }, 
     brokerEmail: String, status: { type: String, default: 'pending' },
-    views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 } // 📊 Analytics
+    views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 } 
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
@@ -69,7 +68,6 @@ const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 // 3️⃣ API ROUTES
 // ==========================================
 
-// 📊 Analytics & Get Property Details
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -86,7 +84,6 @@ app.post('/api/track-click/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 🏠 Add & Update Property
 app.post('/api/add-property', upload.array('propertyImages', 3), async(req, res) => {
     try {
         const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
@@ -105,7 +102,6 @@ app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (r
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 👤 Get Properties & Profile
 app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
@@ -128,32 +124,25 @@ app.get('/api/get-profile', async(req, res) => {
 // 🔑 AUTHENTICATION ROUTES (Signup & Login)
 // ==========================================
 
-// 1. SIGNUP ROUTE (OTP GENERATION)
+// 1. SIGNUP ROUTE (OTP GENERATION & SEND TO FRONTEND)
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
         const emailLower = email.toLowerCase().trim();
 
-        // Check if user already exists
         const existingUser = await User.findOne({ email: emailLower });
-        if (existingUser) {
-            return res.status(400).json({ success: false, message: 'Email is already registered!' });
-        }
+        if (existingUser) return res.status(400).json({ success: false, message: 'Email is already registered!' });
 
-        // Generate 4 digit OTP
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        // Save to PendingUser collection temporarily
-        await PendingUser.deleteMany({ email: emailLower }); // clear old pending attempts
+        await PendingUser.deleteMany({ email: emailLower });
         const newPendingUser = new PendingUser({ name, email: emailLower, password, otp });
         await newPendingUser.save();
 
-        // Print OTP in Render Logs (Jugaad Method)
-        console.log(`\n=========================================`);
-        console.log(`🔑 ATTENTION: OTP for ${emailLower} is: [ ${otp} ]`);
-        console.log(`=========================================\n`);
+        console.log(`🔑 OTP for ${emailLower} is: [ ${otp} ]`);
 
-        res.json({ success: true, requireOtp: true, message: 'OTP sent successfully (Check logs).' });
+        // 🚨 जादुई लाइन: OTP को वापस ब्राउज़र (Frontend) में भेजना
+        res.json({ success: true, requireOtp: true, generatedOtp: otp, message: 'OTP Generated successfully.' });
 
     } catch (error) {
         console.error("Signup Error:", error);
@@ -161,34 +150,18 @@ app.post('/api/signup', async (req, res) => {
     }
 });
 
-// 2. OTP VERIFY ROUTE
 app.post('/api/verify-otp', async (req, res) => {
     try {
         const { email, otp } = req.body;
         const emailLower = email.toLowerCase().trim();
 
-        // Find the pending user
         const pendingUser = await PendingUser.findOne({ email: emailLower });
-        
-        if (!pendingUser) {
-            return res.status(400).json({ success: false, message: 'OTP expired or invalid email. Try signing up again.' });
-        }
+        if (!pendingUser) return res.status(400).json({ success: false, message: 'OTP expired or invalid email.' });
 
-        // Check if OTP matches
-        if (pendingUser.otp !== otp) {
-            return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
-        }
+        if (pendingUser.otp !== otp) return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
 
-        // Move to permanent User collection
-        const newUser = new User({
-            name: pendingUser.name,
-            email: pendingUser.email,
-            password: pendingUser.password, // In a real app, hash this!
-            role: 'user'
-        });
+        const newUser = new User({ name: pendingUser.name, email: pendingUser.email, password: pendingUser.password, role: 'user' });
         await newUser.save();
-
-        // Delete from pending
         await PendingUser.deleteOne({ email: emailLower });
 
         res.json({ success: true, message: 'Account verified and created successfully!' });
@@ -199,7 +172,6 @@ app.post('/api/verify-otp', async (req, res) => {
     }
 });
 
-// 3. LOGIN ROUTE
 app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
