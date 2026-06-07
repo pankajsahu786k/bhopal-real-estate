@@ -4,14 +4,18 @@ const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const nodemailer = require('nodemailer'); 
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// Cloudinary Setup
+// ==========================================
+// ☁️ CLOUDINARY SETUP 
+// ==========================================
 cloudinary.config({
     cloud_name: 'duy3ipjoj',
     api_key: '228275812572669',
@@ -24,35 +28,57 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
-// Database Connection
+// ==========================================
+// 1️⃣ MONGODB DATABASE CONNECTION
+// ==========================================
 const mongoURI = 'mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/?appName=Cluster0';
 mongoose.connect(mongoURI, { family: 4 })
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch(err => console.error('❌ DB Error:', err));
+    .then(() => console.log('✅ MongoDB Database Connected Successfully!'))
+    .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// Property Schema
+// ==========================================
+// 2️⃣ DATABASE SCHEMAS
+// ==========================================
+const userSchema = new mongoose.Schema({
+    name: String, email: { type: String, unique: true, required: true }, 
+    password: { type: String, required: true }, role: { type: String, default: 'user' }
+});
+const User = mongoose.model('User', userSchema);
+
+const pendingUserSchema = new mongoose.Schema({
+    name: String, email: { type: String, required: true }, password: String, otp: String,
+    createdAt: { type: Date, expires: '10m', default: Date.now } 
+});
+const PendingUser = mongoose.model('PendingUser', pendingUserSchema);
+
 const propertySchema = new mongoose.Schema({
     title: String, purpose: String, location: String, price: Number, desc: String,
-    images: [String], videoLink: String, brokerEmail: String,
-    views: { type: Number, default: 0 },
-    clicks: { type: Number, default: 0 },
-    status: { type: String, default: 'pending' }
+    images: [{ type: String }], videoLink: { type: String, default: '' }, 
+    brokerEmail: String, status: { type: String, default: 'pending' },
+    views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 } // 📊 Analytics
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
+const brokerProfileSchema = new mongoose.Schema({
+    brokerEmail: { type: String, unique: true, required: true },
+    phone: String, photo: String, dealingAreas: [String]
+}, { timestamps: true });
+const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
+
 // ==========================================
-// 🚀 ALL API ROUTES
+// 3️⃣ API ROUTES
 // ==========================================
 
-// 1. Get Property (Increments View Count)
+// 📊 Analytics & Get Property Details
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
-        res.json({ success: true, property: property });
-    } catch (err) { res.status(500).json({ success: false }); }
+        if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
+        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: property.brokerEmail });
+        res.json({ success: true, property: property, brokerProfile: brokerProfile });
+    } catch (error) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
 
-// 2. Track Clicks (Calls/WhatsApp)
 app.post('/api/track-click/:id', async (req, res) => {
     try {
         await Property.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } });
@@ -60,34 +86,57 @@ app.post('/api/track-click/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 3. Update Property (With Images)
+// 🏠 Add & Update Property
+app.post('/api/add-property', upload.array('propertyImages', 3), async(req, res) => {
+    try {
+        const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
+        const newProperty = new Property({ ...req.body, images: imageUrls, brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown' });
+        await newProperty.save();
+        res.json({ success: true, message: 'Uploaded Successfully' });
+    } catch (error) { res.status(500).json({ success: false }); }
+});
+
 app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (req, res) => {
     try {
         const updateData = { ...req.body };
-        if (req.files && req.files.length > 0) {
-            updateData.images = req.files.map(f => f.path);
-        }
+        if (req.files && req.files.length > 0) updateData.images = req.files.map(f => f.path || f.url);
         await Property.findByIdAndUpdate(req.params.id, updateData);
-        res.json({ success: true, message: 'Property Updated!' });
+        res.json({ success: true, message: 'Updated Successfully' });
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 4. Other Routes (Add Property)
-app.post('/api/add-property', upload.array('propertyImages', 3), async (req, res) => {
+// 👤 Get Properties & Profile
+app.get('/api/get-properties', async(req, res) => {
     try {
-        const imageUrls = req.files.map(f => f.path);
-        const newProp = new Property({ ...req.body, images: imageUrls });
-        await newProp.save();
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ success: false }); }
+        const brokerEmail = req.query.email;
+        const properties = (brokerEmail && brokerEmail !== "undefined") 
+            ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }) 
+            : await Property.find({ status: 'approved' });
+        res.json(properties);
+    } catch (error) { res.status(500).json({ message: 'Error fetching data' }); }
 });
 
-// 5. Basic Get Properties
-app.get('/api/get-properties', async (req, res) => {
-    const email = req.query.email;
-    const props = email ? await Property.find({ brokerEmail: email }) : await Property.find({ status: 'approved' });
-    res.json(props);
+app.get('/api/get-profile', async(req, res) => {
+    try {
+        const email = req.query.email;
+        let profile = await BrokerProfile.findOne({ brokerEmail: email.toLowerCase().trim() });
+        res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [] });
+    } catch (error) { res.status(500).json({ message: 'Error' }); }
+});
+
+// 🔑 Auth & Admin Routes (आपके पुराने वाले)
+app.post('/api/login', async(req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email: email.toLowerCase().trim(), password });
+        if (user) res.json({ success: true, name: user.name, email: user.email, role: user.email === "devilking786k@sahu.com" ? 'admin' : 'user' });
+        else res.status(401).json({ success: false, message: 'Invalid credentials' });
+    } catch (error) { res.status(500).json({ success: false }); }
+});
+
+app.delete('/api/admin/delete-property/:id', async (req, res) => {
+    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));

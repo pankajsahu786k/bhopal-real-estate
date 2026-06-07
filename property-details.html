@@ -37,7 +37,7 @@
         <div class="details-grid" id="propertyContent" style="display: none;">
             <div class="main-info">
                 <div class="slider-container">
-                    <img id="propImage" src="" class="main-img" alt="Property Image" onerror="this.src='https://via.placeholder.com/800x450?text=No+Image'">
+                    <img id="propImage" src="" class="main-img" alt="Property Image" onerror="this.onerror=null; this.src='https://placehold.co/800x450?text=No+Image';">
                     <div id="thumbnails" class="thumbnails"></div>
                 </div>
                 <h1 id="propTitle"></h1>
@@ -53,7 +53,7 @@
 
             <div class="broker-card">
                 <h3>प्रॉपर्टी ओनर</h3>
-                <img id="brokerImg" src="https://via.placeholder.com/100?text=User" style="border-radius:50%; width:100px; height:100px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/100?text=User'">
+                <img id="brokerImg" src="https://placehold.co/100x100?text=User" style="border-radius:50%; width:100px; height:100px; object-fit:cover;" onerror="this.onerror=null; this.src='https://placehold.co/100x100?text=User';">
                 <h2 id="brokerNameDisplay" style="font-size: 18px; margin: 10px 0;"></h2>
                 <a href="#" id="callBtn" class="contact-btn" onclick="trackClick()">📞 कॉल करें</a>
                 <a href="#" id="whatsappBtn" class="contact-btn" style="background: #25D366;" onclick="trackClick()" target="_blank">💬 WhatsApp करें</a>
@@ -77,14 +77,13 @@
                 if (result.success) {
                     const { property, brokerProfile } = result;
 
-                    // 1. Text Details
                     document.getElementById('propTitle').innerText = property.title || 'Untitled Property';
                     document.getElementById('propPrice').innerText = property.purpose === 'Rent' ? `₹ ${property.price} / महीना` : `₹ ${property.price}`;
                     document.getElementById('propDesc').innerText = property.desc || 'No description available.';
                     document.getElementById('propLocation').innerText = `📍 ${property.location || 'Location not specified'}`;
                     
-                    // 2. Broker Details
                     document.getElementById('brokerNameDisplay').innerText = property.brokerEmail ? property.brokerEmail.split('@')[0] : 'Broker';
+                    
                     if (brokerProfile) {
                         if (brokerProfile.photo && brokerProfile.photo.trim() !== '') {
                             document.getElementById('brokerImg').src = brokerProfile.photo;
@@ -96,13 +95,12 @@
                         }
                     }
 
-                    // 3. Images Logic (Bulletproof)
                     let validImages = [];
                     if (property.images && property.images.length > 0) {
                         validImages = property.images.filter(img => img && img.trim() !== '');
                     }
-                    if (validImages.length === 0 && property.image) validImages = [property.image]; // Fallback for very old data
-                    if (validImages.length === 0) validImages = ['https://via.placeholder.com/800x450?text=No+Image+Available'];
+                    if (validImages.length === 0 && property.image) validImages = [property.image]; 
+                    if (validImages.length === 0) validImages = ['https://placehold.co/800x450?text=No+Image+Available'];
 
                     const mainImg = document.getElementById('propImage');
                     mainImg.src = validImages[0];
@@ -111,7 +109,7 @@
                     validImages.forEach((img, i) => {
                         const t = document.createElement('img');
                         t.src = img;
-                        t.onerror = function() { this.src = 'https://via.placeholder.com/80x60?text=Error'; };
+                        t.onerror = function() { this.onerror=null; this.src = 'https://placehold.co/80x60?text=Error'; };
                         t.className = i === 0 ? 'thumb-img active-thumb' : 'thumb-img';
                         t.onclick = () => { 
                             mainImg.src = img; 
@@ -121,7 +119,6 @@
                         thumbs.appendChild(t);
                     });
 
-                    // 4. Video Logic
                     if (property.videoLink && property.videoLink.trim() !== '') {
                         const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
                         const match = property.videoLink.match(regex);
