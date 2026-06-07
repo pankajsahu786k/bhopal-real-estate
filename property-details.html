@@ -19,11 +19,12 @@
         .thumb-img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; }
         .active-thumb { border-color: #2c3e50; }
         .price { font-size: 28px; font-weight: 700; color: #27ae60; margin-bottom: 30px; }
+        /* Video Container */
         .video-container { margin-top: 30px; }
-        .video-iframe { width: 100%; height: 400px; border-radius: 10px; }
+        .video-iframe { width: 100%; height: 400px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .broker-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); text-align: center; height: fit-content; position: sticky; top: 20px; }
         .contact-btn { display: block; background: #27ae60; color: white; text-decoration: none; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 10px; cursor: pointer; border: none; width: 100%; }
-        @media (max-width: 768px) { .details-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .details-grid { grid-template-columns: 1fr; } .video-iframe { height: 250px; } }
     </style>
 </head>
 <body>
@@ -44,14 +45,16 @@
                 <p id="propLocation"></p>
                 <div class="price" id="propPrice"></div>
                 <p id="propDesc"></p>
+
                 <div id="videoSection" class="video-container" style="display: none;">
+                    <div style="border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; font-weight: 600;">🎬 सिनेमैटिक वॉकथ्रू</div>
                     <div id="videoPlayerArea"></div>
                 </div>
             </div>
 
             <div class="broker-card">
                 <h3>प्रॉपर्टी ओनर</h3>
-                <img id="brokerImg" src="https://via.placeholder.com/100" style="border-radius:50%; width:100px; height:100px;">
+                <img id="brokerImg" src="https://via.placeholder.com/100" style="border-radius:50%; width:100px; height:100px; object-fit:cover;">
                 <h2 id="brokerNameDisplay"></h2>
                 <a href="#" id="callBtn" class="contact-btn" onclick="trackClick()">📞 कॉल करें</a>
                 <a href="#" id="whatsappBtn" class="contact-btn" style="background: #25D366;" onclick="trackClick()" target="_blank">💬 WhatsApp करें</a>
@@ -79,30 +82,37 @@
                 document.getElementById('propPrice').innerText = property.purpose === 'Rent' ? `₹ ${property.price} / महीना` : `₹ ${property.price}`;
                 document.getElementById('propDesc').innerText = property.desc;
                 document.getElementById('propLocation').innerText = `📍 ${property.location}`;
-
-                // Broker Details
                 document.getElementById('brokerNameDisplay').innerText = property.brokerEmail.split('@')[0];
+
+                // Broker Photo & Phone
                 if (brokerProfile) {
                     if (brokerProfile.photo) document.getElementById('brokerImg').src = brokerProfile.photo;
                     if (brokerProfile.phone) {
                         document.getElementById('callBtn').href = `tel:${brokerProfile.phone}`;
-                        // WhatsApp Logic
                         const waNumber = brokerProfile.phone.replace(/\D/g, '');
                         document.getElementById('whatsappBtn').href = `https://wa.me/91${waNumber}?text=Hi, I am interested in property: ${property.title}`;
                     }
                 }
 
-                // Images
+                // Images Slider
                 const images = property.images && property.images.length > 0 ? property.images : [property.image || 'https://via.placeholder.com/800x450'];
                 const mainImg = document.getElementById('propImage');
                 mainImg.src = images[0];
+                const thumbs = document.getElementById('thumbnails');
                 images.forEach((img, i) => {
                     const t = document.createElement('img');
                     t.src = img;
                     t.className = i === 0 ? 'thumb-img active-thumb' : 'thumb-img';
                     t.onclick = () => { mainImg.src = img; document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active-thumb')); t.classList.add('active-thumb'); };
-                    document.getElementById('thumbnails').appendChild(t);
+                    thumbs.appendChild(t);
                 });
+
+                // Video
+                if (property.videoLink) {
+                    const url = property.videoLink.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/");
+                    document.getElementById('videoPlayerArea').innerHTML = `<iframe class="video-iframe" src="${url}" allowfullscreen></iframe>`;
+                    document.getElementById('videoSection').style.display = 'block';
+                }
 
                 document.getElementById('loadingMessage').style.display = 'none';
                 document.getElementById('propertyContent').style.display = 'grid';
