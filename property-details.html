@@ -14,9 +14,9 @@
         .details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
         .main-info { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
         .slider-container { margin-bottom: 25px; }
-        .main-img { width: 100%; height: 450px; object-fit: cover; border-radius: 10px; }
+        .main-img { width: 100%; height: 450px; object-fit: cover; border-radius: 10px; background: #eee; }
         .thumbnails { display: flex; gap: 10px; margin-top: 10px; }
-        .thumb-img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; }
+        .thumb-img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; background: #eee; }
         .active-thumb { border-color: #2c3e50; }
         .price { font-size: 28px; font-weight: 700; color: #27ae60; margin-bottom: 30px; }
         .video-container { margin-top: 30px; }
@@ -37,7 +37,7 @@
         <div class="details-grid" id="propertyContent" style="display: none;">
             <div class="main-info">
                 <div class="slider-container">
-                    <img id="propImage" src="" class="main-img" alt="Property">
+                    <img id="propImage" src="" class="main-img" alt="Property Image" onerror="this.src='https://via.placeholder.com/800x450?text=No+Image'">
                     <div id="thumbnails" class="thumbnails"></div>
                 </div>
                 <h1 id="propTitle"></h1>
@@ -53,7 +53,7 @@
 
             <div class="broker-card">
                 <h3>प्रॉपर्टी ओनर</h3>
-                <img id="brokerImg" src="https://via.placeholder.com/100" style="border-radius:50%; width:100px; height:100px; object-fit:cover;">
+                <img id="brokerImg" src="https://via.placeholder.com/100?text=User" style="border-radius:50%; width:100px; height:100px; object-fit:cover;" onerror="this.src='https://via.placeholder.com/100?text=User'">
                 <h2 id="brokerNameDisplay" style="font-size: 18px; margin: 10px 0;"></h2>
                 <a href="#" id="callBtn" class="contact-btn" onclick="trackClick()">📞 कॉल करें</a>
                 <a href="#" id="whatsappBtn" class="contact-btn" style="background: #25D366;" onclick="trackClick()" target="_blank">💬 WhatsApp करें</a>
@@ -70,49 +70,73 @@
 
         async function fetchPropertyDetails() {
             if (!propertyId) return;
-            const res = await fetch(`/api/get-property/${propertyId}`);
-            const result = await res.json();
+            try {
+                const res = await fetch(`/api/get-property/${propertyId}`);
+                const result = await res.json();
 
-            if (result.success) {
-                const { property, brokerProfile } = result;
+                if (result.success) {
+                    const { property, brokerProfile } = result;
 
-                document.getElementById('propTitle').innerText = property.title;
-                document.getElementById('propPrice').innerText = property.purpose === 'Rent' ? `₹ ${property.price} / महीना` : `₹ ${property.price}`;
-                document.getElementById('propDesc').innerText = property.desc;
-                document.getElementById('propLocation').innerText = `📍 ${property.location}`;
-                document.getElementById('brokerNameDisplay').innerText = property.brokerEmail ? property.brokerEmail.split('@')[0] : 'Broker';
-
-                if (brokerProfile) {
-                    if (brokerProfile.photo) document.getElementById('brokerImg').src = brokerProfile.photo;
-                    if (brokerProfile.phone) {
-                        document.getElementById('callBtn').href = `tel:${brokerProfile.phone}`;
-                        const waNumber = brokerProfile.phone.replace(/\D/g, '');
-                        document.getElementById('whatsappBtn').href = `https://wa.me/91${waNumber}?text=Hello, I saw your property "${property.title}" on Bhopal Real Estate.`;
+                    // 1. Text Details
+                    document.getElementById('propTitle').innerText = property.title || 'Untitled Property';
+                    document.getElementById('propPrice').innerText = property.purpose === 'Rent' ? `₹ ${property.price} / महीना` : `₹ ${property.price}`;
+                    document.getElementById('propDesc').innerText = property.desc || 'No description available.';
+                    document.getElementById('propLocation').innerText = `📍 ${property.location || 'Location not specified'}`;
+                    
+                    // 2. Broker Details
+                    document.getElementById('brokerNameDisplay').innerText = property.brokerEmail ? property.brokerEmail.split('@')[0] : 'Broker';
+                    if (brokerProfile) {
+                        if (brokerProfile.photo && brokerProfile.photo.trim() !== '') {
+                            document.getElementById('brokerImg').src = brokerProfile.photo;
+                        }
+                        if (brokerProfile.phone) {
+                            document.getElementById('callBtn').href = `tel:${brokerProfile.phone}`;
+                            const waNumber = brokerProfile.phone.replace(/\D/g, '');
+                            document.getElementById('whatsappBtn').href = `https://wa.me/91${waNumber}?text=Hello, I saw your property "${property.title}" on Bhopal Real Estate.`;
+                        }
                     }
-                }
 
-                const images = property.images && property.images.length > 0 ? property.images : ['https://via.placeholder.com/800x450'];
-                const mainImg = document.getElementById('propImage');
-                mainImg.src = images[0];
-                const thumbs = document.getElementById('thumbnails');
-                images.forEach((img, i) => {
-                    const t = document.createElement('img');
-                    t.src = img;
-                    t.className = i === 0 ? 'thumb-img active-thumb' : 'thumb-img';
-                    t.onclick = () => { mainImg.src = img; document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active-thumb')); t.classList.add('active-thumb'); };
-                    thumbs.appendChild(t);
-                });
-
-                if (property.videoLink) {
-                    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-                    const match = property.videoLink.match(regex);
-                    if (match && match[1]) {
-                        document.getElementById('videoPlayerArea').innerHTML = `<iframe class="video-iframe" src="https://www.youtube.com/embed/${match[1]}" allowfullscreen></iframe>`;
-                        document.getElementById('videoSection').style.display = 'block';
+                    // 3. Images Logic (Bulletproof)
+                    let validImages = [];
+                    if (property.images && property.images.length > 0) {
+                        validImages = property.images.filter(img => img && img.trim() !== '');
                     }
+                    if (validImages.length === 0 && property.image) validImages = [property.image]; // Fallback for very old data
+                    if (validImages.length === 0) validImages = ['https://via.placeholder.com/800x450?text=No+Image+Available'];
+
+                    const mainImg = document.getElementById('propImage');
+                    mainImg.src = validImages[0];
+                    
+                    const thumbs = document.getElementById('thumbnails');
+                    validImages.forEach((img, i) => {
+                        const t = document.createElement('img');
+                        t.src = img;
+                        t.onerror = function() { this.src = 'https://via.placeholder.com/80x60?text=Error'; };
+                        t.className = i === 0 ? 'thumb-img active-thumb' : 'thumb-img';
+                        t.onclick = () => { 
+                            mainImg.src = img; 
+                            document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active-thumb')); 
+                            t.classList.add('active-thumb'); 
+                        };
+                        thumbs.appendChild(t);
+                    });
+
+                    // 4. Video Logic
+                    if (property.videoLink && property.videoLink.trim() !== '') {
+                        const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+                        const match = property.videoLink.match(regex);
+                        if (match && match[1]) {
+                            document.getElementById('videoPlayerArea').innerHTML = `<iframe class="video-iframe" src="https://www.youtube.com/embed/${match[1]}" allowfullscreen></iframe>`;
+                            document.getElementById('videoSection').style.display = 'block';
+                        }
+                    }
+                    
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('propertyContent').style.display = 'grid';
                 }
-                document.getElementById('loadingMessage').style.display = 'none';
-                document.getElementById('propertyContent').style.display = 'grid';
+            } catch (error) {
+                console.error("Error loading property details:", error);
+                document.getElementById('loadingMessage').innerText = "❌ डेटा लोड करने में समस्या आई।";
             }
         }
         window.onload = fetchPropertyDetails;
