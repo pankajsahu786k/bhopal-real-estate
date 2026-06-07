@@ -86,6 +86,16 @@ app.post('/api/signup', async(req, res) => {
     }
 });
 
+// 📍 नया रूट: डेटाबेस से सभी 'यूनिक' लोकेशन्स निकालना (Dynamic Locations)
+app.get('/api/get-locations', async (req, res) => {
+    try {
+        // Mongoose का 'distinct' जादू: यह सभी प्रॉपर्टीज़ में से अलग-अलग लोकेशन खींच लाएगा
+        const locations = await Property.distinct('location');
+        res.json({ success: true, locations: locations });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'लोकेशन लाने में एरर' });
+    }
+});
 app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;

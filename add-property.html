@@ -37,7 +37,7 @@
 
             <div class="form-group">
                 <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
-                <select id="location" required>
+                <select id="location" required onchange="checkNewLocation(this.value)">
                     <option value="">इलाका चुनें...</option>
                     
                     <optgroup label="मुख्य एवं व्यापारिक क्षेत्र (Central & Commercial)">
@@ -73,7 +73,11 @@
                         <option value="Karond">Karond (करोंद)</option>
                         <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
                     </optgroup>
+
+                    <option value="other" style="font-weight: bold; color: #3498db;">+ लिस्ट में नहीं है? नई लोकेशन जोड़ें</option>
                 </select>
+
+                <input type="text" id="customLocation" placeholder="अपनी नई लोकेशन का नाम टाइप करें (जैसे: Misrod, Ayodhya Nagar)..." style="display: none; padding: 10px; width: 100%; border-radius: 5px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
             </div>
 
             <div class="form-group">
@@ -101,13 +105,27 @@
             const brokerEmail = localStorage.getItem('brokerEmail');
             if (!brokerEmail) {
                 alert('कृपया पहले लॉगिन करें!');
-                window.location.href = 'index.html'; // या आपका जो भी लॉगिन पेज हो
+                window.location.href = 'index.html'; 
             }
         });
 
+        // 🟢 नया फंक्शन: जब यूज़र '+ नई लोकेशन' चुनेगा तो टाइपिंग बॉक्स खोलना
+        function checkNewLocation(val) {
+            const inputBox = document.getElementById('customLocation');
+            if (val === 'other') {
+                inputBox.style.display = 'block'; // बॉक्स दिखाओ
+                inputBox.required = true;         // इसे ज़रूरी बनाओ
+                inputBox.focus();                 // कर्सर अपने आप वहाँ ले जाओ
+            } else {
+                inputBox.style.display = 'none';  // बॉक्स छुपाओ
+                inputBox.required = false;
+                inputBox.value = '';              // वैल्यू साफ करो
+            }
+        }
+
         // फॉर्म सबमिट करने का फंक्शन
         async function submitProperty(event) {
-            event.preventDefault(); // पेज को रिफ्रेश होने से रोकना
+            event.preventDefault(); 
 
             const submitBtn = document.querySelector('.submit-btn');
             submitBtn.innerText = "अपलोड हो रहा है... (Please Wait)";
@@ -115,18 +133,22 @@
 
             const brokerEmail = localStorage.getItem('brokerEmail');
 
-            // फोटो के साथ डेटा भेजने के लिए FormData का इस्तेमाल
+            // 🟢 स्मार्ट लोकेशन लॉजिक: अगर 'other' चुना है तो टेक्स्ट बॉक्स से वैल्यू उठाओ
+            let finalLocation = document.getElementById('location').value;
+            if (finalLocation === 'other') {
+                finalLocation = document.getElementById('customLocation').value.trim();
+            }
+
             const formData = new FormData();
             formData.append('title', document.getElementById('title').value);
             formData.append('purpose', document.getElementById('purpose').value);
-            formData.append('location', document.getElementById('location').value);
+            formData.append('location', finalLocation); // 👈 यहाँ हमारी फाइनल लोकेशन जाएगी
             formData.append('price', document.getElementById('price').value);
             formData.append('desc', document.getElementById('desc').value);
             formData.append('brokerEmail', brokerEmail);
             formData.append('propertyImage', document.getElementById('propertyImage').files[0]);
 
             try {
-                // यह रिक्वेस्ट सीधे आपके सर्वर (server.js) के 'add-property' रूट पर जाएगी
                 const response = await fetch('/api/add-property', {
                     method: 'POST',
                     body: formData
@@ -135,15 +157,15 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('✅ प्रॉपर्टी सफलतापूर्वक जुड़ गई!');
-                    window.location.href = 'dashboard.html'; // अपलोड होने के बाद डैशबोर्ड पर भेजें
+                    alert('✅ प्रॉपर्टी सफलतापूर्वक जुड़ गई!');
+                    window.location.href = 'dashboard.html'; 
                 } else {
                     alert('❌ ' + data.message);
                     submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
                     submitBtn.disabled = false;
                 }
             } catch (error) {
-                alert('❌ सर्वर से जुड़ने में समस्या आई।');
+                alert('❌ सर्वर से जुड़ने में समस्या आई।');
                 submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
                 submitBtn.disabled = false;
                 console.error(error);

@@ -75,19 +75,7 @@
             </select>
             <select id="searchLocation">
                 <option value="">लोकेशन चुनें...</option>
-                <option value="MP Nagar Zone 1">MP Nagar Zone 1</option>
-                <option value="MP Nagar Zone 2">MP Nagar Zone 2</option>
-                <option value="New Market">New Market</option>
-                <option value="TT Nagar">TT Nagar</option>
-                <option value="Malviya Nagar">Malviya Nagar</option>
-                <option value="Arera Colony">Arera Colony</option>
-                <option value="Shahpura">Shahpura</option>
-                <option value="Kolar Road">Kolar Road</option>
-                <option value="Awadhpuri">Awadhpuri</option>
-                <option value="Hoshangabad Road">Hoshangabad Road</option>
-                <option value="Indrapuri">Indrapuri</option>
-                <option value="Piplani">Piplani</option>
-            </select>
+                </select>
             <button onclick="searchProperties()">सर्च करें</button>
         </div>
     </section>
@@ -158,8 +146,30 @@
             displayProperties(filtered);
             document.querySelector('.properties-section').scrollIntoView({ behavior: 'smooth' });
         }
+        // 🌐 डेटाबेस से सारी नई और पुरानी लोकेशन लोड करने का फंक्शन
+        async function loadDynamicLocations() {
+            try {
+                const response = await fetch('/api/get-locations');
+                const result = await response.json();
+                
+                if(result.success) {
+                    const locationSelect = document.getElementById('searchLocation');
+                    
+                    // डेटाबेस से आई हर लोकेशन को ड्रॉपडाउन में डालें
+                    result.locations.forEach(loc => {
+                        if(loc && loc.trim() !== "") {
+                            locationSelect.innerHTML += `<option value="${loc}">${loc}</option>`;
+                        }
+                    });
+                }
+            } catch (error) { console.error("लोकेशन लोड एरर:", error); }
+        }
 
-        window.onload = loadAllProperties;
+        // पेज लोड होते ही प्रॉपर्टीज़ और लोकेशन्स दोनों मंगाना
+        window.onload = () => {
+            loadAllProperties();
+            loadDynamicLocations();
+        };
     </script>
 </body>
 </html>
