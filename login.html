@@ -5,10 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real Estate Website - Login/Signup</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* OTP इनपुट के लिए थोड़ा प्रीमियम लुक */
+        #otpInput {
+            text-align: center;
+            letter-spacing: 8px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
     <div class="auth-container">
+        
         <div class="login-form">
             <h2>लॉगिन करें</h2>
             <form id="loginForm">
@@ -18,15 +28,25 @@
             </form>
         </div>
 
-        <div class="signup-form">
+        <div class="signup-form" id="signupSection">
             <h2>खाता बनाएँ</h2>
             <form id="signupForm">
                 <input type="text" id="signupName" placeholder="Name" required>
                 <input type="email" id="signupEmail" placeholder="E-Mail ID" required>
                 <input type="password" id="signupPassword" placeholder="Password" required>
-                <button type="submit">Register</button>
+                <button type="submit" id="signupBtn">Register</button>
             </form>
         </div>
+
+        <div class="signup-form" id="otpSection" style="display: none;">
+            <h2>OTP वेरीफाई करें</h2>
+            <p style="font-size: 14px; margin-bottom: 15px; color: #555;">हमने आपके ईमेल पर एक 4-डिजिट का कोड भेजा है।</p>
+            <form id="otpForm">
+                <input type="text" id="otpInput" placeholder="Enter OTP" required maxlength="4">
+                <button type="submit" id="otpBtn">Verify & Register</button>
+            </form>
+        </div>
+
     </div>
 
     <script>
@@ -52,7 +72,7 @@
                     // ब्राउज़र की तिजोरी में डेटा लॉक करना
                     localStorage.setItem('brokerName', result.name);
                     localStorage.setItem('brokerEmail', emailInput.toLowerCase().trim());
-                    localStorage.setItem('userRole', result.role); // 👈 नया फीचर
+                    localStorage.setItem('userRole', result.role); 
                     
                     // 🚦 ट्रैफिक पुलिस
                     if (result.role === 'admin') {
@@ -69,9 +89,17 @@
             }
         });
 
-        // ======= 2. साइन-अप (रजिस्ट्रेशन) का लॉजिक =======
+
+        // ======= 2. साइन-अप (OTP भेजने का लॉजिक) =======
+        let pendingUserEmail = ""; // OTP चेक करते वक्त ईमेल याद रखने के लिए
+
         document.getElementById('signupForm').addEventListener('submit', async function(event) {
             event.preventDefault();
+            
+            const signupBtn = document.getElementById('signupBtn');
+            signupBtn.innerText = "OTP भेज रहा है... ⏳";
+            signupBtn.disabled = true;
+
             const name = document.getElementById('signupName').value;
             const email = document.getElementById('signupEmail').value;
             const password = document.getElementById('signupPassword').value;
@@ -83,12 +111,71 @@
                     body: JSON.stringify({ name, email, password })
                 });
                 const result = await response.json();
-                alert(result.message);
-                if (result.success) document.getElementById('signupForm').reset();
+                
+                if (result.success && result.requireOtp) {
+                    alert(result.message);
+                    pendingUserEmail = email; // ईमेल को सेव कर लिया
+                    
+                    // साइन-अप फॉर्म छुपाएं और OTP फॉर्म दिखाएं
+                    document.getElementById('signupSection').style.display = 'none';
+                    document.getElementById('otpSection').style.display = 'block';
+                } else {
+                    alert(result.message);
+                    signupBtn.innerText = "Register";
+                    signupBtn.disabled = false;
+                }
             } catch (error) {
                 alert("अकाउंट बनाने में समस्या आई।");
+                signupBtn.innerText = "Register";
+                signupBtn.disabled = false;
             }
         });
+
+
+        // ======= 3. 🛡️ नया: OTP चेक करने का लॉजिक =======
+        document.getElementById('otpForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const otpBtn = document.getElementById('otpBtn');
+            otpBtn.innerText = "वेरीफाई कर रहा है... ⏳";
+            otpBtn.disabled = true;
+
+            const otpValue = document.getElementById('otpInput').value;
+
+            try {
+                const response = await fetch('/api/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: pendingUserEmail, otp: otpValue })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(result.message);
+                    // सब कुछ साफ करें और वापस लॉगिन के लिए तैयार करें
+                    document.getElementById('signupForm').reset();
+                    document.getElementById('otpForm').reset();
+                    
+                    document.getElementById('otpSection').style.display = 'none';
+                    document.getElementById('signupSection').style.display = 'block';
+                    
+                    signupBtn.innerText = "Register";
+                    signupBtn.disabled = false;
+                    otpBtn.innerText = "Verify & Register";
+                    otpBtn.disabled = false;
+
+                } else {
+                    alert(result.message);
+                    otpBtn.innerText = "Verify & Register";
+                    otpBtn.disabled = false;
+                }
+            } catch (error) {
+                alert("OTP वेरीफाई करने में समस्या आई।");
+                otpBtn.innerText = "Verify & Register";
+                otpBtn.disabled = false;
+            }
+        });
+
     </script>
     
 </body>

@@ -5,6 +5,7 @@ const path = require('path');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const nodemailer = require('nodemailer'); // 👈 नया टूल (Nodemailer)
 
 const app = express();
 
@@ -12,6 +13,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
+
+// ==========================================
+// 📧 NODEMAILER SETUP (ईमेल भेजने वाला डाकिया)
+// ==========================================
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'pankajsahu786k@gmail.com', // 👈 अपना असली Gmail यहाँ डालें
+        pass: 'gxzl pjvj yoxz ifzo' // आपका App Password
+    }
+});
 
 // ==========================================
 // ☁️ CLOUDINARY SETUP (फोटो की तिजोरी)
@@ -51,6 +63,16 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
+// 🛡️ नया: Pending User Schema (OTP चेक करने के लिए 10 मिनट का कच्चा खाता)
+const pendingUserSchema = new mongoose.Schema({
+    name: String,
+    email: { type: String, required: true },
+    password: String,
+    otp: String,
+    createdAt: { type: Date, expires: '10m', default: Date.now } // 10 मिनट बाद अपने आप डिलीट
+});
+const PendingUser = mongoose.model('PendingUser', pendingUserSchema);
+
 const propertySchema = new mongoose.Schema({
     title: String,
     purpose: String,
@@ -59,7 +81,7 @@ const propertySchema = new mongoose.Schema({
     desc: String,
     image: String,
     brokerEmail: String,
-    status: { type: String, default: 'pending' } // 👈 सिक्योरिटी फीचर (शुरुआत में प्रॉपर्टी पेंडिंग रहेगी)
+    status: { type: String, default: 'pending' } 
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
@@ -74,19 +96,78 @@ const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 // ==========================================
 // 4️⃣ API ROUTES
 // ==========================================
+
+// 🚀 नया साइन-अप सिस्टम (OTP जनरेट करके भेजना)
 app.post('/api/signup', async(req, res) => {
     try {
         const { name, email, password } = req.body;
-        const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // 1. चेक करें कि यूज़र पहले से तो नहीं है
+        const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) return res.status(400).json({ success: false, message: 'यह ईमेल पहले से रजिस्टर है!' });
-        const newUser = new User({ name, email: email.toLowerCase().trim(), password });
-        await newUser.save();
-        res.json({ success: true, message: 'खाता सफलतापूर्वक बन गया!' });
+
+        // 2. नया 4-डिजिट OTP बनाएं
+        const generatedOtp = Math.floor(1000 + Math.random() * 9000).toString();
+
+        // 3. कच्चे खाते (PendingUser) में सेव करें
+        await PendingUser.findOneAndDelete({ email: normalizedEmail }); // अगर पुराना OTP पड़ा हो तो हटा दें
+        const pendingUser = new PendingUser({ name, email: normalizedEmail, password, otp: generatedOtp });
+        await pendingUser.save();
+
+        // 4. ईमेल भेजें
+        const mailOptions = {
+            from: 'Bhopal Real Estate Admin',
+            to: normalizedEmail,
+            subject: 'Your Account Verification OTP',
+            html: `<h3>Bhopal Real Estate में आपका स्वागत है!</h3>
+                   <p>आपका अकाउंट वेरीफाई करने के लिए OTP है: <b><span style="font-size:24px; color:blue;">${generatedOtp}</span></b></p>
+                   <p>यह OTP 10 मिनट के लिए मान्य है।</p>`
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("ईमेल भेजने में एरर:", error);
+                return res.status(500).json({ success: false, message: 'OTP भेजने में समस्या आई। ईमेल चेक करें।' });
+            }
+            res.json({ success: true, message: '✅ आपके ईमेल पर OTP भेज दिया गया है!', requireOtp: true });
+        });
+
     } catch (error) {
         res.status(500).json({ success: false, message: 'सर्वर एरर' });
     }
 });
 
+// 🚀 नया रूट: OTP वेरीफाई करके असली अकाउंट बनाना
+app.post('/api/verify-otp', async(req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const normalizedEmail = email.toLowerCase().trim();
+
+        // कच्चे खाते में यूज़र और OTP चेक करें
+        const pendingUser = await PendingUser.findOne({ email: normalizedEmail });
+
+        if (!pendingUser) return res.status(400).json({ success: false, message: 'OTP एक्सपायर हो गया है या ईमेल गलत है। फिर से साइन-अप करें।' });
+        if (pendingUser.otp !== otp) return res.status(400).json({ success: false, message: '❌ गलत OTP! कृपया सही कोड डालें।' });
+
+        // OTP सही है! अब असली अकाउंट (User) बना दें
+        const newUser = new User({ 
+            name: pendingUser.name, 
+            email: pendingUser.email, 
+            password: pendingUser.password 
+        });
+        await newUser.save();
+
+        // कच्चे खाते से डिलीट कर दें
+        await PendingUser.findOneAndDelete({ email: normalizedEmail });
+
+        res.json({ success: true, message: '🎉 खाता सफलतापूर्वक बन गया है! अब आप लॉगिन कर सकते हैं।' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'OTP वेरीफाई करने में सर्वर एरर' });
+    }
+});
+
+// लॉगिन
 app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
@@ -107,27 +188,23 @@ app.post('/api/login', async(req, res) => {
     }
 });
 
-// 🚨 अपडेटेड रूट: होमपेज पर सिर्फ 'Approved' प्रॉपर्टीज भेजना
+// 🚨 प्रॉपर्टीज भेजना
 app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
         let properties = [];
         
         if (brokerEmail && brokerEmail.trim() !== "" && brokerEmail !== "undefined") {
-            // ब्रोकर के डैशबोर्ड पर उसकी सारी प्रॉपर्टीज (पेंडिंग + लाइव) दिखेंगी
             properties = await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() });
         } else {
-            // पब्लिक होमपेज पर सिर्फ एडमिन द्वारा अप्रूव की गई प्रॉपर्टीज दिखेंगी
             properties = await Property.find({ status: 'approved' }); 
         }
         res.json(properties);
     } catch (error) { res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' }); }
 });
 
-// 📍 नया रूट: डायनामिक लोकेशन निकालना
 app.get('/api/get-locations', async (req, res) => {
     try {
-        // सिर्फ उन लोकेशन्स को निकालें जो अप्रूव हो चुकी हैं
         const locations = await Property.distinct('location', { status: 'approved' });
         res.json({ success: true, locations: locations });
     } catch (error) {
@@ -167,7 +244,7 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
             desc: req.body.desc,
             image: req.file ? (req.file.path || req.file.url) : '',
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown',
-            status: 'pending' // यहाँ प्रॉपर्टी पेंडिंग सेट होगी
+            status: 'pending' 
         });
         await newProperty.save();
         res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपलोड हो गई! (एडमिन के अप्रूवल का इंतज़ार है)' });
@@ -205,7 +282,6 @@ app.get('/api/admin/all-data', async (req, res) => {
     }
 });
 
-// 👑 एडमिन रूट: प्रॉपर्टी को पब्लिश करने के लिए
 app.post('/api/admin/approve-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
@@ -216,7 +292,6 @@ app.post('/api/admin/approve-property/:id', async (req, res) => {
     }
 });
 
-// 👑 नया एडमिन रूट: लाइव प्रॉपर्टी को वापस पेंडिंग (Unpublish) करने के लिए
 app.post('/api/admin/unpublish-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
@@ -227,7 +302,6 @@ app.post('/api/admin/unpublish-property/:id', async (req, res) => {
     }
 });
 
-// 👑 एडमिन रूट: प्रॉपर्टी डिलीट करने के लिए
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
