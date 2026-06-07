@@ -17,7 +17,15 @@
         .details-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; }
         
         .main-info { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
-        .main-img { width: 100%; height: 450px; object-fit: cover; border-radius: 10px; margin-bottom: 20px; }
+        
+        /* 📸 इमेज स्लाइडर के लिए स्टाइल */
+        .slider-container { margin-bottom: 25px; }
+        .main-img { width: 100%; height: 450px; object-fit: cover; border-radius: 10px; transition: opacity 0.3s; }
+        .thumbnails { display: flex; gap: 10px; margin-top: 10px; }
+        .thumb-img { width: 80px; height: 60px; object-fit: cover; border-radius: 6px; cursor: pointer; opacity: 0.6; transition: 0.3s; border: 2px solid transparent; }
+        .thumb-img:hover { opacity: 0.9; }
+        .active-thumb { opacity: 1; border-color: #2c3e50; }
+
         .badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 15px; }
         .badge-rent { background-color: #f1c40f; color: #2c3e50; }
         .badge-sell { background-color: #e74c3c; color: white; }
@@ -26,6 +34,10 @@
         .price { font-size: 28px; font-weight: 700; color: #27ae60; margin-bottom: 30px; }
         .description-title { font-size: 18px; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
         .description { color: #555; line-height: 1.6; }
+
+        /* 🎬 वीडियो प्लेयर की स्टाइल */
+        .video-container { margin-top: 30px; }
+        .video-iframe { width: 100%; height: 400px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
         .broker-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); text-align: center; height: fit-content; position: sticky; top: 20px; }
         .broker-photo { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #3498db; margin-bottom: 15px; }
@@ -36,6 +48,7 @@
         @media (max-width: 768px) {
             .details-grid { grid-template-columns: 1fr; }
             .main-img { height: 250px; }
+            .video-iframe { height: 250px; }
             header { padding: 15px 20px; }
         }
     </style>
@@ -53,13 +66,24 @@
         
         <div class="details-grid" id="propertyContent" style="display: none;">
             <div class="main-info">
-                <img id="propImage" src="" class="main-img" alt="Property">
+                
+                <div class="slider-container">
+                    <img id="propImage" src="" class="main-img" alt="Property Main Image">
+                    <div id="thumbnails" class="thumbnails"></div>
+                </div>
+
                 <span id="propBadge" class="badge"></span>
                 <h1 id="propTitle"></h1>
                 <p class="location" id="propLocation"></p>
                 <div class="price" id="propPrice"></div>
                 <div class="description-title">प्रॉपर्टी के बारे में</div>
                 <p class="description" id="propDesc"></p>
+
+                <div id="videoSection" class="video-container" style="display: none;">
+                    <div class="description-title">🎬 सिनेमैटिक वॉकथ्रू (Video Tour)</div>
+                    <div id="videoPlayerArea"></div>
+                </div>
+
             </div>
 
             <div class="broker-card">
@@ -91,7 +115,68 @@
                     const prop = result.property;
                     const broker = result.brokerProfile;
 
-                    document.getElementById('propImage').src = prop.image || 'https://via.placeholder.com/800x450';
+                    // ==========================================
+                    // 📸 स्मार्ट इमेज स्लाइडर लॉजिक
+                    // ==========================================
+                    let imagesList = [];
+                    if (prop.images && prop.images.length > 0) {
+                        imagesList = prop.images;
+                    } else if (prop.image) {
+                        imagesList = [prop.image];
+                    } else {
+                        imagesList = ['https://via.placeholder.com/800x450'];
+                    }
+
+                    // मेन इमेज सेट करें (लिस्ट की पहली फोटो)
+                    const mainImageEl = document.getElementById('propImage');
+                    mainImageEl.src = imagesList[0];
+
+                    // अगर 1 से ज्यादा फोटो हैं तो नीचे छोटी तस्वीरें (Thumbnails) दिखाएं
+                    const thumbsContainer = document.getElementById('thumbnails');
+                    thumbsContainer.innerHTML = '';
+                    if (imagesList.length > 1) {
+                        imagesList.forEach((imgSrc, index) => {
+                            const thumb = document.createElement('img');
+                            thumb.src = imgSrc;
+                            thumb.className = index === 0 ? 'thumb-img active-thumb' : 'thumb-img';
+                            
+                            // क्लिक करने पर मेन फोटो बदलना
+                            thumb.onclick = () => {
+                                mainImageEl.style.opacity = 0.5; // थोड़ा फीका करें (Transition इफ़ेक्ट)
+                                setTimeout(() => {
+                                    mainImageEl.src = imgSrc;
+                                    mainImageEl.style.opacity = 1;
+                                }, 150);
+                                
+                                // एक्टिव क्लास बदलना
+                                document.querySelectorAll('.thumb-img').forEach(t => t.classList.remove('active-thumb'));
+                                thumb.classList.add('active-thumb');
+                            };
+                            thumbsContainer.appendChild(thumb);
+                        });
+                    }
+
+                    // ==========================================
+                    // 🎬 स्मार्ट यूट्यूब वीडियो लॉजिक
+                    // ==========================================
+                    if (prop.videoLink && (prop.videoLink.includes("youtube.com") || prop.videoLink.includes("youtu.be"))) {
+                        let embedUrl = prop.videoLink;
+                        // लिंक को 'Embed' फॉर्मेट में बदलना और फालतू टेक्स्ट हटाना
+                        if (prop.videoLink.includes("watch?v=")) {
+                            embedUrl = prop.videoLink.replace("watch?v=", "embed/").split('&')[0];
+                        } else if (prop.videoLink.includes("youtu.be/")) {
+                            embedUrl = prop.videoLink.replace("youtu.be/", "youtube.com/embed/").split('?')[0];
+                        }
+
+                        document.getElementById('videoPlayerArea').innerHTML = `
+                            <iframe class="video-iframe" src="${embedUrl}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                        `;
+                        document.getElementById('videoSection').style.display = 'block'; // प्लेयर दिखाएं
+                    }
+
+                    // ==========================================
+                    // 🏠 बाकी की जानकारी सेट करना
+                    // ==========================================
                     document.getElementById('propTitle').innerText = prop.title;
                     document.getElementById('propLocation').innerText = `📍 ${prop.location}`;
                     document.getElementById('propDesc').innerText = prop.desc;
@@ -108,25 +193,19 @@
                         document.getElementById('propPrice').innerText = `₹ ${prop.price}`;
                     }
 
+                    // 👤 ब्रोकर की जानकारी
                     if (broker) {
                         if (broker.photo) document.getElementById('brokerImg').src = broker.photo;
                         
                         if (broker.phone) {
-                            // 📞 1. कॉल बटन चालू करें
                             document.getElementById('callBtn').href = `tel:${broker.phone}`;
+                            let waNumber = broker.phone.replace(/\D/g, ''); 
+                            if(waNumber.length === 10) waNumber = '91' + waNumber; 
                             
-                            // 💬 2. WhatsApp बटन चालू करें (स्मार्ट मैसेज के साथ)
-                            let waNumber = broker.phone.replace(/\\D/g, ''); // फोन नंबर से फालतू स्पेस या डैश हटाएं
-                            if(waNumber.length === 10) waNumber = '91' + waNumber; // इंडिया का कोड (91) जोड़ें
-                            
-                            // ऑटोमैटिक टाइप होने वाला मैसेज
                             const waMessage = encodeURIComponent(`Hello, I saw your property "${prop.title}" at ${prop.location} on Bhopal Real Estate. Is it available?`);
-                            
                             document.getElementById('whatsappBtn').href = `https://wa.me/${waNumber}?text=${waMessage}`;
                             document.getElementById('whatsappBtn').target = "_blank"; 
-                            
                         } else {
-                            // अगर नंबर नहीं है तो दोनों बटन छिपा दें
                             document.getElementById('callBtn').style.display = 'none'; 
                             document.getElementById('whatsappBtn').style.display = 'none'; 
                         }

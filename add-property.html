@@ -74,7 +74,7 @@
                         <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
                     </optgroup>
 
-                    <option value="other" style="font-weight: bold; color: #3498db;">+ लिस्ट में नहीं है? नई लोकेशन जोड़ें</option>
+                    <option value="other" style="font-weight: bold; color: #3498db;">+ लिस्ट में नहीं है? नई लोकेशन जोड़ें</option>
                 </select>
 
                 <input type="text" id="customLocation" placeholder="अपनी नई लोकेशन का नाम टाइप करें (जैसे: Misrod, Ayodhya Nagar)..." style="display: none; padding: 10px; width: 100%; border-radius: 5px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
@@ -91,8 +91,14 @@
             </div>
 
             <div class="form-group">
-                <label for="propertyImage">प्रॉपर्टी की फोटो (Upload Image)</label>
-                <input type="file" id="propertyImage" accept="image/*" required>
+                <label for="videoLink">YouTube वीडियो लिंक (Optional - Cinematic/Drone Video)</label>
+                <input type="url" id="videoLink" placeholder="जैसे: https://youtu.be/..." style="padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc;">
+            </div>
+
+            <div class="form-group">
+                <label for="propertyImages">प्रॉपर्टी की फोटो (Upload up to 3 Images)</label>
+                <input type="file" id="propertyImages" accept="image/*" multiple required>
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">* आप एक साथ अधिकतम 3 फोटो सेलेक्ट कर सकते हैं</p>
             </div>
 
             <button type="submit" class="submit-btn">प्रॉपर्टी पब्लिश करें (Publish Property)</button>
@@ -100,7 +106,6 @@
     </div>
 
     <script>
-        // चेक करें कि ब्रोकर लॉगिन है या नहीं
         document.addEventListener('DOMContentLoaded', () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
             if (!brokerEmail) {
@@ -109,21 +114,19 @@
             }
         });
 
-        // 🟢 नया फंक्शन: जब यूज़र '+ नई लोकेशन' चुनेगा तो टाइपिंग बॉक्स खोलना
         function checkNewLocation(val) {
             const inputBox = document.getElementById('customLocation');
             if (val === 'other') {
-                inputBox.style.display = 'block'; // बॉक्स दिखाओ
-                inputBox.required = true;         // इसे ज़रूरी बनाओ
-                inputBox.focus();                 // कर्सर अपने आप वहाँ ले जाओ
+                inputBox.style.display = 'block'; 
+                inputBox.required = true;         
+                inputBox.focus();                 
             } else {
-                inputBox.style.display = 'none';  // बॉक्स छुपाओ
+                inputBox.style.display = 'none';  
                 inputBox.required = false;
-                inputBox.value = '';              // वैल्यू साफ करो
+                inputBox.value = '';              
             }
         }
 
-        // फॉर्म सबमिट करने का फंक्शन
         async function submitProperty(event) {
             event.preventDefault(); 
 
@@ -133,7 +136,6 @@
 
             const brokerEmail = localStorage.getItem('brokerEmail');
 
-            // 🟢 स्मार्ट लोकेशन लॉजिक: अगर 'other' चुना है तो टेक्स्ट बॉक्स से वैल्यू उठाओ
             let finalLocation = document.getElementById('location').value;
             if (finalLocation === 'other') {
                 finalLocation = document.getElementById('customLocation').value.trim();
@@ -142,11 +144,27 @@
             const formData = new FormData();
             formData.append('title', document.getElementById('title').value);
             formData.append('purpose', document.getElementById('purpose').value);
-            formData.append('location', finalLocation); // 👈 यहाँ हमारी फाइनल लोकेशन जाएगी
+            formData.append('location', finalLocation); 
             formData.append('price', document.getElementById('price').value);
             formData.append('desc', document.getElementById('desc').value);
             formData.append('brokerEmail', brokerEmail);
-            formData.append('propertyImage', document.getElementById('propertyImage').files[0]);
+            formData.append('videoLink', document.getElementById('videoLink').value); // 🚁 वीडियो लिंक
+
+            // 📸 3 फोटो चेक और अपलोड लॉजिक
+            const imgInput = document.getElementById('propertyImages');
+            
+            if (imgInput.files.length > 3) {
+                alert("❌ आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
+                submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
+                submitBtn.disabled = false;
+                return;
+            }
+
+            if (imgInput.files.length > 0) {
+                for (let i = 0; i < imgInput.files.length; i++) {
+                    formData.append('propertyImages', imgInput.files[i]);
+                }
+            }
 
             try {
                 const response = await fetch('/api/add-property', {

@@ -7,8 +7,6 @@
     <title>User Dashboard - Bhopal Real Estate</title>
     <link rel="stylesheet" href="dashboard-style.css">
     <style>
-        /* पॉप-अप फॉर्म (Modal) को सुंदर बनाने के लिए स्टाइलिंग */
-        
         .modal {
             display: none;
             position: fixed;
@@ -161,7 +159,18 @@
                 <div class="form-group"><label>लोकेशन (Location)</label><input type="text" id="editLocation" required></div>
                 <div class="form-group"><label>कीमत (Price in ₹)</label><input type="number" id="editPrice" required></div>
                 <div class="form-group"><label>विवरण / Description</label><textarea id="editDesc" rows="3" required></textarea></div>
-                <div class="form-group"><label>नई फोटो बदलें</label><input type="file" id="editImage" accept="image/*"></div>
+                
+                <div class="form-group">
+                    <label>YouTube वीडियो लिंक (Optional)</label>
+                    <input type="url" id="editVideoLink" placeholder="जैसे: https://youtu.be/...">
+                </div>
+
+                <div class="form-group">
+                    <label>नई फोटो बदलें (अधिकतम 3)</label>
+                    <input type="file" id="editImages" accept="image/*" multiple>
+                    <p style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">* अगर आप नई फोटो डालेंगे, तो पुरानी हट जाएगी।</p>
+                </div>
+
                 <div class="modal-buttons">
                     <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
                     <button type="submit" class="save-btn">Save Changes</button>
@@ -175,18 +184,15 @@
             const savedName = localStorage.getItem('brokerName');
             const brokerEmail = localStorage.getItem('brokerEmail');
 
-            // 🔒 सुरक्षा कवच: अगर लॉग इन नहीं है या ईमेल गायब है, तो सीधे वापस भगाओ
             if (!savedName || !brokerEmail) {
                 alert("कृपया पहले अपने अकाउंट से दोबारा लॉगिन करें!");
                 window.location.href = 'login.html';
                 return;
             }
 
-            // स्क्रीन पर नाम सेट करना
             document.getElementById('broker-name').innerText = savedName;
 
             try {
-                // सर्वर से केवल इस लॉगिन ईमेल का डेटा मांगना
                 const response = await fetch(`/api/get-properties?email=${encodeURIComponent(brokerEmail)}`);
                 const properties = await response.json();
                 const tableBody = document.getElementById('propertyTableBody');
@@ -201,7 +207,14 @@
                     const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
                     const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
                     const statusText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
-                    const propertyImgSrc = prop.image ? prop.image : 'https://via.placeholder.com/80x50';
+                    
+                    // 📸 स्मार्ट इमेज चेकर: अगर 3 फोटो वाली लिस्ट में फोटो है तो पहली दिखाएं, वरना पुरानी सिंगल फोटो
+                    let propertyImgSrc = 'https://via.placeholder.com/80x50';
+                    if (prop.images && prop.images.length > 0) {
+                        propertyImgSrc = prop.images[0];
+                    } else if (prop.image) {
+                        propertyImgSrc = prop.image;
+                    }
 
                     tableBody.innerHTML += `
                         <tr>
@@ -219,47 +232,63 @@
             }
         }
 
-        // प्रॉपर्टी डिलीट करने का लॉजिक
         async function deleteProperty(id) {
             if (confirm("क्या आप वाकई इस प्रॉपर्टी को डिलीट करना चाहते हैं?")) {
-                await fetch(`/api/delete-property/${id}`, {
+                await fetch(`/api/admin/delete-property/${id}`, {
                     method: 'DELETE'
                 });
                 loadProperties();
             }
         }
 
-        // एडिट पॉप-अप खोलने का लॉजिक
         async function openEditModal(id) {
             const response = await fetch(`/api/get-property/${id}`);
-            const prop = await response.json();
-            document.getElementById('editPropId').value = prop._id;
-            document.getElementById('editTitle').value = prop.title;
-            document.getElementById('editPurpose').value = prop.purpose;
-            document.getElementById('editLocation').value = prop.location;
-            document.getElementById('editPrice').value = prop.price;
-            document.getElementById('editDesc').value = prop.desc;
-            document.getElementById('editModal').style.display = 'flex';
+            const result = await response.json();
+            
+            if(result.success) {
+                const prop = result.property;
+                document.getElementById('editPropId').value = prop._id;
+                document.getElementById('editTitle').value = prop.title;
+                document.getElementById('editPurpose').value = prop.purpose;
+                document.getElementById('editLocation').value = prop.location;
+                document.getElementById('editPrice').value = prop.price;
+                document.getElementById('editDesc').value = prop.desc;
+                document.getElementById('editVideoLink').value = prop.videoLink || ''; // 🚁 वीडियो लिंक लोड करें
+                document.getElementById('editModal').style.display = 'flex';
+            }
         }
 
         function closeEditModal() {
             document.getElementById('editModal').style.display = 'none';
         }
 
-        // एडिट सेव करने का लॉजिक
         document.getElementById('editPropertyForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const id = document.getElementById('editPropId').value;
             const formData = new FormData();
+            
             formData.append('title', document.getElementById('editTitle').value);
             formData.append('purpose', document.getElementById('editPurpose').value);
             formData.append('location', document.getElementById('editLocation').value);
             formData.append('price', document.getElementById('editPrice').value);
             formData.append('desc', document.getElementById('editDesc').value);
+            formData.append('videoLink', document.getElementById('editVideoLink').value); // 🚁 वीडियो लिंक सेव करें
 
-            const imgInput = document.getElementById('editImage');
-            if (imgInput.files.length > 0) formData.append('propertyImage', imgInput.files[0]);
+            const imgInput = document.getElementById('editImages');
+            
+            if (imgInput.files.length > 3) {
+                alert("आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
+                return;
+            }
 
+            // 📸 मल्टीपल इमेजेस लूप में ऐड करें
+            if (imgInput.files.length > 0) {
+                for (let i = 0; i < imgInput.files.length; i++) {
+                    formData.append('propertyImages', imgInput.files[i]);
+                }
+            }
+
+            // (ध्यान दें: आपको server.js में /api/update-property/:id रूट को भी update.array('propertyImages', 3) के लिए अपडेट करना होगा)
             await fetch(`/api/update-property/${id}`, {
                 method: 'POST',
                 body: formData
@@ -268,32 +297,25 @@
             loadProperties();
         });
 
-        // लॉगआउट करने का लॉजिक
         document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.clear(); // लोकल स्टोरेज साफ करना
+            localStorage.clear(); 
         });
-        // 👤 ब्रोकर की प्रोफाइल लोड करने का फंक्शन
+
         async function loadBrokerProfile() {
             const brokerEmail = localStorage.getItem('brokerEmail');
             if (!brokerEmail) return;
 
-            document.getElementById('dashProfileEmail').innerText = brokerEmail; // ईमेल दिखाएं
+            document.getElementById('dashProfileEmail').innerText = brokerEmail; 
 
             try {
                 const response = await fetch(`/api/get-profile?email=${brokerEmail}`);
                 const profile = await response.json();
 
-                // कार्ड को दिखाएं
                 document.getElementById('profileCard').style.display = 'flex';
 
-                // अगर प्रोफाइल में डेटा है तो उसे अपडेट करें
                 if (profile) {
-                    if (profile.photo) {
-                        document.getElementById('dashProfilePic').src = profile.photo;
-                    }
-                    if (profile.phone) {
-                        document.getElementById('dashProfilePhone').innerText = profile.phone;
-                    }
+                    if (profile.photo) document.getElementById('dashProfilePic').src = profile.photo;
+                    if (profile.phone) document.getElementById('dashProfilePhone').innerText = profile.phone;
                     if (profile.dealingAreas && profile.dealingAreas.length > 0) {
                         document.getElementById('dashProfileAreas').innerText = profile.dealingAreas.join(', ');
                     }
@@ -303,10 +325,7 @@
             }
         }
 
-        // पेज लोड होते ही यह फंक्शन भी चला दें
         loadBrokerProfile();
-
-        // पेज खुलते ही फंक्शन चलाना
         window.onload = loadProperties;
     </script>
 </body>
