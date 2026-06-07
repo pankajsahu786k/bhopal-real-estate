@@ -266,7 +266,19 @@
         }
 
         loadBrokerProfile();
-        window.onload = loadProperties;
+       // पुराना वाला हटा दें और यह नया कोड लगाएं:
+    window.onload = function() {
+    const role = localStorage.getItem('userRole');
+
+    // अगर एडमिन है, तो सीधा एडमिन पैनल पर भेजें
+    if (role === 'admin') {
+        window.location.href = 'admin-dashboard.html';
+        return; // आगे का कोड न चलाएं
+    }
+
+    // अगर एडमिन नहीं है, तो नॉर्मल डैशबोर्ड लोड करें
+    loadProperties();
+};
     </script>
 </body>
 
