@@ -124,7 +124,82 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// 🔑 Auth & Admin Routes (आपके पुराने वाले)
+// ==========================================
+// 🔑 AUTHENTICATION ROUTES (Signup & Login)
+// ==========================================
+
+// 1. SIGNUP ROUTE (OTP GENERATION)
+app.post('/api/signup', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        const emailLower = email.toLowerCase().trim();
+
+        // Check if user already exists
+        const existingUser = await User.findOne({ email: emailLower });
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'Email is already registered!' });
+        }
+
+        // Generate 4 digit OTP
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
+        // Save to PendingUser collection temporarily
+        await PendingUser.deleteMany({ email: emailLower }); // clear old pending attempts
+        const newPendingUser = new PendingUser({ name, email: emailLower, password, otp });
+        await newPendingUser.save();
+
+        // Print OTP in Render Logs (Jugaad Method)
+        console.log(`\n=========================================`);
+        console.log(`🔑 ATTENTION: OTP for ${emailLower} is: [ ${otp} ]`);
+        console.log(`=========================================\n`);
+
+        res.json({ success: true, requireOtp: true, message: 'OTP sent successfully (Check logs).' });
+
+    } catch (error) {
+        console.error("Signup Error:", error);
+        res.status(500).json({ success: false, message: 'Server error during signup.' });
+    }
+});
+
+// 2. OTP VERIFY ROUTE
+app.post('/api/verify-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const emailLower = email.toLowerCase().trim();
+
+        // Find the pending user
+        const pendingUser = await PendingUser.findOne({ email: emailLower });
+        
+        if (!pendingUser) {
+            return res.status(400).json({ success: false, message: 'OTP expired or invalid email. Try signing up again.' });
+        }
+
+        // Check if OTP matches
+        if (pendingUser.otp !== otp) {
+            return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
+        }
+
+        // Move to permanent User collection
+        const newUser = new User({
+            name: pendingUser.name,
+            email: pendingUser.email,
+            password: pendingUser.password, // In a real app, hash this!
+            role: 'user'
+        });
+        await newUser.save();
+
+        // Delete from pending
+        await PendingUser.deleteOne({ email: emailLower });
+
+        res.json({ success: true, message: 'Account verified and created successfully!' });
+
+    } catch (error) {
+        console.error("Verify Error:", error);
+        res.status(500).json({ success: false, message: 'Server error during verification.' });
+    }
+});
+
+// 3. LOGIN ROUTE
 app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
