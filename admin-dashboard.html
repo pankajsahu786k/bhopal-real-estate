@@ -16,6 +16,10 @@
         .card h3 { margin: 0 0 10px 0; color: #34495e; }
         .card h2 { margin: 0; color: #27ae60; font-size: 36px; }
         .section-title { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; color: #2c3e50; margin-top: 30px; }
+        
+        .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+        .badge-pending { background-color: #f1c40f; color: #2c3e50; }
+        .badge-approved { background-color: #2ecc71; color: white; }
     </style>
 </head>
 <body>
@@ -45,7 +49,7 @@
                 <h2 id="totalUsers">0</h2>
             </div>
             <div class="card">
-                <h3>कुल प्रॉपर्टीज़</h3>
+                <h3>कुल प्रॉपर्टीज़ (पेंडिंग + लाइव)</h3>
                 <h2 id="totalProperties">0</h2>
             </div>
         </div>
@@ -55,36 +59,30 @@
             <p>यूज़र्स का डेटा लोड हो रहा है...</p>
         </div>
 
-        <h3 class="section-title">🏢 सभी प्रॉपर्टीज़ की लिस्ट</h3>
+        <h3 class="section-title">🏢 सभी प्रॉपर्टीज़ (Approve / Unpublish / Delete)</h3>
         <div id="allPropertiesList">
             <p>डेटा लोड हो रहा है...</p>
         </div>
     </div>
 
     <script>
-        // 1. एडमिन का नाम दिखाना
         document.getElementById('adminName').innerText = localStorage.getItem('brokerName') || "Admin";
 
-        // 2. लॉगआउट फंक्शन
         function logoutAdmin() {
             localStorage.clear();
             window.location.href = 'login.html'; 
         }
 
-        // 3. बैकएंड से सारा डेटा लाना
         async function loadAdminData() {
             try {
                 const response = await fetch('/api/admin/all-data');
                 const result = await response.json();
 
                 if (result.success) {
-                    // डैशबोर्ड के कार्ड्स में नंबर अपडेट करना
                     document.getElementById('totalUsers').innerText = result.totalUsers;
                     document.getElementById('totalProperties').innerText = result.totalProperties;
 
-                    // ==========================================
-                    // 👥 यूज़र्स की लिस्ट बनाना
-                    // ==========================================
+                    // 👥 यूज़र्स लिस्ट
                     const usersContainer = document.getElementById('allUsersList');
                     usersContainer.innerHTML = ''; 
 
@@ -107,9 +105,7 @@
                         });
                     }
 
-                    // ==========================================
-                    // 🏢 प्रॉपर्टीज़ की लिस्ट बनाना
-                    // ==========================================
+                    // 🏢 प्रॉपर्टीज़ लिस्ट
                     const listContainer = document.getElementById('allPropertiesList');
                     listContainer.innerHTML = ''; 
 
@@ -119,14 +115,26 @@
                     }
 
                     result.properties.forEach(prop => {
+                        const statusClass = prop.status === 'approved' ? 'badge-approved' : 'badge-pending';
+                        const statusText = prop.status === 'approved' ? '✅ Live (Approved)' : '⏳ Pending (Waiting)';
+                        
+                        // 🟢 स्मार्ट बटन लॉजिक (पेंडिंग है तो Publish दिखाओ, लाइव है तो Unpublish दिखाओ)
+                        let actionButtonHtml = '';
+                        if (prop.status === 'pending') {
+                            actionButtonHtml = `<button onclick="approveProperty('${prop._id}')" style="background: #27ae60; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">✅ Publish करें</button>`;
+                        } else {
+                            actionButtonHtml = `<button onclick="unpublishProperty('${prop._id}')" style="background: #f39c12; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">⏸️ Unpublish करें</button>`;
+                        }
+
                         listContainer.innerHTML += `
                             <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
                                 <div>
-                                    <h4 style="margin: 0 0 5px 0;">${prop.title} (${prop.purpose})</h4>
+                                    <h4 style="margin: 0 0 5px 0;">${prop.title} (${prop.purpose}) <span class="status-badge ${statusClass}">${statusText}</span></h4>
                                     <p style="margin: 0; color: #7f8c8d; font-size: 14px;">लोकेशन: ${prop.location} | कीमत: ₹${prop.price}</p>
                                     <p style="margin: 5px 0 0 0; font-size: 12px; color: #2980b9;">अपलोड करने वाला: ${prop.brokerEmail}</p>
                                 </div>
                                 <div>
+                                    ${actionButtonHtml}
                                     <button onclick="deleteProperty('${prop._id}')" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Delete</button>
                                 </div>
                             </div>
@@ -139,11 +147,8 @@
             }
         }
 
-        // ==========================================
-        // 👻 GHOST LOGIN & DELETE FUNCTIONS
-        // ==========================================
+        // 👑 ADMIN ACTIONS
         
-        // 👻 भेष बदलने का फंक्शन (Ghost Login)
         function loginAsUser(userName, userEmail) {
             if(confirm("क्या आप " + userName + " के डैशबोर्ड में जाना चाहते हैं?")) {
                 localStorage.setItem('brokerName', userName);
@@ -152,23 +157,52 @@
             }
         }
 
-        // 🗑️ प्रॉपर्टी डिलीट करने का फंक्शन
+        async function approveProperty(propertyId) {
+            if (confirm("क्या आप इस प्रॉपर्टी को पब्लिक होमपेज पर लाइव करना चाहते हैं?")) {
+                try {
+                    const response = await fetch(`/api/admin/approve-property/${propertyId}`, { method: 'POST' });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message);
+                        loadAdminData(); 
+                    }
+                } catch (error) {
+                    alert("प्रॉपर्टी अप्रूव करने में कोई गड़बड़ हुई!");
+                }
+            }
+        }
+
+        // 🟡 नया फंक्शन: प्रॉपर्टी को वापस पेंडिंग (Unpublish) करना
+        async function unpublishProperty(propertyId) {
+            if (confirm("क्या आप इस प्रॉपर्टी को वापस पेंडिंग करना चाहते हैं? (यह पब्लिक होमपेज से हट जाएगी!)")) {
+                try {
+                    const response = await fetch(`/api/admin/unpublish-property/${propertyId}`, { method: 'POST' });
+                    const result = await response.json();
+                    if (result.success) {
+                        alert(result.message);
+                        loadAdminData(); 
+                    }
+                } catch (error) {
+                    alert("प्रॉपर्टी को पेंडिंग करने में कोई गड़बड़ हुई!");
+                }
+            }
+        }
+
         async function deleteProperty(propertyId) {
-            if (confirm("क्या आप सच में इस प्रॉपर्टी को डिलीट करना चाहते हैं?")) {
+            if (confirm("क्या आप सच में इस प्रॉपर्टी को हमेशा के लिए डिलीट करना चाहते हैं?")) {
                 try {
                     const response = await fetch(`/api/admin/delete-property/${propertyId}`, { method: 'DELETE' });
                     const result = await response.json();
                     if (result.success) {
                         alert(result.message);
-                        loadAdminData(); // स्क्रीन अपडेट करने के लिए
+                        loadAdminData(); 
                     }
                 } catch (error) {
-                    alert("डिलीट करने में कोई गड़बड़ हुई!");
+                    alert("डिलीट करने में कोई गड़बड़ हुई!");
                 }
             }
         }
 
-        // 🗑️ यूज़र डिलीट करने का फंक्शन
         async function deleteUser(userId, userName) {
             if (confirm(`चेतावनी: क्या आप सच में ${userName} को डिलीट करना चाहते हैं? इससे उसकी सारी प्रॉपर्टीज़ भी डिलीट हो जाएंगी!`)) {
                 try {
@@ -176,7 +210,7 @@
                     const result = await response.json();
                     if (result.success) {
                         alert(result.message);
-                        loadAdminData(); // स्क्रीन अपडेट करने के लिए
+                        loadAdminData(); 
                     }
                 } catch (error) {
                     alert("यूज़र डिलीट करने में समस्या आई!");
@@ -184,7 +218,6 @@
             }
         }
 
-        // 4. पेज खुलते ही डेटा लोड करना शुरू करो
         loadAdminData();
     </script>
 </body>

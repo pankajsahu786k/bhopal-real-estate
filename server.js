@@ -58,7 +58,8 @@ const propertySchema = new mongoose.Schema({
     price: Number,
     desc: String,
     image: String,
-    brokerEmail: String
+    brokerEmail: String,
+    status: { type: String, default: 'pending' } // 👈 सिक्योरिटी फीचर (शुरुआत में प्रॉपर्टी पेंडिंग रहेगी)
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
@@ -86,16 +87,6 @@ app.post('/api/signup', async(req, res) => {
     }
 });
 
-// 📍 नया रूट: डेटाबेस से सभी 'यूनिक' लोकेशन्स निकालना (Dynamic Locations)
-app.get('/api/get-locations', async (req, res) => {
-    try {
-        // Mongoose का 'distinct' जादू: यह सभी प्रॉपर्टीज़ में से अलग-अलग लोकेशन खींच लाएगा
-        const locations = await Property.distinct('location');
-        res.json({ success: true, locations: locations });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'लोकेशन लाने में एरर' });
-    }
-});
 app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
@@ -116,15 +107,32 @@ app.post('/api/login', async(req, res) => {
     }
 });
 
+// 🚨 अपडेटेड रूट: होमपेज पर सिर्फ 'Approved' प्रॉपर्टीज भेजना
 app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
         let properties = [];
+        
         if (brokerEmail && brokerEmail.trim() !== "" && brokerEmail !== "undefined") {
+            // ब्रोकर के डैशबोर्ड पर उसकी सारी प्रॉपर्टीज (पेंडिंग + लाइव) दिखेंगी
             properties = await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() });
-        } else properties = await Property.find({});
+        } else {
+            // पब्लिक होमपेज पर सिर्फ एडमिन द्वारा अप्रूव की गई प्रॉपर्टीज दिखेंगी
+            properties = await Property.find({ status: 'approved' }); 
+        }
         res.json(properties);
     } catch (error) { res.status(500).json({ message: 'डेटा लाने में गड़बड़ हुई' }); }
+});
+
+// 📍 नया रूट: डायनामिक लोकेशन निकालना
+app.get('/api/get-locations', async (req, res) => {
+    try {
+        // सिर्फ उन लोकेशन्स को निकालें जो अप्रूव हो चुकी हैं
+        const locations = await Property.distinct('location', { status: 'approved' });
+        res.json({ success: true, locations: locations });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'लोकेशन लाने में एरर' });
+    }
 });
 
 app.get('/api/get-profile', async(req, res) => {
@@ -137,7 +145,6 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Profile data लाने में दिक्कत हुई' }); }
 });
 
-// 🚨 नया रूट: किसी एक खास प्रॉपर्टी की पूरी कुंडली निकालना
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
@@ -159,10 +166,11 @@ app.post('/api/add-property', upload.single('propertyImage'), async(req, res) =>
             price: req.body.price,
             desc: req.body.desc,
             image: req.file ? (req.file.path || req.file.url) : '',
-            brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown'
+            brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown',
+            status: 'pending' // यहाँ प्रॉपर्टी पेंडिंग सेट होगी
         });
         await newProperty.save();
-        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपलोड हो गई!' });
+        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक अपलोड हो गई! (एडमिन के अप्रूवल का इंतज़ार है)' });
     } catch (error) {
         res.status(500).json({ success: false, message: 'प्रॉपर्टी अपलोड करने में सर्वर एरर' });
     }
@@ -197,6 +205,29 @@ app.get('/api/admin/all-data', async (req, res) => {
     }
 });
 
+// 👑 एडमिन रूट: प्रॉपर्टी को पब्लिश करने के लिए
+app.post('/api/admin/approve-property/:id', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        await Property.findByIdAndUpdate(propertyId, { status: 'approved' });
+        res.json({ success: true, message: 'प्रॉपर्टी सफलतापूर्वक लाइव कर दी गई है! ✅' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'प्रॉपर्टी अप्रूव करने में सर्वर एरर' });
+    }
+});
+
+// 👑 नया एडमिन रूट: लाइव प्रॉपर्टी को वापस पेंडिंग (Unpublish) करने के लिए
+app.post('/api/admin/unpublish-property/:id', async (req, res) => {
+    try {
+        const propertyId = req.params.id;
+        await Property.findByIdAndUpdate(propertyId, { status: 'pending' });
+        res.json({ success: true, message: 'प्रॉपर्टी को वापस पेंडिंग कर दिया गया है! ⏸️ (यह होमपेज से हट गई है)' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'प्रॉपर्टी अनपब्लिश करने में सर्वर एरर' });
+    }
+});
+
+// 👑 एडमिन रूट: प्रॉपर्टी डिलीट करने के लिए
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
     try {
         const propertyId = req.params.id;
@@ -223,7 +254,7 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 
 app.use((err, req, res, next) => {
     console.error("🔥🔥🔥 असली एरर यहाँ फंसा है (REAL ERROR) 🔥🔥🔥");
-    res.status(500).json({ success: false, message: 'Server upload error caught by trap', error: err.message });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
 });
 
 const PORT = process.env.PORT || 3000;
