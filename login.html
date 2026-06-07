@@ -58,10 +58,19 @@
                     })
                 });
                 const data = await res.json();
+                
                 if (data.success) {
+                    // ✅ यहाँ डेटा सेव हो रहा है
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
-                    window.location.href = 'dashboard.html';
+                    localStorage.setItem('userRole', data.role); // 👈 यह सबसे ज़रूरी लाइन है
+                    
+                    // ✅ यहाँ तय होगा कि कहाँ जाना है
+                    if (data.role === 'admin') {
+                        window.location.href = 'admin-dashboard.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
                 } else {
                     errorMsg.innerText = "❌ " + data.message;
                     errorMsg.style.display = "block";
