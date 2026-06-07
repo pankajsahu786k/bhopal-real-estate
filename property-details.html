@@ -24,6 +24,22 @@
         .broker-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); text-align: center; height: fit-content; position: sticky; top: 20px; }
         .contact-btn { display: block; background: #27ae60; color: white; text-decoration: none; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 10px; cursor: pointer; border: none; width: 100%; }
         @media (max-width: 768px) { .details-grid { grid-template-columns: 1fr; } .video-iframe { height: 250px; } }
+        /* 📱 MOBILE RESPONSIVE DESIGN FOR DETAILS PAGE */
+@media (max-width: 768px) {
+    /* 2 कॉलम की जगह 1 कॉलम (ऊपर-नीचे) करें */
+    .details-grid { grid-template-columns: 1fr; gap: 20px; }
+    
+    /* हेडर और पैडिंग सेट करें */
+    header { padding: 15px 20px; flex-direction: column; text-align: center; }
+    .container { margin: 20px auto; }
+    
+    /* मुख्य फोटो की ऊंचाई कम करें ताकि स्क्रीन पर फिट हो */
+    .main-img { height: 250px; }
+    
+    /* ब्रोकर कार्ड को नीचे सेट करें */
+    .broker-card { position: static; margin-top: 10px; }
+    .video-iframe { height: 250px; }
+}
     </style>
 </head>
 <body>

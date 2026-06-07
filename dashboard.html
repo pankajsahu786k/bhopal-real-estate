@@ -17,7 +17,24 @@
         .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
         .cancel-btn { padding: 10px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .save-btn { padding: 10px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    </style>
+    
+/* 📱 MOBILE RESPONSIVE DESIGN FOR DASHBOARD */
+@media (max-width: 768px) {
+    /* साइडबार को ऊपर खिसकाएं */
+    .dash-container { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; }
+    .sidebar ul { display: flex; overflow-x: auto; white-space: nowrap; gap: 15px; }
+    .sidebar ul li { margin-bottom: 0; }
+    
+    /* टेबल को कटने से बचाएं (Horizontal Scroll) */
+    .main-content { padding: 15px; width: 100%; box-sizing: border-box; overflow: hidden; }
+    .property-table { display: block; overflow-x: auto; white-space: nowrap; width: 100%; }
+    
+    /* प्रोफाइल कार्ड को सीधा करें */
+    .profile-summary-card { flex-direction: column; text-align: center; align-items: center; }
+    .dash-avatar { margin-bottom: 15px; }
+    .dash-header { padding: 15px; flex-direction: column; gap: 10px; }
+}    </style>
 </head>
 
 <body>
