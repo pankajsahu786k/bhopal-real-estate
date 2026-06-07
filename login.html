@@ -9,8 +9,9 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         
         body { 
-            /* शानदार ग्रेडिएंट बैकग्राउंड */
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); 
+            /* 🏡 शानदार रियल एस्टेट बैकग्राउंड और डार्क ओवरले */
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                        url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed; 
             min-height: 100vh; 
             display: flex; 
             justify-content: center; 
@@ -18,12 +19,15 @@
             padding: 20px;
         }
 
-        /* मॉडर्न लॉगिन कार्ड */
+        /* ✨ प्रीमियम ग्लास इफ़ेक्ट (Glassmorphism) */
         .login-card {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             padding: 40px 30px;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             width: 100%;
             max-width: 400px;
             text-align: center;
@@ -32,21 +36,23 @@
 
         .login-card:hover { transform: translateY(-5px); }
 
-        .logo { font-size: 26px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; letter-spacing: -0.5px; }
-        .subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        .logo { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; letter-spacing: -0.5px; }
+        .logo span { color: #27ae60; }
+        .subtitle { color: #576574; font-size: 14px; margin-bottom: 30px; }
         
         .input-group { margin-bottom: 20px; text-align: left; }
-        .input-group label { display: block; font-weight: 600; color: #34495e; margin-bottom: 8px; font-size: 14px; }
+        .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 14px; }
         
-        /* मोबाइल-फ्रेंडली बड़े इनपुट बॉक्स */
+        /* मोबाइल-फ्रेंडली इनपुट बॉक्स */
         .input-group input { 
-            width: 100%; padding: 15px; border: 2px solid #ecf0f1; border-radius: 12px; 
-            font-size: 15px; transition: all 0.3s ease; outline: none; background: #fafafa;
+            width: 100%; padding: 15px; border: 2px solid transparent; border-radius: 12px; 
+            font-size: 15px; transition: all 0.3s ease; outline: none; background: #f1f2f6;
+            color: #2c3e50; font-weight: 500;
         }
         
         .input-group input:focus { 
             border-color: #3498db; background: white;
-            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.1); 
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15); 
         }
         
         /* धांसू लॉगिन बटन */
@@ -54,16 +60,17 @@
             width: 100%; padding: 15px; background: #27ae60; color: white; border: none;
             border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; 
             transition: all 0.3s ease; margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
         }
         
         .login-btn:hover { 
             background: #219653; transform: translateY(-2px); 
-            box-shadow: 0 8px 15px rgba(39, 174, 96, 0.3); 
+            box-shadow: 0 8px 20px rgba(39, 174, 96, 0.4); 
         }
         
-        .signup-link { margin-top: 25px; font-size: 14px; color: #7f8c8d; }
-        .signup-link a { color: #3498db; text-decoration: none; font-weight: 600; transition: color 0.3s ease; }
-        .signup-link a:hover { color: #2980b9; text-decoration: underline; }
+        .signup-link { margin-top: 25px; font-size: 14px; color: #576574; }
+        .signup-link a { color: #2980b9; text-decoration: none; font-weight: 600; transition: color 0.3s ease; }
+        .signup-link a:hover { color: #1a5276; text-decoration: underline; }
         
         #errorMsg { 
             background: #ffeaa7; color: #d63031; padding: 10px; border-radius: 8px; 
@@ -75,7 +82,7 @@
 <body>
 
     <div class="login-card">
-        <div class="logo">Bhopal Properties</div>
+        <div class="logo">Bhopal <span>Properties</span> 🏠</div>
         <p class="subtitle">Welcome back! Please login to your account.</p>
         
         <div id="errorMsg">Invalid email or password.</div>
@@ -103,7 +110,6 @@
             const btn = document.getElementById('loginBtn');
             const errorMsg = document.getElementById('errorMsg');
             
-            // Loading Animation
             btn.innerText = "Verifying... ⏳";
             btn.style.opacity = "0.8";
             errorMsg.style.display = "none";
@@ -121,16 +127,13 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    // Save User Data (Unified Auth)
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
                     localStorage.setItem('userRole', data.role);
                     
-                    // Success Animation
                     btn.innerText = "Login Successful! ✅";
                     btn.style.background = "#2ecc71";
                     
-                    // Redirect based on role
                     setTimeout(() => {
                         window.location.href = data.role === 'admin' ? 'admin-dashboard.html' : 'dashboard.html';
                     }, 1000);
