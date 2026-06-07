@@ -187,3 +187,59 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
+// ==========================================
+// 👑 ADMIN API ROUTES
+// ==========================================
+
+// 1. एडमिन का सारा डेटा लोड करें
+app.get('/api/admin/all-data', async (req, res) => {
+    try {
+        const users = await User.find({});
+        const properties = await Property.find({});
+        res.json({ 
+            success: true, 
+            totalUsers: users.length, 
+            totalProperties: properties.length, 
+            users, 
+            properties 
+        });
+    } catch (error) { 
+        res.status(500).json({ success: false, message: 'Server Error' }); 
+    }
+});
+
+// 2. प्रॉपर्टी Approve करें
+app.post('/api/admin/approve-property/:id', async (req, res) => {
+    try {
+        await Property.findByIdAndUpdate(req.params.id, { status: 'approved' });
+        res.json({ success: true, message: 'Property Published Successfully!' });
+    } catch (error) { 
+        res.status(500).json({ success: false }); 
+    }
+});
+
+// 3. प्रॉपर्टी Unpublish करें
+app.post('/api/admin/unpublish-property/:id', async (req, res) => {
+    try {
+        await Property.findByIdAndUpdate(req.params.id, { status: 'pending' });
+        res.json({ success: true, message: 'Property Unpublished!' });
+    } catch (error) { 
+        res.status(500).json({ success: false }); 
+    }
+});
+
+// 4. यूज़र और उसकी प्रॉपर्टीज़ डिलीट करें
+app.delete('/api/admin/delete-user/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (user) {
+            await Property.deleteMany({ brokerEmail: user.email });
+            await User.findByIdAndDelete(req.params.id);
+            res.json({ success: true, message: 'User and their properties deleted!' });
+        } else {
+            res.status(404).json({ success: false, message: 'User not found' });
+        }
+    } catch (error) { 
+        res.status(500).json({ success: false }); 
+    }
+});
