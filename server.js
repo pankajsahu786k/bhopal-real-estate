@@ -121,10 +121,44 @@ app.get('/api/get-profile', async(req, res) => {
 });
 
 // ==========================================
+// 👤 PROFILE UPDATE ROUTE
+// ==========================================
+app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
+    try {
+        const { brokerEmail, phone } = req.body;
+        
+        let areas = [];
+        if (req.body.dealingAreas) {
+            try {
+                areas = JSON.parse(req.body.dealingAreas); 
+            } catch (e) {
+                areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(',');
+            }
+        }
+
+        const updateData = { phone: phone, dealingAreas: areas };
+        
+        if (req.file) {
+            updateData.photo = req.file.path || req.file.url;
+        }
+
+        await BrokerProfile.findOneAndUpdate(
+            { brokerEmail: brokerEmail.toLowerCase().trim() },
+            { $set: updateData },
+            { new: true, upsert: true } 
+        );
+
+        res.json({ success: true, message: 'Profile Saved Successfully!' });
+    } catch (error) {
+        console.error("Profile Update Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error saving profile' });
+    }
+});
+
+// ==========================================
 // 🔑 AUTHENTICATION ROUTES (Signup & Login)
 // ==========================================
 
-// 1. SIGNUP ROUTE (OTP GENERATION & SEND TO FRONTEND)
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -140,10 +174,7 @@ app.post('/api/signup', async (req, res) => {
         await newPendingUser.save();
 
         console.log(`🔑 OTP for ${emailLower} is: [ ${otp} ]`);
-
-        // 🚨 जादुई लाइन: OTP को वापस ब्राउज़र (Frontend) में भेजना
         res.json({ success: true, requireOtp: true, generatedOtp: otp, message: 'OTP Generated successfully.' });
-
     } catch (error) {
         console.error("Signup Error:", error);
         res.status(500).json({ success: false, message: 'Server error during signup.' });
@@ -165,7 +196,6 @@ app.post('/api/verify-otp', async (req, res) => {
         await PendingUser.deleteOne({ email: emailLower });
 
         res.json({ success: true, message: 'Account verified and created successfully!' });
-
     } catch (error) {
         console.error("Verify Error:", error);
         res.status(500).json({ success: false, message: 'Server error during verification.' });
@@ -181,54 +211,38 @@ app.post('/api/login', async(req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-app.delete('/api/admin/delete-property/:id', async (req, res) => {
-    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
 // ==========================================
 // 👑 ADMIN API ROUTES
 // ==========================================
 
-// 1. एडमिन का सारा डेटा लोड करें
 app.get('/api/admin/all-data', async (req, res) => {
     try {
         const users = await User.find({});
         const properties = await Property.find({});
-        res.json({ 
-            success: true, 
-            totalUsers: users.length, 
-            totalProperties: properties.length, 
-            users, 
-            properties 
-        });
+        res.json({ success: true, totalUsers: users.length, totalProperties: properties.length, users, properties });
     } catch (error) { 
         res.status(500).json({ success: false, message: 'Server Error' }); 
     }
 });
 
-// 2. प्रॉपर्टी Approve करें
 app.post('/api/admin/approve-property/:id', async (req, res) => {
     try {
         await Property.findByIdAndUpdate(req.params.id, { status: 'approved' });
         res.json({ success: true, message: 'Property Published Successfully!' });
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 3. प्रॉपर्टी Unpublish करें
 app.post('/api/admin/unpublish-property/:id', async (req, res) => {
     try {
         await Property.findByIdAndUpdate(req.params.id, { status: 'pending' });
         res.json({ success: true, message: 'Property Unpublished!' });
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 4. यूज़र और उसकी प्रॉपर्टीज़ डिलीट करें
+app.delete('/api/admin/delete-property/:id', async (req, res) => {
+    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
+});
+
 app.delete('/api/admin/delete-user/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -239,7 +253,9 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
         } else {
             res.status(404).json({ success: false, message: 'User not found' });
         }
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
+
+// 🚨 SERVER START (यह हमेशा सबसे नीचे होना चाहिए)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
