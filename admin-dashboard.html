@@ -150,6 +150,11 @@
             if(confirm("क्या आप " + userName + " के डैशबोर्ड में जाना चाहते हैं?")) {
                 localStorage.setItem('brokerName', userName);
                 localStorage.setItem('brokerEmail', userEmail);
+                
+                // 🚨 यह है वो जादुई कोड जो पहले मिसिंग था!
+                localStorage.setItem('userRole', 'user'); 
+                localStorage.setItem('realAdmin', 'yes'); 
+                
                 window.location.href = 'dashboard.html';
             }
         }
