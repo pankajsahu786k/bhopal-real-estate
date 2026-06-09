@@ -18,23 +18,19 @@
         .cancel-btn { padding: 10px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .save-btn { padding: 10px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
     
-/* 📱 MOBILE RESPONSIVE DESIGN FOR DASHBOARD */
-@media (max-width: 768px) {
-    /* साइडबार को ऊपर खिसकाएं */
-    .dash-container { flex-direction: column; }
-    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; }
-    .sidebar ul { display: flex; overflow-x: auto; white-space: nowrap; gap: 15px; }
-    .sidebar ul li { margin-bottom: 0; }
-    
-    /* टेबल को कटने से बचाएं (Horizontal Scroll) */
-    .main-content { padding: 15px; width: 100%; box-sizing: border-box; overflow: hidden; }
-    .property-table { display: block; overflow-x: auto; white-space: nowrap; width: 100%; }
-    
-    /* प्रोफाइल कार्ड को सीधा करें */
-    .profile-summary-card { flex-direction: column; text-align: center; align-items: center; }
-    .dash-avatar { margin-bottom: 15px; }
-    .dash-header { padding: 15px; flex-direction: column; gap: 10px; }
-}    </style>
+        /* 📱 MOBILE RESPONSIVE DESIGN FOR DASHBOARD */
+        @media (max-width: 768px) {
+            .dash-container { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #ddd; padding: 10px; }
+            .sidebar ul { display: flex; overflow-x: auto; white-space: nowrap; gap: 15px; }
+            .sidebar ul li { margin-bottom: 0; }
+            .main-content { padding: 15px; width: 100%; box-sizing: border-box; overflow: hidden; }
+            .property-table { display: block; overflow-x: auto; white-space: nowrap; width: 100%; }
+            .profile-summary-card { flex-direction: column; text-align: center; align-items: center; }
+            .dash-avatar { margin-bottom: 15px; }
+            .dash-header { padding: 15px; flex-direction: column; gap: 10px; }
+        }
+    </style>
 </head>
 
 <body>
@@ -103,18 +99,12 @@
                 <div class="form-group"><label>लोकेशन (Location)</label><input type="text" id="editLocation" required></div>
                 <div class="form-group"><label>कीमत (Price in ₹)</label><input type="number" id="editPrice" required></div>
                 <div class="form-group"><label>विवरण / Description</label><textarea id="editDesc" rows="3" required></textarea></div>
-                
-                <div class="form-group">
-                    <label>YouTube वीडियो लिंक (Optional)</label>
-                    <input type="url" id="editVideoLink" placeholder="जैसे: https://youtu.be/...">
-                </div>
-
+                <div class="form-group"><label>YouTube वीडियो लिंक (Optional)</label><input type="url" id="editVideoLink" placeholder="जैसे: https://youtu.be/..."></div>
                 <div class="form-group">
                     <label>नई फोटो बदलें (अधिकतम 3)</label>
                     <input type="file" id="editImages" accept="image/*" multiple>
                     <p style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">* अगर आप नई फोटो डालेंगे, तो पुरानी हट जाएगी।</p>
                 </div>
-
                 <div class="modal-buttons">
                     <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
                     <button type="submit" class="save-btn">Save Changes</button>
@@ -189,7 +179,6 @@
         async function openEditModal(id) {
             const response = await fetch(`/api/get-property/${id}`);
             const result = await response.json();
-            
             if(result.success) {
                 const prop = result.property;
                 document.getElementById('editPropId').value = prop._id;
@@ -211,7 +200,6 @@
             event.preventDefault();
             const id = document.getElementById('editPropId').value;
             const formData = new FormData();
-            
             formData.append('title', document.getElementById('editTitle').value);
             formData.append('purpose', document.getElementById('editPurpose').value);
             formData.append('location', document.getElementById('editLocation').value);
@@ -220,39 +208,28 @@
             formData.append('videoLink', document.getElementById('editVideoLink').value); 
 
             const imgInput = document.getElementById('editImages');
-            
             if (imgInput.files.length > 3) {
                 alert("आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
                 return;
             }
-
             if (imgInput.files.length > 0) {
                 for (let i = 0; i < imgInput.files.length; i++) {
                     formData.append('propertyImages', imgInput.files[i]);
                 }
             }
-
             await fetch(`/api/update-property/${id}`, { method: 'POST', body: formData });
             closeEditModal();
             loadProperties();
         });
 
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            localStorage.clear(); 
-        });
-
         async function loadBrokerProfile() {
             const brokerEmail = localStorage.getItem('brokerEmail');
             if (!brokerEmail) return;
-
             document.getElementById('dashProfileEmail').innerText = brokerEmail; 
-
             try {
                 const response = await fetch(`/api/get-profile?email=${brokerEmail}`);
                 const profile = await response.json();
-
                 document.getElementById('profileCard').style.display = 'flex';
-
                 if (profile) {
                     if (profile.photo && profile.photo.trim() !== '') document.getElementById('dashProfilePic').src = profile.photo;
                     if (profile.phone) document.getElementById('dashProfilePhone').innerText = profile.phone;
@@ -260,26 +237,48 @@
                         document.getElementById('dashProfileAreas').innerText = profile.dealingAreas.join(', ');
                     }
                 }
-            } catch (error) {
-                console.error('Error loading profile:', error);
-            }
+            } catch (error) { console.error('Error loading profile:', error); }
         }
 
-        loadBrokerProfile();
-       // पुराना वाला हटा दें और यह नया कोड लगाएं:
-    window.onload = function() {
-    const role = localStorage.getItem('userRole');
+        // ==========================================
+        // 👑 SMART LOGOUT & ADMIN REDIRECT LOGIC
+        // ==========================================
+        document.getElementById('logoutBtn').onclick = function(e) {
+            if (localStorage.getItem('realAdmin') === 'yes') {
+                e.preventDefault();
+                // वापस असली एडमिन बन जाएं
+                localStorage.setItem('userRole', 'admin');
+                localStorage.removeItem('realAdmin');
+                localStorage.setItem('brokerName', 'Admin');
+                localStorage.setItem('brokerEmail', 'devilking786k@sahu.com'); 
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                // नार्मल यूज़र के लिए लॉग-आउट
+                localStorage.clear();
+            }
+        };
 
-    // अगर एडमिन है, तो सीधा एडमिन पैनल पर भेजें
-    if (role === 'admin') {
-        window.location.href = 'admin-dashboard.html';
-        return; // आगे का कोड न चलाएं
-    }
+        window.onload = function() {
+            const role = localStorage.getItem('userRole');
 
-    // अगर एडमिन नहीं है, तो नॉर्मल डैशबोर्ड लोड करें
-    loadProperties();
-};
+            // 1. अगर डायरेक्ट एडमिन आ गया है तो उसे पैनल पर भेजो
+            if (role === 'admin') {
+                window.location.href = 'admin-dashboard.html';
+                return;
+            }
+
+            // 2. प्रोफाइल और प्रॉपर्टीज़ लोड करो
+            loadBrokerProfile();
+            loadProperties();
+
+            // 3. अगर एडमिन यूज़र के भेष में आया है, तो बटन का रंग बदलो
+            if (localStorage.getItem('realAdmin') === 'yes') {
+                const logoutBtn = document.getElementById('logoutBtn');
+                logoutBtn.innerHTML = "👑 Back to Admin";
+                logoutBtn.style.background = "#e67e22"; 
+                logoutBtn.href = "#";
+            }
+        };
     </script>
 </body>
-
 </html>
