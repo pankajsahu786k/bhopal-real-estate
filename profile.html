@@ -1,70 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile Settings - Bhopal Real Estate</title>
-    <link rel="stylesheet" href="profile-style.css">
-</head>
-<body>
-
-    <header class="profile-header">
-        <div class="logo">Bhopal Properties (Broker Profile)</div>
-        <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
-    </header>
-
-    <div class="profile-container">
-        <h2>अपनी ब्रोकर प्रोफाइल सुधारें</h2>
-        <p>सही जानकारी भरें ताकि ग्राहक होमपेज से सीधे आपके कार्यक्षेत्र (Dealing Areas) के हिसाब से आपसे संपर्क कर सकें।</p>
-        
-        <form id="profileForm">
-            <div class="profile-pic-section">
-                <img id="photoPreview" src="https://via.placeholder.com/150" alt="Profile Picture">
-                <div class="file-input-wrapper">
-                    <label for="brokerPhoto" class="upload-label">प्रोफाइल फोटो बदलें</label>
-                    <input type="file" id="brokerPhoto" accept="image/*" onchange="previewImage(event)">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="phone">मोबाइल नंबर / Contact Number</label>
-                <input type="text" id="phone" placeholder="जैसे: 98XXXXXXXX" required>
-            </div>
-
-            <div class="form-group">
-                <label style="margin-bottom: 12px; display:block;">जिन इलाकों में आप डील करते हैं (Dealing Areas in Bhopal)</label>
-                <div class="areas-grid">
-                    <label class="checkbox-container"><input type="checkbox" value="MP Nagar Zone 1"> MP Nagar Zone 1</label>
-                    <label class="checkbox-container"><input type="checkbox" value="MP Nagar Zone 2"> MP Nagar Zone 2</label>
-                    <label class="checkbox-container"><input type="checkbox" value="New Market"> New Market</label>
-                    <label class="checkbox-container"><input type="checkbox" value="TT Nagar"> TT Nagar</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Malviya Nagar"> Malviya Nagar</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Arera Colony"> Arera Colony</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Shahpura"> Shahpura</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Chunabhatti"> Chunabhatti</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Char Imli"> Char Imli</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Gulmohar"> Gulmohar</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Kolar Road"> Kolar Road</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Awadhpuri"> Awadhpuri</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Ayodhya Bypass"> Ayodhya Bypass</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Hoshangabad Road"> Hoshangabad Road</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Katara Hills"> Katara Hills</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Bawadiya Kalan"> Bawadiya Kalan</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Indrapuri"> Indrapuri</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Piplani"> Piplani</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Saket Nagar"> Saket Nagar</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Kohefiza"> Kohefiza</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Lalghati"> Lalghati</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Karond"> Karond</label>
-                    <label class="checkbox-container"><input type="checkbox" value="Gandhi Nagar"> Gandhi Nagar</label>
-                </div>
-            </div>
-
-            <button type="submit" class="submit-btn">प्रोफाइल सुरक्षित करें (Save Profile)</button>
-        </form>
-    </div>
-
-    <script>
+<script>
         const brokerEmail = localStorage.getItem('brokerEmail');
 
         // Page load hote hi purana data database se khinchkar lana
@@ -120,11 +54,12 @@
             const formData = new FormData();
             formData.append('brokerEmail', brokerEmail);
             formData.append('phone', document.getElementById('phone').value);
-            formData.append('dealingAreas', selectedAreas.join(',')); // Comma separated string banakar bhej rahe hain
+            formData.append('dealingAreas', JSON.stringify(selectedAreas)); // Array ko JSON string banakar bhejna best practice hai
 
             const photoInput = document.getElementById('brokerPhoto');
             if (photoInput.files.length > 0) {
-                formData.append('brokerPhoto', photoInput.files[0]);
+                // 🚨 यही वो लाइन है जो ठीक की गई है ('profilePhoto' कर दिया गया है)
+                formData.append('profilePhoto', photoInput.files[0]);
             }
 
             try {
@@ -133,9 +68,12 @@
                     body: formData
                 });
                 const result = await response.json();
-                alert(result.message);
+                
                 if (result.success) {
+                    alert(result.message);
                     window.location.href = 'dashboard.html';
+                } else {
+                    alert("❌ एरर: " + result.message);
                 }
             } catch (error) {
                 alert("प्रोफाइल सेव करने में समस्या आई।");
@@ -144,5 +82,3 @@
 
         window.onload = loadProfileData;
     </script>
-</body>
-</html>
