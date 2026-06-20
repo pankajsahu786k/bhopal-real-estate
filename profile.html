@@ -1,64 +1,108 @@
-<script>
-        const brokerEmail = localStorage.getItem('brokerEmail');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Profile - Bhopal Properties</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .profile-container { max-width: 500px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        .form-group input[type="text"], .form-group input[type="tel"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .submit-btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        .submit-btn:hover { background: #2980b9; }
+        .back-btn { text-decoration: none; color: #3498db; font-size: 14px; display: inline-block; margin-bottom: 20px; }
+        .profile-preview-container { text-align: center; margin-bottom: 20px; }
+        .profile-preview { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #3498db; display: none; margin: 0 auto; }
+    </style>
+</head>
+<body>
 
-        // Page load hote hi purana data database se khinchkar lana
-        async function loadProfileData() {
-            if (!brokerEmail) {
+    <div class="profile-container">
+        <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
+        <h2>अपनी प्रोफाइल अपडेट करें</h2>
+
+        <form id="profileForm">
+            <div class="profile-preview-container">
+                <img id="photoPreview" class="profile-preview" src="" alt="Profile Photo">
+            </div>
+
+            <div class="form-group">
+                <label>फ़ोन नंबर (Phone Number) *</label>
+                <input type="tel" id="phone" placeholder="जैसे: 9876543210" required>
+            </div>
+
+            <div class="form-group">
+                <label>डीलिंग एरिया (Dealing Areas) *</label>
+                <input type="text" id="dealingAreas" placeholder="जैसे: MP Nagar, Kolar, Arera Colony" required>
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">* एरिया के नाम के बीच में कॉमा (,) लगाएँ</p>
+            </div>
+
+            <div class="form-group">
+                <label>प्रोफाइल फोटो (Profile Photo)</label>
+                <input type="file" id="profilePhoto" accept="image/*">
+                <p style="font-size: 12px; color: #666; margin-top: 5px;">* सिर्फ तभी चुनें जब फोटो बदलनी हो</p>
+            </div>
+
+            <button type="submit" id="saveBtn" class="submit-btn">Save Profile 💾</button>
+        </form>
+    </div>
+
+    <script>
+        // 🚀 पेज लोड होते ही पुरानी जानकारी लाना (Fetch existing profile)
+        document.addEventListener('DOMContentLoaded', async () => {
+            const email = localStorage.getItem('brokerEmail');
+            if (!email) {
                 alert("कृपया पहले लॉगिन करें!");
-                window.location.href = 'login.html';
+                window.location.href = 'index.html';
                 return;
             }
 
             try {
-                const response = await fetch(`/api/get-profile?email=${encodeURIComponent(brokerEmail)}`);
-                const profile = await response.json();
-
-                if (profile) {
-                    if (profile.phone) document.getElementById('phone').value = profile.phone;
-                    if (profile.photo) document.getElementById('photoPreview').src = profile.photo;
-                    
-                    // Selected checkboxes ko tick (check) karna
-                    if (profile.dealingAreas && profile.dealingAreas.length > 0) {
-                        const checkboxes = document.querySelectorAll('.areas-grid input[type="checkbox"]');
-                        checkboxes.forEach(cb => {
-                            if (profile.dealingAreas.includes(cb.value)) {
-                                cb.checked = true;
-                            }
-                        });
-                    }
+                const response = await fetch(`/api/get-profile?email=${email}`);
+                const data = await response.json();
+                
+                // डेटा को इनपुट बॉक्स में भरना
+                if (data.phone) document.getElementById('phone').value = data.phone;
+                
+                if (data.dealingAreas && data.dealingAreas.length > 0) {
+                    document.getElementById('dealingAreas').value = data.dealingAreas.join(', ');
+                }
+                
+                if (data.photo) {
+                    const img = document.getElementById('photoPreview');
+                    img.src = data.photo;
+                    img.style.display = 'block'; // फोटो दिखने लगेगी
                 }
             } catch (error) {
-                console.error("Profile load error:", error);
+                console.error("Error fetching profile:", error);
             }
-        }
+        });
 
-        // Photo chunne par turant preview dikhane ka logic
-        function previewImage(event) {
-            const reader = new FileReader();
-            reader.onload = function() {
-                document.getElementById('photoPreview').src = reader.result;
-            }
-            reader.readAsDataURL(event.target.files[0]);
-        }
+        // 💾 फॉर्म सबमिट करने पर नया डेटा सेव करना
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // पेज रीलोड होने से रोकना
+            
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.innerText = "Saving Profile... ⏳";
+            saveBtn.disabled = true;
 
-        // Form submit karke data save karne ka logic
-        document.getElementById('profileForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            // Saare ticked checkboxes se shehro ki list nikalna
-            const selectedAreas = [];
-            document.querySelectorAll('.areas-grid input[type="checkbox"]:checked').forEach(cb => {
-                selectedAreas.push(cb.value);
-            });
-
+            const brokerEmail = localStorage.getItem('brokerEmail');
             const formData = new FormData();
+            
             formData.append('brokerEmail', brokerEmail);
             formData.append('phone', document.getElementById('phone').value);
-            formData.append('dealingAreas', JSON.stringify(selectedAreas)); // Array ko JSON string banakar bhejna best practice hai
+            
+            // डीलिंग एरिया को कॉमा से अलग करके Array बनाना
+            const areasInput = document.getElementById('dealingAreas').value;
+            const areasArray = areasInput.split(',').map(area => area.trim());
+            formData.append('dealingAreas', JSON.stringify(areasArray)); // बैकएंड इसे JSON समझेगा
 
-            const photoInput = document.getElementById('brokerPhoto');
+            // अगर नई फोटो डाली गई है तो उसे भी भेजना
+            const photoInput = document.getElementById('profilePhoto');
             if (photoInput.files.length > 0) {
-                // 🚨 यही वो लाइन है जो ठीक की गई है ('profilePhoto' कर दिया गया है)
                 formData.append('profilePhoto', photoInput.files[0]);
             }
 
@@ -67,18 +111,23 @@
                     method: 'POST',
                     body: formData
                 });
+                
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert(result.message);
-                    window.location.href = 'dashboard.html';
+                    alert("✅ आपकी प्रोफाइल सफलतापूर्वक सेव हो गई!");
+                    window.location.href = 'dashboard.html'; // वापस डैशबोर्ड पर भेजना
                 } else {
-                    alert("❌ एरर: " + result.message);
+                    alert("❌ प्रोफाइल सेव नहीं हो पाई: " + result.message);
                 }
             } catch (error) {
-                alert("प्रोफाइल सेव करने में समस्या आई।");
+                alert("❌ सर्वर से जुड़ने में समस्या आई।");
+                console.error(error);
+            } finally {
+                saveBtn.innerText = "Save Profile 💾";
+                saveBtn.disabled = false;
             }
         });
-
-        window.onload = loadProfileData;
     </script>
+</body>
+</html>
