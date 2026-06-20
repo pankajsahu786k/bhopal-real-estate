@@ -77,7 +77,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         const propertyId = new URLSearchParams(window.location.search).get('id');
 
         async function trackClick() {
@@ -100,17 +100,28 @@
                     
                     document.getElementById('brokerNameDisplay').innerText = property.brokerEmail ? property.brokerEmail.split('@')[0] : 'Broker';
                     
-                    if (brokerProfile) {
-                        if (brokerProfile.photo && brokerProfile.photo.trim() !== '') {
-                            document.getElementById('brokerImg').src = brokerProfile.photo;
-                        }
-                        if (brokerProfile.phone) {
-                            document.getElementById('callBtn').href = `tel:${brokerProfile.phone}`;
-                            const waNumber = brokerProfile.phone.replace(/\D/g, '');
-                            document.getElementById('whatsappBtn').href = `https://wa.me/91${waNumber}?text=Hello, I saw your property "${property.title}" on Bhopal Real Estate.`;
-                        }
+                    // 📞 DYNAMIC MOBILE NUMBER LOGIC 
+                    // Pehle form wala number check karo, nahi toh profile wala lo
+                    const finalContactNumber = property.contactNumber || (brokerProfile ? brokerProfile.phone : '');
+
+                    if (finalContactNumber && finalContactNumber.trim() !== '') {
+                        document.getElementById('callBtn').href = `tel:${finalContactNumber}`;
+                        const waNumber = finalContactNumber.replace(/\D/g, ''); // Sirf digits nikalna
+                        document.getElementById('whatsappBtn').href = `https://wa.me/91${waNumber}?text=Hello, I saw your property "${property.title}" on Bhopal Real Estate.`;
+                    } else {
+                        // Agar koi number nahi hai toh button disable kar do
+                        document.getElementById('callBtn').onclick = () => alert('❌ ओनर का मोबाइल नंबर उपलब्ध नहीं है।');
+                        document.getElementById('callBtn').href = '#';
+                        document.getElementById('whatsappBtn').onclick = () => alert('❌ ओनर का WhatsApp उपलब्ध नहीं है।');
+                        document.getElementById('whatsappBtn').href = '#';
                     }
 
+                    // Broker Photo Logic
+                    if (brokerProfile && brokerProfile.photo && brokerProfile.photo.trim() !== '') {
+                        document.getElementById('brokerImg').src = brokerProfile.photo;
+                    }
+
+                    // 📸 Image Gallery Logic
                     let validImages = [];
                     if (property.images && property.images.length > 0) {
                         validImages = property.images.filter(img => img && img.trim() !== '');
@@ -135,6 +146,7 @@
                         thumbs.appendChild(t);
                     });
 
+                    // 🎬 Video Logic
                     if (property.videoLink && property.videoLink.trim() !== '') {
                         const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
                         const match = property.videoLink.match(regex);
