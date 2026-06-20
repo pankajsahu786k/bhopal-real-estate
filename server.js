@@ -54,7 +54,7 @@ const PendingUser = mongoose.model('PendingUser', pendingUserSchema);
 const propertySchema = new mongoose.Schema({
     title: String, purpose: String, location: String, price: Number, desc: String,
     images: [{ type: String }], videoLink: { type: String, default: '' }, 
-    brokerEmail: String, status: { type: String, default: 'pending' },
+    brokerEmail: String, contactNumber: String, status: { type: String, default: 'pending' }, // 👈 contactNumber जोड़ा गया है
     views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 } 
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
