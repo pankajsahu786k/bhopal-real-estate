@@ -1,70 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Update Profile - Bhopal Properties</title>
+    <title>Profile Settings - Bhopal Properties</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .profile-container { max-width: 500px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        .form-group input[type="text"], .form-group input[type="tel"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .submit-btn { background: #3498db; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; margin-top: 10px; }
-        .submit-btn:hover { background: #2980b9; }
-        .back-btn { text-decoration: none; color: #3498db; font-size: 14px; display: inline-block; margin-bottom: 20px; }
+        /* 🎨 Dashboard Theme Styles */
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; }
+        
+        /* Sidebar Styling */
+        .sidebar { width: 250px; background-color: #34495e; color: white; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #2c3e50; font-size: 18px; }
+        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links li { padding: 0; }
+        .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
+        .nav-links a:hover, .nav-links a.active { background-color: #2c3e50; color: white; border-left-color: #2ecc71; }
+
+        /* Main Content Area */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        
+        /* Top Header */
+        .dashboard-header { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .header-right { display: flex; align-items: center; gap: 15px; }
+        .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background-color: #c0392b; }
+
+        /* Form Area */
+        .content-body { padding: 30px; }
+        .form-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border-left: 5px solid #2ecc71; }
+        .form-card h3 { margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
+        .form-group input[type="text"], .form-group input[type="tel"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .form-group input:focus { outline: none; border-color: #3498db; }
+        
+        .submit-btn { background-color: #2ecc71; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .submit-btn:hover { background-color: #27ae60; }
+
         .profile-preview-container { text-align: center; margin-bottom: 20px; }
-        .profile-preview { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #3498db; display: none; margin: 0 auto; }
+        .profile-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ccc; display: none; margin: 0 auto; }
     </style>
 </head>
+
 <body>
 
-    <div class="profile-container">
-        <a href="dashboard.html" class="back-btn">← Back to Dashboard</a>
-        <h2>अपनी प्रोफाइल अपडेट करें</h2>
+    <div class="sidebar">
+        <h2>Bhopal Properties</h2>
+        <ul class="nav-links">
+            <li><a href="dashboard.html">My Properties</a></li>
+            <li><a href="add-property.html">Add New Property</a></li>
+            <li><a href="profile.html" class="active">Profile Settings</a></li>
+            <li><a href="#">Messages / Enquiries</a></li>
+        </ul>
+    </div>
 
-        <form id="profileForm">
-            <div class="profile-preview-container">
-                <img id="photoPreview" class="profile-preview" src="" alt="Profile Photo">
+    <div class="main-content">
+        <header class="dashboard-header">
+            <div style="font-weight: bold; font-size: 18px;">Profile Settings</div>
+            <div class="header-right">
+                <span id="welcomeName">Welcome, Broker User</span>
+                <button onclick="logout()" class="logout-btn">Log Out</button>
             </div>
+        </header>
 
-            <div class="form-group">
-                <label>फ़ोन नंबर (Phone Number) *</label>
-                <input type="tel" id="phone" placeholder="जैसे: 9876543210" required>
+        <div class="content-body">
+            <div class="form-card">
+                <h3>अपनी प्रोफाइल जानकारी अपडेट करें</h3>
+                <form id="profileForm">
+                    
+                    <div class="profile-preview-container">
+                        <img id="photoPreview" class="profile-preview" src="" alt="Profile Photo">
+                    </div>
+
+                    <div class="form-group">
+                        <label>फ़ोन नंबर (Phone Number) *</label>
+                        <input type="tel" id="phone" placeholder="जैसे: 9876543210" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>डीलिंग एरिया (Dealing Areas) *</label>
+                        <input type="text" id="dealingAreas" placeholder="जैसे: MP Nagar, Kolar, Arera Colony" required>
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">* एरिया के नाम के बीच में कॉमा (,) लगाएँ</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>प्रोफाइल फोटो (Profile Photo)</label>
+                        <input type="file" id="profilePhoto" accept="image/*" style="padding: 10px 0;">
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: 0;">* सिर्फ तभी चुनें जब फोटो बदलनी हो</p>
+                    </div>
+
+                    <button type="submit" id="saveBtn" class="submit-btn">Save Profile Updates 💾</button>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label>डीलिंग एरिया (Dealing Areas) *</label>
-                <input type="text" id="dealingAreas" placeholder="जैसे: MP Nagar, Kolar, Arera Colony" required>
-                <p style="font-size: 12px; color: #666; margin-top: 5px;">* एरिया के नाम के बीच में कॉमा (,) लगाएँ</p>
-            </div>
-
-            <div class="form-group">
-                <label>प्रोफाइल फोटो (Profile Photo)</label>
-                <input type="file" id="profilePhoto" accept="image/*">
-                <p style="font-size: 12px; color: #666; margin-top: 5px;">* सिर्फ तभी चुनें जब फोटो बदलनी हो</p>
-            </div>
-
-            <button type="submit" id="saveBtn" class="submit-btn">Save Profile 💾</button>
-        </form>
+        </div>
     </div>
 
     <script>
-        // 🚀 पेज लोड होते ही पुरानी जानकारी लाना (Fetch existing profile)
         document.addEventListener('DOMContentLoaded', async () => {
             const email = localStorage.getItem('brokerEmail');
+            const name = localStorage.getItem('brokerName') || 'User';
+            
             if (!email) {
                 alert("कृपया पहले लॉगिन करें!");
                 window.location.href = 'index.html';
                 return;
             }
 
+            // Top Header Header me naam set karna
+            document.getElementById('welcomeName').innerText = `Welcome, Broker ${name}`;
+
+            // Purani details fetch karna
             try {
                 const response = await fetch(`/api/get-profile?email=${email}`);
                 const data = await response.json();
                 
-                // डेटा को इनपुट बॉक्स में भरना
                 if (data.phone) document.getElementById('phone').value = data.phone;
                 
                 if (data.dealingAreas && data.dealingAreas.length > 0) {
@@ -74,19 +125,19 @@
                 if (data.photo) {
                     const img = document.getElementById('photoPreview');
                     img.src = data.photo;
-                    img.style.display = 'block'; // फोटो दिखने लगेगी
+                    img.style.display = 'block';
                 }
             } catch (error) {
                 console.error("Error fetching profile:", error);
             }
         });
 
-        // 💾 फॉर्म सबमिट करने पर नया डेटा सेव करना
+        // Form Submit Logic
         document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); // पेज रीलोड होने से रोकना
+            e.preventDefault(); 
             
             const saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerText = "Saving Profile... ⏳";
+            saveBtn.innerText = "Saving Please Wait... ⏳";
             saveBtn.disabled = true;
 
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -95,12 +146,10 @@
             formData.append('brokerEmail', brokerEmail);
             formData.append('phone', document.getElementById('phone').value);
             
-            // डीलिंग एरिया को कॉमा से अलग करके Array बनाना
             const areasInput = document.getElementById('dealingAreas').value;
             const areasArray = areasInput.split(',').map(area => area.trim());
-            formData.append('dealingAreas', JSON.stringify(areasArray)); // बैकएंड इसे JSON समझेगा
+            formData.append('dealingAreas', JSON.stringify(areasArray)); 
 
-            // अगर नई फोटो डाली गई है तो उसे भी भेजना
             const photoInput = document.getElementById('profilePhoto');
             if (photoInput.files.length > 0) {
                 formData.append('profilePhoto', photoInput.files[0]);
@@ -115,19 +164,25 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    alert("✅ आपकी प्रोफाइल सफलतापूर्वक सेव हो गई!");
-                    window.location.href = 'dashboard.html'; // वापस डैशबोर्ड पर भेजना
+                    alert("✅ प्रोफाइल सफलतापूर्वक अपडेट हो गई!");
+                    window.location.href = 'dashboard.html'; 
                 } else {
                     alert("❌ प्रोफाइल सेव नहीं हो पाई: " + result.message);
                 }
             } catch (error) {
-                alert("❌ सर्वर से जुड़ने में समस्या आई।");
+                alert("❌ सर्वर एरर!");
                 console.error(error);
             } finally {
-                saveBtn.innerText = "Save Profile 💾";
+                saveBtn.innerText = "Save Profile Updates 💾";
                 saveBtn.disabled = false;
             }
         });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
     </script>
 </body>
+
 </html>
