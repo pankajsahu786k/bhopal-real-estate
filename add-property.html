@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add New Property - Bhopal Real Estate</title>
     <link rel="stylesheet" href="add-property-style.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 
 <body>
@@ -19,7 +20,7 @@
         <h2>नयी प्रॉपर्टी की जानकारी भरें</h2>
         <p>कृपया भोपाल में स्थित अपनी प्रॉपर्टी का सही विवरण दें ताकि ग्राहक आपसे संपर्क कर सकें।</p>
 
-        <form id="propertyForm" onsubmit="submitProperty(event)">
+        <form id="propertyForm" onsubmit="handleFormSubmit(event)">
 
             <div class="form-group">
                 <label for="title">Property का नाम / Title</label>
@@ -101,16 +102,29 @@
                 <p style="font-size: 12px; color: #666; margin-top: 5px;">* आप एक साथ अधिकतम 3 फोटो सेलेक्ट कर सकते हैं</p>
             </div>
 
-            <button type="submit" class="submit-btn">प्रॉपर्टी पब्लिश करें (Publish Property)</button>
+            <button type="submit" id="submitBtn" class="submit-btn">Loading...</button>
         </form>
     </div>
 
     <script>
+        let userRole = 'user'; // Default role
+
         document.addEventListener('DOMContentLoaded', () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
+            userRole = localStorage.getItem('userRole') || 'user';
+            
             if (!brokerEmail) {
                 alert('कृपया पहले लॉगिन करें!');
                 window.location.href = 'index.html'; 
+            }
+
+            // 🟢 Role ke hisaab se button set karein
+            const submitBtn = document.getElementById('submitBtn');
+            if (userRole === 'employee' || userRole === 'admin') {
+                submitBtn.innerText = "Free Publish (Direct Live) 🚀";
+                submitBtn.style.backgroundColor = "#28a745"; // Green for employees
+            } else {
+                submitBtn.innerText = "Pay ₹10 & Publish 💳";
             }
         });
 
@@ -119,7 +133,7 @@
             if (val === 'other') {
                 inputBox.style.display = 'block'; 
                 inputBox.required = true;         
-                inputBox.focus();                 
+                inputBox.focus();                
             } else {
                 inputBox.style.display = 'none';  
                 inputBox.required = false;
@@ -127,11 +141,11 @@
             }
         }
 
-        async function submitProperty(event) {
+        async function handleFormSubmit(event) {
             event.preventDefault(); 
-
-            const submitBtn = document.querySelector('.submit-btn');
-            submitBtn.innerText = "अपलोड हो रहा है... (Please Wait)";
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerText;
+            submitBtn.innerText = "Please Wait...";
             submitBtn.disabled = true;
 
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -148,15 +162,13 @@
             formData.append('price', document.getElementById('price').value);
             formData.append('desc', document.getElementById('desc').value);
             formData.append('brokerEmail', brokerEmail);
-            formData.append('videoLink', document.getElementById('videoLink').value); // 🚁 वीडियो लिंक
+            formData.append('videoLink', document.getElementById('videoLink').value);
 
-            // 📸 3 फोटो चेक और अपलोड लॉजिक
+            // 📸 3 फोटो चेक लॉजिक
             const imgInput = document.getElementById('propertyImages');
-            
             if (imgInput.files.length > 3) {
                 alert("❌ आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
-                submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
-                submitBtn.disabled = false;
+                resetButton(submitBtn, originalText);
                 return;
             }
 
@@ -166,6 +178,67 @@
                 }
             }
 
+            // 🔄 Employee/Admin hai toh direct upload karo, warna Payment lo
+            if (userRole === 'employee' || userRole === 'admin') {
+                uploadPropertyData(formData, submitBtn, originalText);
+            } else {
+                startRazorpayPayment(formData, submitBtn, originalText);
+            }
+        }
+
+        // 💸 Razorpay Payment Function
+        async function startRazorpayPayment(formData, submitBtn, originalText) {
+            try {
+                // 1. Backend se naya order create karo
+                const orderRes = await fetch('/api/create-order', { method: 'POST' });
+                const orderData = await orderRes.json();
+
+                if (!orderData.success) {
+                    alert("❌ Payment System Error! Order create nahi hua.");
+                    resetButton(submitBtn, originalText);
+                    return;
+                }
+
+                // 2. Razorpay Popup Options
+                const options = {
+                    key: 'rzp_test_T3oTzNzTDvWgUL', // 👈🚨 YAHAN APNI RAZORPAY KEY_ID DALEIN 🚨👈
+                    amount: orderData.order.amount,
+                    currency: "INR",
+                    name: "Bhopal Properties",
+                    description: "Property Listing Charge",
+                    order_id: orderData.order.id,
+                    handler: function (response) {
+                        // Jab payment successful ho jaye toh property upload kar do
+                        submitBtn.innerText = "Payment Successful! Uploading... 🚀";
+                        uploadPropertyData(formData, submitBtn, originalText);
+                    },
+                    prefill: {
+                        name: localStorage.getItem('brokerName') || "User",
+                        email: localStorage.getItem('brokerEmail') || ""
+                    },
+                    theme: { color: "#27ae60" },
+                    modal: {
+                        ondismiss: function() {
+                            // Agar user payment cancel kar de
+                            alert("❌ Payment Cancelled.");
+                            resetButton(submitBtn, originalText);
+                        }
+                    }
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+
+            } catch (error) {
+                alert("❌ Payment Server Se Connect Nahi Ho Paya.");
+                console.error(error);
+                resetButton(submitBtn, originalText);
+            }
+        }
+
+        // ☁️ Property Upload Karne ka Main Function
+        async function uploadPropertyData(formData, submitBtn, originalText) {
+            submitBtn.innerText = "Uploading Photos & Data... ⏳";
             try {
                 const response = await fetch('/api/add-property', {
                     method: 'POST',
@@ -175,19 +248,22 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('✅ प्रॉपर्टी सफलतापूर्वक जुड़ गई!');
+                    alert('✅ ' + data.message);
                     window.location.href = 'dashboard.html'; 
                 } else {
                     alert('❌ ' + data.message);
-                    submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
-                    submitBtn.disabled = false;
+                    resetButton(submitBtn, originalText);
                 }
             } catch (error) {
                 alert('❌ सर्वर से जुड़ने में समस्या आई।');
-                submitBtn.innerText = "प्रॉपर्टी पब्लिश करें (Publish Property)";
-                submitBtn.disabled = false;
                 console.error(error);
+                resetButton(submitBtn, originalText);
             }
+        }
+
+        function resetButton(btn, text) {
+            btn.innerText = text;
+            btn.disabled = false;
         }
     </script>
 </body>

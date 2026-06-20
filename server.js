@@ -4,7 +4,8 @@ const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
+const Razorpay = require('razorpay');
+const crypto = require('crypto'); // Payment verify karne ke liye
 const app = express();
 
 app.use(cors());
@@ -119,7 +120,54 @@ app.get('/api/get-profile', async(req, res) => {
         res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [] });
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
+// ==========================================
+// 💸 RAZORPAY PAYMENT ROUTES (For ₹10 Property Listing)
+// ==========================================
 
+// Razorpay Setup (Yahan apni test keys dalein)
+const razorpay = new Razorpay({
+    key_id: 'YOUR_KEY_ID',       // 👈 Yahan apni Key ID dalein
+    key_secret: 'YOUR_KEY_SECRET' // 👈 Yahan apna Key Secret dalein
+});
+
+// 1. Order Create Karne ki API
+app.post('/api/create-order', async (req, res) => {
+    try {
+        const options = {
+            amount: 1000, // ₹10 (Razorpay paise mein count karta hai, isliye 10 * 100 = 1000)
+            currency: "INR",
+            receipt: "receipt_" + Math.random().toString(36).substring(7)
+        };
+        const order = await razorpay.orders.create(options);
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error("Order Creation Error:", error);
+        res.status(500).json({ success: false, message: 'Payment gateway error!' });
+    }
+});
+
+// 2. Payment Verify Karne ki API
+app.post('/api/verify-payment', (req, res) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        
+        // Security check: Signature match karna
+        const sign = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSign = crypto
+            .createHmac("sha256", "YOUR_KEY_SECRET") // 👈 Yahan wapas apna Key Secret dalein
+            .update(sign.toString())
+            .digest("hex");
+
+        if (razorpay_signature === expectedSign) {
+            return res.json({ success: true, message: "Payment Verified Successfully!" });
+        } else {
+            return res.status(400).json({ success: false, message: "Payment Verification Failed!" });
+        }
+    } catch (error) {
+        console.error("Verification Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
 // ==========================================
 // 👤 PROFILE UPDATE ROUTE
 // ==========================================
