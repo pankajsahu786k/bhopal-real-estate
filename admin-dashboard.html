@@ -27,7 +27,7 @@
         const role = localStorage.getItem('userRole');
         if (role !== 'admin') {
             alert("❌ एक्सेस मना है! आप एडमिन नहीं हैं।");
-            window.location.href = 'login.html'; 
+            window.location.href = 'index.html'; 
         }
     </script>
 
@@ -69,7 +69,7 @@
 
         function logoutAdmin() {
             localStorage.clear();
-            window.location.href = 'login.html'; 
+            window.location.href = 'index.html'; 
         }
 
         async function loadAdminData() {
@@ -89,14 +89,22 @@
                         usersContainer.innerHTML = '<p>कोई यूज़र नहीं मिला।</p>';
                     } else if (result.users) {
                         result.users.forEach(user => {
+                            // 🔄 Role Change Button Logic (Admin ka button na dikhayein)
+                            let roleBtnHtml = '';
+                            if(user.role !== 'admin') {
+                                const roleBtnText = user.role === 'employee' ? '⏬ Make User' : '⏫ Make Employee';
+                                const roleBtnColor = user.role === 'employee' ? '#e67e22' : '#8e44ad';
+                                roleBtnHtml = `<button onclick="changeUserRole('${user._id}', '${user.role}')" style="background: ${roleBtnColor}; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">${roleBtnText}</button>`;
+                            }
+
                             usersContainer.innerHTML += `
                                 <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #3498db; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                     <div>
                                         <h4 style="margin: 0 0 5px 0; color: #2c3e50;">👤 ${user.name}</h4>
-                                        <p style="margin: 0; color: #7f8c8d; font-size: 14px;">ईमेल: ${user.email} | रोल: <b>${user.role}</b></p>
+                                        <p style="margin: 0; color: #7f8c8d; font-size: 14px;">ईमेल: ${user.email} | रोल: <b style="color: ${user.role === 'employee' ? '#8e44ad' : '#333'}">${user.role.toUpperCase()}</b></p>
                                     </div>
                                     <div>
-                                        <button onclick="loginAsUser('${user.name}', '${user.email}')" style="background: #2980b9; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">👁️ देखें</button>
+                                        ${roleBtnHtml} <button onclick="loginAsUser('${user.name}', '${user.email}', '${user.role}')" style="background: #2980b9; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">👁️ देखें</button>
                                         <button onclick="deleteUser('${user._id}', '${user.name}')" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ डिलीट</button>
                                     </div>
                                 </div>
@@ -146,16 +154,43 @@
         }
 
         // 👑 ADMIN ACTIONS
-        function loginAsUser(userName, userEmail) {
+        function loginAsUser(userName, userEmail, userRole) {
             if(confirm("क्या आप " + userName + " के डैशबोर्ड में जाना चाहते हैं?")) {
                 localStorage.setItem('brokerName', userName);
                 localStorage.setItem('brokerEmail', userEmail);
-                
-                // 🚨 यह है वो जादुई कोड जो पहले मिसिंग था!
-                localStorage.setItem('userRole', 'user'); 
+                localStorage.setItem('userRole', userRole); // 👈 Ab sahi role set hoga
                 localStorage.setItem('realAdmin', 'yes'); 
                 
                 window.location.href = 'dashboard.html';
+            }
+        }
+
+        // 🔄 User Role Change Logic
+        async function changeUserRole(userId, currentRole) {
+            const newRole = currentRole === 'employee' ? 'user' : 'employee';
+            const confirmMsg = newRole === 'employee' ? 
+                'क्या आप इस यूज़र को Employee (फ्री एक्सेस) बनाना चाहते हैं?' : 
+                'क्या आप इस Employee को वापस Normal User बनाना चाहते हैं?';
+            
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                const res = await fetch(`/api/admin/change-role/${userId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newRole: newRole })
+                });
+                
+                const data = await res.json();
+                if(data.success) {
+                    alert('✅ ' + data.message);
+                    loadAdminData(); // 👈 Page reload ki jagah sirf data refresh hoga
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch(error) {
+                console.error(error);
+                alert("Server Error");
             }
         }
 
@@ -164,13 +199,8 @@
                 try {
                     const response = await fetch(`/api/admin/approve-property/${propertyId}`, { method: 'POST' });
                     const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        loadAdminData(); 
-                    }
-                } catch (error) {
-                    alert("प्रॉपर्टी अप्रूव करने में कोई गड़बड़ हुई!");
-                }
+                    if (result.success) { alert(result.message); loadAdminData(); }
+                } catch (error) { alert("प्रॉपर्टी अप्रूव करने में कोई गड़बड़ हुई!"); }
             }
         }
 
@@ -179,13 +209,8 @@
                 try {
                     const response = await fetch(`/api/admin/unpublish-property/${propertyId}`, { method: 'POST' });
                     const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        loadAdminData(); 
-                    }
-                } catch (error) {
-                    alert("प्रॉपर्टी को पेंडिंग करने में कोई गड़बड़ हुई!");
-                }
+                    if (result.success) { alert(result.message); loadAdminData(); }
+                } catch (error) { alert("प्रॉपर्टी को पेंडिंग करने में कोई गड़बड़ हुई!"); }
             }
         }
 
@@ -194,13 +219,8 @@
                 try {
                     const response = await fetch(`/api/admin/delete-property/${propertyId}`, { method: 'DELETE' });
                     const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        loadAdminData(); 
-                    }
-                } catch (error) {
-                    alert("डिलीट करने में कोई गड़बड़ हुई!");
-                }
+                    if (result.success) { alert(result.message); loadAdminData(); }
+                } catch (error) { alert("डिलीट करने में कोई गड़बड़ हुई!"); }
             }
         }
 
@@ -209,13 +229,8 @@
                 try {
                     const response = await fetch(`/api/admin/delete-user/${userId}`, { method: 'DELETE' });
                     const result = await response.json();
-                    if (result.success) {
-                        alert(result.message);
-                        loadAdminData(); 
-                    }
-                } catch (error) {
-                    alert("यूज़र डिलीट करने में समस्या आई!");
-                }
+                    if (result.success) { alert(result.message); loadAdminData(); }
+                } catch (error) { alert("यूज़र डिलीट करने में समस्या आई!"); }
             }
         }
 

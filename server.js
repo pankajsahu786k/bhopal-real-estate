@@ -272,6 +272,18 @@ app.get('/api/admin/all-data', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' }); 
     }
 });
+// Admin: User ka Role Change Karne ki API (User <-> Employee)
+app.post('/api/admin/change-role/:id', async (req, res) => {
+    try {
+        const { newRole } = req.body; // 'user' ya 'employee' aayega
+        
+        await User.findByIdAndUpdate(req.params.id, { role: newRole });
+        res.json({ success: true, message: `User role updated to ${newRole} successfully!` });
+        
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 
 app.post('/api/admin/approve-property/:id', async (req, res) => {
     try {
@@ -303,6 +315,7 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
         }
     } catch (error) { res.status(500).json({ success: false }); }
 });
+
 
 // 🚨 SERVER START (यह हमेशा सबसे नीचे होना चाहिए)
 const PORT = process.env.PORT || 3000;
