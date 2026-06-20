@@ -254,9 +254,23 @@ app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: email.toLowerCase().trim(), password });
-        if (user) res.json({ success: true, name: user.name, email: user.email, role: user.email === "devilking786k@sahu.com" ? 'admin' : 'user' });
-        else res.status(401).json({ success: false, message: 'Invalid credentials' });
-    } catch (error) { res.status(500).json({ success: false }); }
+        
+        if (user) {
+            // 🚨 असली जादू यहाँ है: अब हम डेटाबेस से उसका असली रोल उठाएंगे
+            let actualRole = user.role || 'user';
+            
+            // बॉस (Admin) के लिए स्पेशल चेक
+            if (user.email === "devilking786k@sahu.com") {
+                actualRole = 'admin';
+            }
+
+            res.json({ success: true, name: user.name, email: user.email, role: actualRole });
+        } else {
+            res.status(401).json({ success: false, message: 'Invalid credentials' });
+        }
+    } catch (error) { 
+        res.status(500).json({ success: false }); 
+    }
 });
 
 // ==========================================
