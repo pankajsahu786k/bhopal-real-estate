@@ -124,17 +124,17 @@ app.get('/api/get-profile', async(req, res) => {
 // 💸 RAZORPAY PAYMENT ROUTES (For ₹10 Property Listing)
 // ==========================================
 
-// Razorpay Setup (Yahan apni test keys dalein)
+// Razorpay Setup 
 const razorpay = new Razorpay({
-    key_id: 'YOUR_KEY_ID',       // 👈 Yahan apni Key ID dalein
-    key_secret: 'YOUR_KEY_SECRET' // 👈 Yahan apna Key Secret dalein
+    key_id: 'rzp_test_T3oTzNzTDvWgUL',       // 👈 मैंने आपकी Key ID डाल दी है
+    key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2'   // 👈 मैंने आपका Key Secret डाल दिया है
 });
 
 // 1. Order Create Karne ki API
 app.post('/api/create-order', async (req, res) => {
     try {
         const options = {
-            amount: 1000, // ₹10 (Razorpay paise mein count karta hai, isliye 10 * 100 = 1000)
+            amount: 1000, // ₹10
             currency: "INR",
             receipt: "receipt_" + Math.random().toString(36).substring(7)
         };
@@ -154,7 +154,7 @@ app.post('/api/verify-payment', (req, res) => {
         // Security check: Signature match karna
         const sign = razorpay_order_id + "|" + razorpay_payment_id;
         const expectedSign = crypto
-            .createHmac("sha256", "YOUR_KEY_SECRET") // 👈 Yahan wapas apna Key Secret dalein
+            .createHmac("sha256", "8VyNa1vXyBiGjtbp5j3DRVr2") // 👈 यहाँ भी Secret Key डाल दी है
             .update(sign.toString())
             .digest("hex");
 
