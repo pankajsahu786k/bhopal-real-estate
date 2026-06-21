@@ -54,7 +54,7 @@ const PendingUser = mongoose.model('PendingUser', pendingUserSchema);
 const propertySchema = new mongoose.Schema({
     title: String, purpose: String, location: String, price: Number, desc: String,
     images: [{ type: String }], videoLink: { type: String, default: '' }, 
-    brokerEmail: String, contactNumber: String, status: { type: String, default: 'pending' }, // 👈 contactNumber जोड़ा गया है
+    brokerEmail: String, contactNumber: String, status: { type: String, default: 'pending' },
     views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 } 
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
@@ -65,10 +65,39 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
+// 👇 POLICE VERIFICATION SCHEMA (सही जगह पर) 👇
+const verificationSchema = new mongoose.Schema({
+    tenantName: String,
+    tenantPhone: String,
+    aadharNumber: String,
+    tenantPermanentAddress: String, 
+    permanentPoliceStation: String, 
+    propertyAddress: String,
+    currentPoliceStation: String,   
+    ownerName: String,
+    ownerPhone: String,
+    status: { type: String, default: 'Pending' }
+}, { timestamps: true });
+const Verification = mongoose.model('Verification', verificationSchema);
+
+
 // ==========================================
 // 3️⃣ API ROUTES
 // ==========================================
 
+// 👇 POLICE VERIFICATION API (सही जगह पर) 👇
+app.post('/api/submit-verification', async (req, res) => {
+    try {
+        const newRequest = new Verification(req.body);
+        await newRequest.save();
+        res.json({ success: true, message: '✅ आपकी पुलिस वेरिफिकेशन रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है। हमारी टीम जल्द संपर्क करेगी!' });
+    } catch (error) {
+        console.error("Verification Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// -- Baaki saare purane APIs --
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -120,43 +149,30 @@ app.get('/api/get-profile', async(req, res) => {
         res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [] });
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
-// ==========================================
-// 💸 RAZORPAY PAYMENT ROUTES (For ₹10 Property Listing)
-// ==========================================
 
-// Razorpay Setup 
+// ==========================================
+// 💸 RAZORPAY PAYMENT ROUTES 
+// ==========================================
 const razorpay = new Razorpay({
-    key_id: 'rzp_test_T3oTzNzTDvWgUL',       // 👈 मैंने आपकी Key ID डाल दी है
-    key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2'   // 👈 मैंने आपका Key Secret डाल दिया है
+    key_id: 'rzp_test_T3oTzNzTDvWgUL',
+    key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2'
 });
 
-// 1. Order Create Karne ki API
 app.post('/api/create-order', async (req, res) => {
     try {
-        const options = {
-            amount: 1000, // ₹10
-            currency: "INR",
-            receipt: "receipt_" + Math.random().toString(36).substring(7)
-        };
+        const options = { amount: 1000, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) };
         const order = await razorpay.orders.create(options);
         res.json({ success: true, order });
     } catch (error) {
-        console.error("Order Creation Error:", error);
         res.status(500).json({ success: false, message: 'Payment gateway error!' });
     }
 });
 
-// 2. Payment Verify Karne ki API
 app.post('/api/verify-payment', (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-        
-        // Security check: Signature match karna
         const sign = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSign = crypto
-            .createHmac("sha256", "8VyNa1vXyBiGjtbp5j3DRVr2") // 👈 यहाँ भी Secret Key डाल दी है
-            .update(sign.toString())
-            .digest("hex");
+        const expectedSign = crypto.createHmac("sha256", "8VyNa1vXyBiGjtbp5j3DRVr2").update(sign.toString()).digest("hex");
 
         if (razorpay_signature === expectedSign) {
             return res.json({ success: true, message: "Payment Verified Successfully!" });
@@ -164,41 +180,31 @@ app.post('/api/verify-payment', (req, res) => {
             return res.status(400).json({ success: false, message: "Payment Verification Failed!" });
         }
     } catch (error) {
-        console.error("Verification Error:", error);
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
+
 // ==========================================
 // 👤 PROFILE UPDATE ROUTE
 // ==========================================
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
         const { brokerEmail, phone } = req.body;
-        
         let areas = [];
         if (req.body.dealingAreas) {
-            try {
-                areas = JSON.parse(req.body.dealingAreas); 
-            } catch (e) {
-                areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(',');
-            }
+            try { areas = JSON.parse(req.body.dealingAreas); } 
+            catch (e) { areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); }
         }
-
         const updateData = { phone: phone, dealingAreas: areas };
-        
-        if (req.file) {
-            updateData.photo = req.file.path || req.file.url;
-        }
+        if (req.file) updateData.photo = req.file.path || req.file.url;
 
         await BrokerProfile.findOneAndUpdate(
             { brokerEmail: brokerEmail.toLowerCase().trim() },
             { $set: updateData },
             { new: true, upsert: true } 
         );
-
         res.json({ success: true, message: 'Profile Saved Successfully!' });
     } catch (error) {
-        console.error("Profile Update Error:", error);
         res.status(500).json({ success: false, message: 'Server Error saving profile' });
     }
 });
@@ -206,37 +212,29 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
 // ==========================================
 // 🔑 AUTHENTICATION ROUTES (Signup & Login)
 // ==========================================
-
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
         const emailLower = email.toLowerCase().trim();
-
         const existingUser = await User.findOne({ email: emailLower });
         if (existingUser) return res.status(400).json({ success: false, message: 'Email is already registered!' });
 
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
         await PendingUser.deleteMany({ email: emailLower });
         const newPendingUser = new PendingUser({ name, email: emailLower, password, otp });
         await newPendingUser.save();
 
         console.log(`🔑 OTP for ${emailLower} is: [ ${otp} ]`);
         res.json({ success: true, requireOtp: true, generatedOtp: otp, message: 'OTP Generated successfully.' });
-    } catch (error) {
-        console.error("Signup Error:", error);
-        res.status(500).json({ success: false, message: 'Server error during signup.' });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server error during signup.' }); }
 });
 
 app.post('/api/verify-otp', async (req, res) => {
     try {
         const { email, otp } = req.body;
         const emailLower = email.toLowerCase().trim();
-
         const pendingUser = await PendingUser.findOne({ email: emailLower });
         if (!pendingUser) return res.status(400).json({ success: false, message: 'OTP expired or invalid email.' });
-
         if (pendingUser.otp !== otp) return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
 
         const newUser = new User({ name: pendingUser.name, email: pendingUser.email, password: pendingUser.password, role: 'user' });
@@ -244,59 +242,40 @@ app.post('/api/verify-otp', async (req, res) => {
         await PendingUser.deleteOne({ email: emailLower });
 
         res.json({ success: true, message: 'Account verified and created successfully!' });
-    } catch (error) {
-        console.error("Verify Error:", error);
-        res.status(500).json({ success: false, message: 'Server error during verification.' });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server error during verification.' }); }
 });
 
 app.post('/api/login', async(req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email: email.toLowerCase().trim(), password });
-        
         if (user) {
-            // 🚨 असली जादू यहाँ है: अब हम डेटाबेस से उसका असली रोल उठाएंगे
             let actualRole = user.role || 'user';
-            
-            // बॉस (Admin) के लिए स्पेशल चेक
-            if (user.email === "devilking786k@sahu.com") {
-                actualRole = 'admin';
-            }
-
+            if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
             res.json({ success: true, name: user.name, email: user.email, role: actualRole });
         } else {
             res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
 // 👑 ADMIN API ROUTES
 // ==========================================
-
 app.get('/api/admin/all-data', async (req, res) => {
     try {
         const users = await User.find({});
         const properties = await Property.find({});
         res.json({ success: true, totalUsers: users.length, totalProperties: properties.length, users, properties });
-    } catch (error) { 
-        res.status(500).json({ success: false, message: 'Server Error' }); 
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
-// Admin: User ka Role Change Karne ki API (User <-> Employee)
+
 app.post('/api/admin/change-role/:id', async (req, res) => {
     try {
-        const { newRole } = req.body; // 'user' ya 'employee' aayega
-        
+        const { newRole } = req.body; 
         await User.findByIdAndUpdate(req.params.id, { role: newRole });
         res.json({ success: true, message: `User role updated to ${newRole} successfully!` });
-        
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server error' }); }
 });
 
 app.post('/api/admin/approve-property/:id', async (req, res) => {
@@ -314,7 +293,8 @@ app.post('/api/admin/unpublish-property/:id', async (req, res) => {
 });
 
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
-    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
+    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } 
+    catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.delete('/api/admin/delete-user/:id', async (req, res) => {
@@ -334,19 +314,3 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 // 🚨 SERVER START (यह हमेशा सबसे नीचे होना चाहिए)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
-// ==========================================
-// 📝 SERVICES SCHEMAS & API
-// ==========================================
-const verificationSchema = new mongoose.Schema({
-    tenantName: String,
-    tenantPhone: String,
-    aadharNumber: String,
-    tenantPermanentAddress: String, // 👈 नया: स्थायी पता
-    permanentPoliceStation: String, // 👈 नया: स्थायी थाने का नाम
-    propertyAddress: String,
-    currentPoliceStation: String,   // 👈 नया: मौजूदा थाने का नाम
-    ownerName: String,
-    ownerPhone: String,
-    status: { type: String, default: 'Pending' }
-}, { timestamps: true });
-const Verification = mongoose.model('Verification', verificationSchema);
