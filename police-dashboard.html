@@ -8,19 +8,15 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
         header { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
         .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; }
-        
         .container { padding: 30px; max-width: 1200px; margin: 0 auto; }
         h2 { color: #2c3e50; margin-bottom: 20px; }
-        
         .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; font-size: 14px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; font-size: 14px; vertical-align: top; }
         th { background-color: #34495e; color: white; }
-        
         .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
-        .status-Pending { background-color: #f1c40f; color: #7f8c8d; }
+        .status-Pending { background-color: #f1c40f; color: #2c3e50; }
         .status-Done { background-color: #2ecc71; color: white; }
-        
         .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
         .btn-done { background-color: #2ecc71; color: white; }
         .btn-pending { background-color: #95a5a6; color: white; }
@@ -43,6 +39,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th>Photo</th>
                         <th>Tenant Details</th>
                         <th>Permanent Address & PS</th>
                         <th>Current Address & PS</th>
@@ -53,7 +50,7 @@
                 </thead>
                 <tbody id="verificationTableBody">
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 20px; color: #7f8c8d;">डेटा लोड हो रहा है... ⏳</td>
+                        <td colspan="7" style="text-align: center; padding: 20px; color: #7f8c8d;">Data load ho raha hai... ⏳</td>
                     </tr>
                 </tbody>
             </table>
@@ -65,9 +62,8 @@
             const role = localStorage.getItem('userRole');
             const name = localStorage.getItem('brokerName') || 'Agent';
             
-            // 🔒 Security Check: Agar police_agent ya admin nahi hai toh login par phenko
             if (role !== 'police_agent' && role !== 'admin') {
-                alert("❌ इस पेज के लिए आपके पास परमिशन नहीं है!");
+                alert("❌ Is page ke liye aapke paas permission nahi hai!");
                 window.location.href = 'login.html';
                 return;
             }
@@ -86,24 +82,29 @@
                     tableBody.innerHTML = '';
                     
                     if (result.requests.length === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7f8c8d;">कोई पुलिस वेरिफिकेशन रिक्वेस्ट नहीं मिली।</td></tr>`;
+                        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#7f8c8d;">Koi request nahi mili.</td></tr>`;
                         return;
                     }
                     
                     result.requests.forEach(req => {
                         const statusClass = `status-${req.status}`;
-                        
-                        // Status badalne ke liye toggle button logic
                         const actionButton = req.status === 'Pending' 
                             ? `<button class="action-btn btn-done" onclick="toggleStatus('${req._id}', 'Done')">Mark Complete ✔️</button>`
                             : `<button class="action-btn btn-pending" onclick="toggleStatus('${req._id}', 'Pending')">Mark Pending ⏳</button>`;
                         
+                        const imgUrl = req.tenantPhoto || 'https://placehold.co/60x60?text=User';
+                        const familyCount = req.familyMembers || 'Not Provided';
+
                         tableBody.innerHTML += `
                             <tr>
                                 <td>
+                                    <img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">
+                                </td>
+                                <td>
                                     <strong>Name:</strong> ${req.tenantName}<br>
                                     <strong>Phone:</strong> ${req.tenantPhone}<br>
-                                    <strong>Aadhar:</strong> ${req.aadharNumber}
+                                    <strong>Aadhar:</strong> ${req.aadharNumber}<br>
+                                    <strong>Family Members:</strong> <span style="color:#e74c3c; font-weight:bold;">${familyCount}</span>
                                 </td>
                                 <td>
                                     ${req.tenantPermanentAddress}<br>
@@ -137,17 +138,15 @@
                 });
                 const result = await res.json();
                 if (result.success) {
-                    loadVerificationRequests(); // Table refresh karo
+                    loadVerificationRequests();
                 }
             } catch (error) {
                 alert("Status update fail!");
             }
         }
 
-        // 👑 SMART LOGOUT LOGIC
         function logout() {
             if (localStorage.getItem('realAdmin') === 'yes') {
-                // Wapas admin ban jao
                 localStorage.setItem('userRole', 'admin');
                 localStorage.removeItem('realAdmin');
                 localStorage.setItem('brokerName', 'Admin');

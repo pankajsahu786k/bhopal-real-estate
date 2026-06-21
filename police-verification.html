@@ -9,12 +9,9 @@
         .form-container { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #e74c3c; }
         h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
         p.subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
-        
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
         .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #3498db; }
-        
         .submit-btn { background: #e74c3c; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .submit-btn:hover { background: #c0392b; }
         .back-btn { display: inline-block; margin-bottom: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
@@ -26,49 +23,57 @@
     <div class="form-container">
         <a href="services.html" class="back-btn">← Back to Services</a>
         <h2>👮 Tenant Police Verification</h2>
-        <p class="subtitle">कृपया किरायेदार और मकान मालिक की सही जानकारी भरें</p>
+        <p class="subtitle">Kripya tenant aur landlord ki sahi jankari bharein</p>
 
         <form id="verificationForm">
-            <h4 class="section-title">किरायेदार की जानकारी (Tenant Details)</h4>
+            <h4 class="section-title">Tenant Details (किरायेदार की जानकारी)</h4>
             
             <div class="form-group">
-                <label>किरायेदार का पूरा नाम *</label>
-                <input type="text" id="tenantName" required placeholder="जैसे: Rahul Kumar">
+                <label>Tenant Ka Pura Naam *</label>
+                <input type="text" id="tenantName" required placeholder="Jaise: Rahul Kumar">
             </div>
             <div class="form-group">
-                <label>मोबाइल नंबर *</label>
-                <input type="tel" id="tenantPhone" required pattern="[0-9]{10}" placeholder="10 अंकों का मोबाइल नंबर">
+                <label>Tenant Ki Passport Photo Upload Karein *</label>
+                <input type="file" id="tenantPhoto" accept="image/*" required>
             </div>
             <div class="form-group">
-                <label>आधार कार्ड नंबर *</label>
-                <input type="text" id="aadharNumber" required pattern="[0-9]{12}" placeholder="12 अंकों का आधार नंबर">
+                <label>Family Me Kitne Member Hain? *</label>
+                <input type="number" id="familyMembers" min="1" required placeholder="Jaise: 4">
             </div>
             <div class="form-group">
-                <label>किरायेदार का स्थायी पता (Permanent Address) *</label>
-                <textarea id="tenantPermanentAddress" rows="2" required placeholder="गाँव/शहर का पूरा स्थायी पता..."></textarea>
+                <label>Mobile Number *</label>
+                <input type="tel" id="tenantPhone" required pattern="[0-9]{10}" placeholder="10 digits number">
             </div>
             <div class="form-group">
-                <label>स्थायी पते का पुलिस स्टेशन (Permanent Police Station) *</label>
-                <input type="text" id="permanentPoliceStation" required placeholder="जैसे: थाना मिसरोद / थाना कोतवाली">
+                <label>Aadhar Card Number *</label>
+                <input type="text" id="aadharNumber" required pattern="[0-9]{12}" placeholder="12 digits number">
+            </div>
+            <div class="form-group">
+                <label>Tenant Ka Sthayi Pata (Permanent Address) *</label>
+                <textarea id="tenantPermanentAddress" rows="2" required placeholder="Pura permanent pata..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Sthayi Pate Ka Police Station *</label>
+                <input type="text" id="permanentPoliceStation" required placeholder="Jaise: Thana Misrod">
             </div>
 
-            <h4 class="section-title">मकान मालिक एवं प्रॉपर्टी (Owner & Property Details)</h4>
+            <h4 class="section-title">Owner & Property Details (मकान मालिक की जानकारी)</h4>
             
             <div class="form-group">
-                <label>मकान मालिक का नाम *</label>
-                <input type="text" id="ownerName" required placeholder="जैसे: Suresh Sharma">
+                <label>Makan Malik Ka Naam *</label>
+                <input type="text" id="ownerName" required placeholder="Jaise: Suresh Sharma">
             </div>
             <div class="form-group">
-                <label>मालिक का मोबाइल नंबर *</label>
-                <input type="tel" id="ownerPhone" required pattern="[0-9]{10}" placeholder="10 अंकों का मोबाइल नंबर">
+                <label>Malik Ka Mobile Number *</label>
+                <input type="tel" id="ownerPhone" required pattern="[0-9]{10}" placeholder="10 digits number">
             </div>
             <div class="form-group">
-                <label>किराये की प्रॉपर्टी का पूरा पता (Current Address) *</label>
-                <textarea id="propertyAddress" rows="2" required placeholder="मकान नंबर, एरिया, भोपाल..."></textarea>
+                <label>Kiraye Ki Property Ka Pura Pata *</label>
+                <textarea id="propertyAddress" rows="2" required placeholder="Makan number, area, Bhopal..."></textarea>
             </div>
             <div class="form-group">
-                <label>वर्तमान पते का पुलिस स्टेशन (Current Police Station) *</label>
-                <input type="text" id="currentPoliceStation" required placeholder="भोपाल का मौजूदा थाना (जहां अभी किराये पर रहेंगे)">
+                <label>Vartman Pate Ka Police Station (Bhopal) *</label>
+                <input type="text" id="currentPoliceStation" required placeholder="Bhopal ka vartman thana">
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">Submit Verification Request 🚀</button>
@@ -79,27 +84,32 @@
         document.getElementById('verificationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "Submitting... ⏳";
+            btn.innerText = "Uploading Photo & Submitting... ⏳";
             btn.disabled = true;
 
-            // सारा डेटा इकट्ठा करना (नए फील्ड्स के साथ)
-            const data = {
-                tenantName: document.getElementById('tenantName').value,
-                tenantPhone: document.getElementById('tenantPhone').value,
-                aadharNumber: document.getElementById('aadharNumber').value,
-                tenantPermanentAddress: document.getElementById('tenantPermanentAddress').value,
-                permanentPoliceStation: document.getElementById('permanentPoliceStation').value,
-                ownerName: document.getElementById('ownerName').value,
-                ownerPhone: document.getElementById('ownerPhone').value,
-                propertyAddress: document.getElementById('propertyAddress').value,
-                currentPoliceStation: document.getElementById('currentPoliceStation').value
-            };
+            // FormData object banana taaki file upload ho sake
+            const formData = new FormData();
+            formData.append('tenantName', document.getElementById('tenantName').value);
+            formData.append('familyMembers', document.getElementById('familyMembers').value);
+            formData.append('tenantPhone', document.getElementById('tenantPhone').value);
+            formData.append('aadharNumber', document.getElementById('aadharNumber').value);
+            formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
+            formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
+            formData.append('ownerName', document.getElementById('ownerName').value);
+            formData.append('ownerPhone', document.getElementById('ownerPhone').value);
+            formData.append('propertyAddress', document.getElementById('propertyAddress').value);
+            formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
+            
+            // Photo File append karna
+            const photoInput = document.getElementById('tenantPhoto');
+            if (photoInput.files.length > 0) {
+                formData.append('tenantPhoto', photoInput.files[0]);
+            }
 
             try {
                 const res = await fetch('/api/submit-verification', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: formData // Note: FormData me content-type header nahi lagate
                 });
                 
                 const result = await res.json();
@@ -107,12 +117,12 @@
                     alert(result.message);
                     window.location.href = 'services.html'; 
                 } else {
-                    alert("❌ कुछ गड़बड़ हुई। फिर से कोशिश करें।");
+                    alert("❌ Kuch gadbad hui. Fir se koshish karein.");
                     btn.innerText = "Submit Verification Request 🚀";
                     btn.disabled = false;
                 }
             } catch (error) {
-                alert("❌ सर्वर एरर!");
+                alert("❌ Server Error!");
                 btn.innerText = "Submit Verification Request 🚀";
                 btn.disabled = false;
             }
