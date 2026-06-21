@@ -5,7 +5,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Razorpay = require('razorpay');
-const crypto = require('crypto'); // Payment verify karne ke liye
+const crypto = require('crypto'); 
 const app = express();
 
 app.use(cors());
@@ -65,7 +65,7 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
-// 👇 POLICE VERIFICATION SCHEMA 👇
+// 👇 POLICE VERIFICATION SCHEMA (WITH PHOTO & FAMILY) 👇
 const verificationSchema = new mongoose.Schema({
     tenantName: String,
     tenantPhone: String,
@@ -76,6 +76,8 @@ const verificationSchema = new mongoose.Schema({
     currentPoliceStation: String,   
     ownerName: String,
     ownerPhone: String,
+    tenantPhoto: String,    // Photo URL
+    familyMembers: Number,  // Family count
     status: { type: String, default: 'Pending' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
@@ -85,18 +87,41 @@ const Verification = mongoose.model('Verification', verificationSchema);
 // 3️⃣ API ROUTES
 // ==========================================
 
-// 👇 POLICE VERIFICATION API (फॉर्म सेव करने के लिए) 👇
-app.post('/api/submit-verification', async (req, res) => {
+// 👇 POLICE VERIFICATION API (WITH FILE UPLOAD) 👇
+app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, res) => {
     try {
-        const newRequest = new Verification(req.body);
+        const photoUrl = req.file ? (req.file.path || req.file.url) : 'https://placehold.co/150x150?text=No+Photo';
+        const verificationData = { ...req.body, tenantPhoto: photoUrl };
+        
+        const newRequest = new Verification(verificationData);
         await newRequest.save();
-        res.json({ success: true, message: '✅ आपकी पुलिस वेरिफिकेशन रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है। हमारी टीम जल्द संपर्क करेगी!' });
+        res.json({ success: true, message: '✅ आपकी पुलिस वेरिफिकेशन रिक्वेस्ट फोटो और फैमिली डिटेल्स के साथ सबमिट हो गई है!' });
     } catch (error) {
         console.error("Verification Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
 
+app.get('/api/admin/verifications', async (req, res) => {
+    try {
+        const requests = await Verification.find({}).sort({ createdAt: -1 }); 
+        res.json({ success: true, requests });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+app.post('/api/admin/change-verification-status/:id', async (req, res) => {
+    try {
+        const { newStatus } = req.body; 
+        await Verification.findByIdAndUpdate(req.params.id, { status: newStatus });
+        res.json({ success: true, message: `Status updated to ${newStatus} successfully!` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// -- BAAKI SAARE APIS --
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -309,62 +334,6 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-
-// ==========================================
-// 👮 POLICE VERIFICATION SCHEMAS & API (UPDATED WITH PHOTO)
-// ==========================================
-const verificationSchema = new mongoose.Schema({
-    tenantName: String,
-    tenantPhone: String,
-    aadharNumber: String,
-    tenantPermanentAddress: String, 
-    permanentPoliceStation: String, 
-    propertyAddress: String,
-    currentPoliceStation: String,   
-    ownerName: String,
-    ownerPhone: String,
-    tenantPhoto: String,    // 👈 Naya: Tenant ki photo ka URL
-    familyMembers: Number,  // 👈 Naya: Family members ki sankhya
-    status: { type: String, default: 'Pending' }
-}, { timestamps: true });
-const Verification = mongoose.model('Verification', verificationSchema);
-
-// 👇 API me upload.single('tenantPhoto') jodha hai photo save karne ke liye 👇
-app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, res) => {
-    try {
-        // Cloudinary par upload hui photo ka URL nikalna
-        const photoUrl = req.file ? (req.file.path || req.file.url) : 'https://placehold.co/150x150?text=No+Photo';
-        
-        const verificationData = {
-            ...req.body,
-            tenantPhoto: photoUrl
-        };
-
-        const newRequest = new Verification(verificationData);
-        await newRequest.save();
-        res.json({ success: true, message: '✅ Aapki police verification request photo aur family details ke sath submit ho gayi hai!' });
-    } catch (error) {
-        console.error("Verification Error:", error);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-});
-
-// Agent dashboard ke liye data fatch karne ki API (Same rahegi)
-app.get('/api/admin/verifications', async (req, res) => {
-    try {
-        const requests = await Verification.find({}).sort({ createdAt: -1 }); 
-        res.json({ success: true, requests });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
-});
-
-app.post('/api/admin/change-verification-status/:id', async (req, res) => {
-    try {
-        const { newStatus } = req.body; 
-        await Verification.findByIdAndUpdate(req.params.id, { status: newStatus });
-        res.json({ success: true, message: `Status updated to ${newStatus} successfully!` });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
+// 🚨 SERVER START
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
