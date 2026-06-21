@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Police Agent Dashboard - Bhopal Properties</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 0; }
+        header { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; text-decoration: none; }
+        
+        .container { padding: 30px; max-width: 1200px; margin: 0 auto; }
+        h2 { color: #2c3e50; margin-bottom: 20px; }
+        
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; font-size: 14px; }
+        th { background-color: #34495e; color: white; }
+        
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .status-Pending { background-color: #f1c40f; color: #7f8c8d; }
+        .status-Done { background-color: #2ecc71; color: white; }
+        
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-done { background-color: #2ecc71; color: white; }
+        .btn-pending { background-color: #95a5a6; color: white; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="font-weight: bold; font-size: 20px;">👮 Police Verification Agent Panel</div>
+        <div>
+            <span id="agentName" style="margin-right: 20px; font-weight: 500;">Welcome, Agent</span>
+            <button onclick="logout()" class="logout-btn">Log Out</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2>Tenant Verification Requests (Leads)</h2>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tenant Details</th>
+                        <th>Permanent Address & PS</th>
+                        <th>Current Address & PS</th>
+                        <th>Owner Details</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="verificationTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: #7f8c8d;">डेटा लोड हो रहा है... ⏳</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const role = localStorage.getItem('userRole');
+            const name = localStorage.getItem('brokerName') || 'Agent';
+            
+            // 🔒 Security Check: Agar police_agent ya admin nahi hai toh login par phenko
+            if (role !== 'police_agent' && role !== 'admin') {
+                alert("❌ इस पेज के लिए आपके पास परमिशन नहीं है!");
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            document.getElementById('agentName').innerText = `Welcome, ${name}`;
+            loadVerificationRequests();
+        });
+
+        async function loadVerificationRequests() {
+            try {
+                const res = await fetch('/api/admin/verifications');
+                const result = await res.json();
+                
+                if (result.success) {
+                    const tableBody = document.getElementById('verificationTableBody');
+                    tableBody.innerHTML = '';
+                    
+                    if (result.requests.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#7f8c8d;">कोई पुलिस वेरिफिकेशन रिक्वेस्ट नहीं मिली।</td></tr>`;
+                        return;
+                    }
+                    
+                    result.requests.forEach(req => {
+                        const statusClass = `status-${req.status}`;
+                        
+                        // Status badalne ke liye toggle button logic
+                        const actionButton = req.status === 'Pending' 
+                            ? `<button class="action-btn btn-done" onclick="toggleStatus('${req._id}', 'Done')">Mark Complete ✔️</button>`
+                            : `<button class="action-btn btn-pending" onclick="toggleStatus('${req._id}', 'Pending')">Mark Pending ⏳</button>`;
+                        
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>
+                                    <strong>Name:</strong> ${req.tenantName}<br>
+                                    <strong>Phone:</strong> ${req.tenantPhone}<br>
+                                    <strong>Aadhar:</strong> ${req.aadharNumber}
+                                </td>
+                                <td>
+                                    ${req.tenantPermanentAddress}<br>
+                                    <strong style="color:#e67e22;">PS: ${req.permanentPoliceStation}</strong>
+                                </td>
+                                <td>
+                                    ${req.propertyAddress}<br>
+                                    <strong style="color:#2980b9;">PS: ${req.currentPoliceStation}</strong>
+                                </td>
+                                <td>
+                                    <strong>Owner:</strong> ${req.ownerName}<br>
+                                    <strong>Phone:</strong> ${req.ownerPhone}
+                                </td>
+                                <td><span class="status-badge ${statusClass}">${req.status}</span></td>
+                                <td>${actionButton}</td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading verifications:", error);
+            }
+        }
+
+        async function toggleStatus(id, status) {
+            try {
+                const res = await fetch(`/api/admin/change-verification-status/${id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ newStatus: status })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loadVerificationRequests(); // Table refresh karo
+                }
+            } catch (error) {
+                alert("Status update fail!");
+            }
+        }
+
+        // 👑 SMART LOGOUT LOGIC
+        function logout() {
+            if (localStorage.getItem('realAdmin') === 'yes') {
+                // Wapas admin ban jao
+                localStorage.setItem('userRole', 'admin');
+                localStorage.removeItem('realAdmin');
+                localStorage.setItem('brokerName', 'Admin');
+                localStorage.setItem('brokerEmail', 'devilking786k@sahu.com'); 
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>

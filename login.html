@@ -59,17 +59,25 @@
                 });
                 const data = await res.json();
                 
+                // लॉगिन सक्सेस होने के बाद का लॉजिक:
                 if (data.success) {
-                    // ✅ यहाँ डेटा सेव हो रहा है
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
-                    localStorage.setItem('userRole', data.role); // 👈 यह सबसे ज़रूरी लाइन है
-                    
-                    // ✅ यहाँ तय होगा कि कहाँ जाना है
+                    localStorage.setItem('userRole', data.role);
+
+                    // 🚀 रोल के हिसाब से एकदम सही डैशबोर्ड पर भेजें
                     if (data.role === 'admin') {
                         window.location.href = 'admin-dashboard.html';
+                    } else if (data.role === 'police_agent') {
+                        window.location.href = 'police-dashboard.html'; // पुलिस वेरिफिकेशन एजेंट
+                    } else if (data.role === 'notary') {
+                        window.location.href = 'notary-dashboard.html'; // रेंट एग्रीमेंट एजेंट
+                    } else if (data.role === 'loan_agent') {
+                        window.location.href = 'loan-dashboard.html'; // होम लोन एजेंट
+                    } else if (data.role === 'transporter') {
+                        window.location.href = 'transporter-dashboard.html'; // पैकर्स & मूवर्स एजेंट
                     } else {
-                        window.location.href = 'dashboard.html';
+                        window.location.href = 'dashboard.html'; // नार्मल ब्रोकर / यूज़र
                     }
                 } else {
                     errorMsg.innerText = "❌ " + data.message;

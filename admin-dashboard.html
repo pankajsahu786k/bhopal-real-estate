@@ -44,7 +44,7 @@
         
         <div class="dashboard-cards">
             <div class="card">
-                <h3>कुल यूज़र्स / ब्रोकर्स</h3>
+                <h3>कुल यूज़र्स / ब्रोकर्स / एजेंट्स</h3>
                 <h2 id="totalUsers">0</h2>
             </div>
             <div class="card">
@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        <h3 class="section-title">👥 सभी यूज़र्स (Brokers) की लिस्ट</h3>
+        <h3 class="section-title">👥 सभी यूज़र्स एवं एजेंट्स की लिस्ट</h3>
         <div id="allUsersList" style="margin-bottom: 40px;">
             <p>यूज़र्स का डेटा लोड हो रहा है...</p>
         </div>
@@ -89,23 +89,34 @@
                         usersContainer.innerHTML = '<p>कोई यूज़र नहीं मिला।</p>';
                     } else if (result.users) {
                         result.users.forEach(user => {
-                            // 🔄 Role Change Button Logic (Admin ka button na dikhayein)
-                            let roleBtnHtml = '';
+                            // 🔄 SMART ROLE SELECTOR
+                            let roleHtml = '';
                             if(user.role !== 'admin') {
-                                const roleBtnText = user.role === 'employee' ? '⏬ Make User' : '⏫ Make Employee';
-                                const roleBtnColor = user.role === 'employee' ? '#e67e22' : '#8e44ad';
-                                roleBtnHtml = `<button onclick="changeUserRole('${user._id}', '${user.role}')" style="background: ${roleBtnColor}; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">${roleBtnText}</button>`;
+                                roleHtml = `
+                                    <select id="roleSelect_${user._id}" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>User / Broker</option>
+                                        <option value="employee" ${user.role === 'employee' ? 'selected' : ''}>Employee (Free Listings)</option>
+                                        <option value="police_agent" ${user.role === 'police_agent' ? 'selected' : ''}>Police Agent</option>
+                                        <option value="notary" ${user.role === 'notary' ? 'selected' : ''}>Notary (Agreement)</option>
+                                        <option value="loan_agent" ${user.role === 'loan_agent' ? 'selected' : ''}>Loan Agent</option>
+                                        <option value="transporter" ${user.role === 'transporter' ? 'selected' : ''}>Transporter</option>
+                                    </select>
+                                    <button onclick="changeUserRole('${user._id}')" style="background: #f39c12; color: white; border: none; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px; margin-right: 5px;">Update Role</button>
+                                `;
+                            } else {
+                                roleHtml = `<span style="color: #e74c3c; font-weight: bold; padding: 6px;">SUPER ADMIN</span>`;
                             }
 
                             usersContainer.innerHTML += `
                                 <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; border-left: 4px solid #3498db; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                                     <div>
                                         <h4 style="margin: 0 0 5px 0; color: #2c3e50;">👤 ${user.name}</h4>
-                                        <p style="margin: 0; color: #7f8c8d; font-size: 14px;">ईमेल: ${user.email} | रोल: <b style="color: ${user.role === 'employee' ? '#8e44ad' : '#333'}">${user.role.toUpperCase()}</b></p>
+                                        <p style="margin: 0; color: #7f8c8d; font-size: 14px;">ईमेल: ${user.email} | रोल: <b style="color: #8e44ad">${user.role.toUpperCase()}</b></p>
                                     </div>
-                                    <div>
-                                        ${roleBtnHtml} <button onclick="loginAsUser('${user.name}', '${user.email}', '${user.role}')" style="background: #2980b9; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">👁️ देखें</button>
-                                        <button onclick="deleteUser('${user._id}', '${user.name}')" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ डिलीट</button>
+                                    <div style="display: flex; align-items: center;">
+                                        ${roleHtml} 
+                                        <button onclick="loginAsUser('${user.name}', '${user.email}', '${user.role}')" style="background: #2980b9; color: white; border: none; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 5px;">👁️ Login As</button>
+                                        <button onclick="deleteUser('${user._id}', '${user.name}')" style="background: #e74c3c; color: white; border: none; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Delete</button>
                                     </div>
                                 </div>
                             `;
@@ -158,21 +169,32 @@
             if(confirm("क्या आप " + userName + " के डैशबोर्ड में जाना चाहते हैं?")) {
                 localStorage.setItem('brokerName', userName);
                 localStorage.setItem('brokerEmail', userEmail);
-                localStorage.setItem('userRole', userRole); // 👈 Ab sahi role set hoga
+                localStorage.setItem('userRole', userRole); 
                 localStorage.setItem('realAdmin', 'yes'); 
                 
-                window.location.href = 'dashboard.html';
+                // 🚀 Role-based redirection when logging in as another user
+                if (userRole === 'police_agent') {
+                    window.location.href = 'police-dashboard.html';
+                } else if (userRole === 'notary') {
+                    window.location.href = 'notary-dashboard.html';
+                } else if (userRole === 'loan_agent') {
+                    window.location.href = 'loan-dashboard.html';
+                } else if (userRole === 'transporter') {
+                    window.location.href = 'transporter-dashboard.html';
+                } else {
+                    window.location.href = 'dashboard.html'; // Normal User or Employee
+                }
             }
         }
 
-        // 🔄 User Role Change Logic
-        async function changeUserRole(userId, currentRole) {
-            const newRole = currentRole === 'employee' ? 'user' : 'employee';
-            const confirmMsg = newRole === 'employee' ? 
-                'क्या आप इस यूज़र को Employee (फ्री एक्सेस) बनाना चाहते हैं?' : 
-                'क्या आप इस Employee को वापस Normal User बनाना चाहते हैं?';
+        // 🔄 SMART USER ROLE CHANGE LOGIC
+        async function changeUserRole(userId) {
+            const dropdown = document.getElementById(`roleSelect_${userId}`);
+            const newRole = dropdown.value;
             
-            if (!confirm(confirmMsg)) return;
+            if (!confirm(`क्या आप इस यूज़र का रोल बदलकर '${newRole}' करना चाहते हैं?`)) {
+                return;
+            }
 
             try {
                 const res = await fetch(`/api/admin/change-role/${userId}`, {
