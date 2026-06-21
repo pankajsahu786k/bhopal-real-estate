@@ -87,8 +87,13 @@
             btn.innerText = "Uploading Photo & Submitting... ⏳";
             btn.disabled = true;
 
-            // FormData object banana taaki file upload ho sake
             const formData = new FormData();
+            
+            // 👇 🚨 NAYA: User ka email add kiya (Status track karne ke liye) 👇
+            const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
+            formData.append('userEmail', userEmail);
+            // -----------------------------------------------------------
+
             formData.append('tenantName', document.getElementById('tenantName').value);
             formData.append('familyMembers', document.getElementById('familyMembers').value);
             formData.append('tenantPhone', document.getElementById('tenantPhone').value);
@@ -100,7 +105,6 @@
             formData.append('propertyAddress', document.getElementById('propertyAddress').value);
             formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
             
-            // Photo File append karna
             const photoInput = document.getElementById('tenantPhoto');
             if (photoInput.files.length > 0) {
                 formData.append('tenantPhoto', photoInput.files[0]);
@@ -109,7 +113,7 @@
             try {
                 const res = await fetch('/api/submit-verification', {
                     method: 'POST',
-                    body: formData // Note: FormData me content-type header nahi lagate
+                    body: formData 
                 });
                 
                 const result = await res.json();
