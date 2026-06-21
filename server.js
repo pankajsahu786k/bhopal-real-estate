@@ -334,3 +334,19 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 // 🚨 SERVER START (यह हमेशा सबसे नीचे होना चाहिए)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
+// ==========================================
+// 📝 SERVICES SCHEMAS & API
+// ==========================================
+const verificationSchema = new mongoose.Schema({
+    tenantName: String,
+    tenantPhone: String,
+    aadharNumber: String,
+    tenantPermanentAddress: String, // 👈 नया: स्थायी पता
+    permanentPoliceStation: String, // 👈 नया: स्थायी थाने का नाम
+    propertyAddress: String,
+    currentPoliceStation: String,   // 👈 नया: मौजूदा थाने का नाम
+    ownerName: String,
+    ownerPhone: String,
+    status: { type: String, default: 'Pending' }
+}, { timestamps: true });
+const Verification = mongoose.model('Verification', verificationSchema);
