@@ -22,9 +22,10 @@ cloudinary.config({
     api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
+// 🚨 NAYA: 'pdf' format allow kar diya gaya hai!
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: { folder: 'bhopal_properties', allowedFormats: ['jpg', 'png', 'jpeg', 'webp'] }
+    params: { folder: 'bhopal_properties', allowedFormats: ['jpg', 'png', 'jpeg', 'webp', 'pdf'] } 
 });
 const upload = multer({ storage: storage });
 
@@ -65,8 +66,10 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
-// 👇 POLICE VERIFICATION SCHEMA (WITH PHOTO & FAMILY) 👇
+// 👇 🚨 NAYA: userEmail aur documentUrl jod diya gaya hai 👇
 const verificationSchema = new mongoose.Schema({
+    userEmail: String,      // Kis User ne form bhara
+    documentUrl: String,    // Agent dwara upload ki gayi PDF
     tenantName: String,
     tenantPhone: String,
     aadharNumber: String,
@@ -76,8 +79,8 @@ const verificationSchema = new mongoose.Schema({
     currentPoliceStation: String,   
     ownerName: String,
     ownerPhone: String,
-    tenantPhoto: String,    // Photo URL
-    familyMembers: Number,  // Family count
+    tenantPhoto: String,    
+    familyMembers: Number,  
     status: { type: String, default: 'Pending' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
@@ -87,55 +90,67 @@ const Verification = mongoose.model('Verification', verificationSchema);
 // 3️⃣ API ROUTES
 // ==========================================
 
-// 👇 POLICE VERIFICATION API (WITH FILE UPLOAD) 👇
+// -- USER APIs --
+
 app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, res) => {
     try {
         const photoUrl = req.file ? (req.file.path || req.file.url) : 'https://placehold.co/150x150?text=No+Photo';
         const verificationData = { ...req.body, tenantPhoto: photoUrl };
-        
         const newRequest = new Verification(verificationData);
         await newRequest.save();
-        res.json({ success: true, message: '✅ आपकी पुलिस वेरिफिकेशन रिक्वेस्ट फोटो और फैमिली डिटेल्स के साथ सबमिट हो गई है!' });
-    } catch (error) {
-        console.error("Verification Error:", error);
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
+        res.json({ success: true, message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!' });
+    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
+
+// 👇 🚨 NAYA: User ko apni requests dikhane ke liye API 👇
+app.get('/api/my-verifications', async (req, res) => {
+    try {
+        const email = req.query.email;
+        if (!email) return res.json({ success: false });
+        const requests = await Verification.find({ userEmail: email.toLowerCase().trim() }).sort({ createdAt: -1 });
+        res.json({ success: true, requests });
+    } catch (error) { res.status(500).json({ success: false }); }
+});
+
+
+// -- POLICE AGENT APIs --
 
 app.get('/api/admin/verifications', async (req, res) => {
     try {
         const requests = await Verification.find({}).sort({ createdAt: -1 }); 
         res.json({ success: true, requests });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error' });
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
+});
+
+// 👇 🚨 NAYA: Agent dwara PDF upload karne aur status 'Done' karne ki API 👇
+app.post('/api/admin/upload-verification-doc/:id', upload.single('verificationDoc'), async (req, res) => {
+    try {
+        const docUrl = req.file ? (req.file.path || req.file.url) : '';
+        await Verification.findByIdAndUpdate(req.params.id, { status: 'Done', documentUrl: docUrl });
+        res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Done!' });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/change-verification-status/:id', async (req, res) => {
     try {
-        const { newStatus } = req.body; 
-        await Verification.findByIdAndUpdate(req.params.id, { status: newStatus });
-        res.json({ success: true, message: `Status updated to ${newStatus} successfully!` });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
+        await Verification.findByIdAndUpdate(req.params.id, { status: req.body.newStatus });
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// -- BAAKI SAARE APIS --
+// -- BAAKI PURANE APIs --
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
         if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
         const brokerProfile = await BrokerProfile.findOne({ brokerEmail: property.brokerEmail });
         res.json({ success: true, property: property, brokerProfile: brokerProfile });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server error' }); }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/track-click/:id', async (req, res) => {
-    try {
-        await Property.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } });
-        res.json({ success: true });
-    } catch (err) { res.status(500).json({ success: false }); }
+    try { await Property.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } }); res.json({ success: true }); } 
+    catch (err) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/add-property', upload.array('propertyImages', 3), async(req, res) => {
@@ -159,11 +174,9 @@ app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (r
 app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
-        const properties = (brokerEmail && brokerEmail !== "undefined") 
-            ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }) 
-            : await Property.find({ status: 'approved' });
+        const properties = (brokerEmail && brokerEmail !== "undefined") ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }) : await Property.find({ status: 'approved' });
         res.json(properties);
-    } catch (error) { res.status(500).json({ message: 'Error fetching data' }); }
+    } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
 app.get('/api/get-profile', async(req, res) => {
@@ -174,83 +187,51 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// ==========================================
-// 💸 RAZORPAY PAYMENT ROUTES 
-// ==========================================
-const razorpay = new Razorpay({
-    key_id: 'rzp_test_T3oTzNzTDvWgUL',
-    key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2'
-});
-
+// RAZORPAY
+const razorpay = new Razorpay({ key_id: 'rzp_test_T3oTzNzTDvWgUL', key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2' });
 app.post('/api/create-order', async (req, res) => {
     try {
-        const options = { amount: 1000, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) };
-        const order = await razorpay.orders.create(options);
+        const order = await razorpay.orders.create({ amount: 1000, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) });
         res.json({ success: true, order });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Payment gateway error!' });
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
-
 app.post('/api/verify-payment', (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
         const sign = razorpay_order_id + "|" + razorpay_payment_id;
         const expectedSign = crypto.createHmac("sha256", "8VyNa1vXyBiGjtbp5j3DRVr2").update(sign.toString()).digest("hex");
-
-        if (razorpay_signature === expectedSign) {
-            return res.json({ success: true, message: "Payment Verified Successfully!" });
-        } else {
-            return res.status(400).json({ success: false, message: "Payment Verification Failed!" });
-        }
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Server Error" });
-    }
+        if (razorpay_signature === expectedSign) return res.json({ success: true, message: "Verified!" });
+        else return res.status(400).json({ success: false });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// ==========================================
-// 👤 PROFILE UPDATE ROUTE
-// ==========================================
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
         const { brokerEmail, phone } = req.body;
         let areas = [];
         if (req.body.dealingAreas) {
-            try { areas = JSON.parse(req.body.dealingAreas); } 
-            catch (e) { areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); }
+            try { areas = JSON.parse(req.body.dealingAreas); } catch (e) { areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); }
         }
         const updateData = { phone: phone, dealingAreas: areas };
         if (req.file) updateData.photo = req.file.path || req.file.url;
-
-        await BrokerProfile.findOneAndUpdate(
-            { brokerEmail: brokerEmail.toLowerCase().trim() },
-            { $set: updateData },
-            { new: true, upsert: true } 
-        );
-        res.json({ success: true, message: 'Profile Saved Successfully!' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error saving profile' });
-    }
+        await BrokerProfile.findOneAndUpdate({ brokerEmail: brokerEmail.toLowerCase().trim() }, { $set: updateData }, { new: true, upsert: true });
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// ==========================================
-// 🔑 AUTHENTICATION ROUTES (Signup & Login)
-// ==========================================
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
         const emailLower = email.toLowerCase().trim();
         const existingUser = await User.findOne({ email: emailLower });
-        if (existingUser) return res.status(400).json({ success: false, message: 'Email is already registered!' });
-
+        if (existingUser) return res.status(400).json({ success: false, message: 'Email registered!' });
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
         await PendingUser.deleteMany({ email: emailLower });
         const newPendingUser = new PendingUser({ name, email: emailLower, password, otp });
         await newPendingUser.save();
-
         console.log(`🔑 OTP for ${emailLower} is: [ ${otp} ]`);
-        res.json({ success: true, requireOtp: true, generatedOtp: otp, message: 'OTP Generated successfully.' });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server error during signup.' }); }
+        res.json({ success: true, requireOtp: true, generatedOtp: otp });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/verify-otp', async (req, res) => {
@@ -258,15 +239,13 @@ app.post('/api/verify-otp', async (req, res) => {
         const { email, otp } = req.body;
         const emailLower = email.toLowerCase().trim();
         const pendingUser = await PendingUser.findOne({ email: emailLower });
-        if (!pendingUser) return res.status(400).json({ success: false, message: 'OTP expired or invalid email.' });
-        if (pendingUser.otp !== otp) return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
-
+        if (!pendingUser) return res.status(400).json({ success: false });
+        if (pendingUser.otp !== otp) return res.status(400).json({ success: false });
         const newUser = new User({ name: pendingUser.name, email: pendingUser.email, password: pendingUser.password, role: 'user' });
         await newUser.save();
         await PendingUser.deleteOne({ email: emailLower });
-
-        res.json({ success: true, message: 'Account verified and created successfully!' });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server error during verification.' }); }
+        res.json({ success: true });
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/login', async(req, res) => {
@@ -278,62 +257,44 @@ app.post('/api/login', async(req, res) => {
             if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
             res.json({ success: true, name: user.name, email: user.email, role: actualRole });
         } else {
-            res.status(401).json({ success: false, message: 'Invalid credentials' });
+            res.status(401).json({ success: false });
         }
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// ==========================================
-// 👑 ADMIN API ROUTES
-// ==========================================
+// ADMIN APIs
 app.get('/api/admin/all-data', async (req, res) => {
     try {
         const users = await User.find({});
         const properties = await Property.find({});
         res.json({ success: true, totalUsers: users.length, totalProperties: properties.length, users, properties });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/change-role/:id', async (req, res) => {
-    try {
-        const { newRole } = req.body; 
-        await User.findByIdAndUpdate(req.params.id, { role: newRole });
-        res.json({ success: true, message: `User role updated to ${newRole} successfully!` });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server error' }); }
+    try { await User.findByIdAndUpdate(req.params.id, { role: req.body.newRole }); res.json({ success: true, message: `Role updated to ${req.body.newRole}!` }); } 
+    catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/approve-property/:id', async (req, res) => {
-    try {
-        await Property.findByIdAndUpdate(req.params.id, { status: 'approved' });
-        res.json({ success: true, message: 'Property Published Successfully!' });
-    } catch (error) { res.status(500).json({ success: false }); }
+    try { await Property.findByIdAndUpdate(req.params.id, { status: 'approved' }); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/admin/unpublish-property/:id', async (req, res) => {
-    try {
-        await Property.findByIdAndUpdate(req.params.id, { status: 'pending' });
-        res.json({ success: true, message: 'Property Unpublished!' });
-    } catch (error) { res.status(500).json({ success: false }); }
+    try { await Property.findByIdAndUpdate(req.params.id, { status: 'pending' }); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
-    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } 
-    catch (error) { res.status(500).json({ success: false }); }
+    try { await Property.findByIdAndDelete(req.params.id); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.delete('/api/admin/delete-user/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
-        if (user) {
-            await Property.deleteMany({ brokerEmail: user.email });
-            await User.findByIdAndDelete(req.params.id);
-            res.json({ success: true, message: 'User and their properties deleted!' });
-        } else {
-            res.status(404).json({ success: false, message: 'User not found' });
-        }
+        if (user) { await Property.deleteMany({ brokerEmail: user.email }); await User.findByIdAndDelete(req.params.id); res.json({ success: true }); } 
+        else { res.status(404).json({ success: false }); }
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 🚨 SERVER START
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));

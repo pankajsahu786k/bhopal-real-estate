@@ -17,9 +17,10 @@
         .status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
         .status-Pending { background-color: #f1c40f; color: #2c3e50; }
         .status-Done { background-color: #2ecc71; color: white; }
-        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
-        .btn-done { background-color: #2ecc71; color: white; }
-        .btn-pending { background-color: #95a5a6; color: white; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-top: 5px; }
+        .btn-done { background-color: #2ecc71; color: white; width: 100%; }
+        .btn-pending { background-color: #95a5a6; color: white; width: 100%; }
+        .pdf-input { width: 100%; margin-bottom: 5px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -34,24 +35,20 @@
 
     <div class="container">
         <h2>Tenant Verification Requests (Leads)</h2>
-        
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Photo</th>
                         <th>Tenant Details</th>
-                        <th>Permanent Address & PS</th>
-                        <th>Current Address & PS</th>
+                        <th>Address & PS</th>
                         <th>Owner Details</th>
                         <th>Status</th>
-                        <th>Action</th>
+                        <th>Action (Upload PDF)</th>
                     </tr>
                 </thead>
                 <tbody id="verificationTableBody">
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 20px; color: #7f8c8d;">Data load ho raha hai... ⏳</td>
-                    </tr>
+                    <tr><td colspan="6" style="text-align: center; padding: 20px;">Data load ho raha hai... ⏳</td></tr>
                 </tbody>
             </table>
         </div>
@@ -60,15 +57,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const role = localStorage.getItem('userRole');
-            const name = localStorage.getItem('brokerName') || 'Agent';
-            
             if (role !== 'police_agent' && role !== 'admin') {
-                alert("❌ Is page ke liye aapke paas permission nahi hai!");
-                window.location.href = 'login.html';
-                return;
+                window.location.href = 'login.html'; return;
             }
-            
-            document.getElementById('agentName').innerText = `Welcome, ${name}`;
+            document.getElementById('agentName').innerText = `Welcome, ${localStorage.getItem('brokerName') || 'Agent'}`;
             loadVerificationRequests();
         });
 
@@ -76,86 +68,81 @@
             try {
                 const res = await fetch('/api/admin/verifications');
                 const result = await res.json();
+                const tableBody = document.getElementById('verificationTableBody');
+                tableBody.innerHTML = '';
                 
-                if (result.success) {
-                    const tableBody = document.getElementById('verificationTableBody');
-                    tableBody.innerHTML = '';
-                    
-                    if (result.requests.length === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#7f8c8d;">Koi request nahi mili.</td></tr>`;
-                        return;
-                    }
-                    
-                    result.requests.forEach(req => {
-                        const statusClass = `status-${req.status}`;
-                        const actionButton = req.status === 'Pending' 
-                            ? `<button class="action-btn btn-done" onclick="toggleStatus('${req._id}', 'Done')">Mark Complete ✔️</button>`
-                            : `<button class="action-btn btn-pending" onclick="toggleStatus('${req._id}', 'Pending')">Mark Pending ⏳</button>`;
-                        
-                        const imgUrl = req.tenantPhoto || 'https://placehold.co/60x60?text=User';
-                        const familyCount = req.familyMembers || 'Not Provided';
-
-                        tableBody.innerHTML += `
-                            <tr>
-                                <td>
-                                    <img src="${imgUrl}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">
-                                </td>
-                                <td>
-                                    <strong>Name:</strong> ${req.tenantName}<br>
-                                    <strong>Phone:</strong> ${req.tenantPhone}<br>
-                                    <strong>Aadhar:</strong> ${req.aadharNumber}<br>
-                                    <strong>Family Members:</strong> <span style="color:#e74c3c; font-weight:bold;">${familyCount}</span>
-                                </td>
-                                <td>
-                                    ${req.tenantPermanentAddress}<br>
-                                    <strong style="color:#e67e22;">PS: ${req.permanentPoliceStation}</strong>
-                                </td>
-                                <td>
-                                    ${req.propertyAddress}<br>
-                                    <strong style="color:#2980b9;">PS: ${req.currentPoliceStation}</strong>
-                                </td>
-                                <td>
-                                    <strong>Owner:</strong> ${req.ownerName}<br>
-                                    <strong>Phone:</strong> ${req.ownerPhone}
-                                </td>
-                                <td><span class="status-badge ${statusClass}">${req.status}</span></td>
-                                <td>${actionButton}</td>
-                            </tr>
-                        `;
-                    });
+                if (result.requests.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Koi request nahi mili.</td></tr>`; return;
                 }
-            } catch (error) {
-                console.error("Error loading verifications:", error);
+                
+                result.requests.forEach(req => {
+                    const statusClass = `status-${req.status}`;
+                    
+                    // 🚨 NAYA: PDF Upload box aur button
+                    let actionHtml = '';
+                    if (req.status === 'Pending') {
+                        actionHtml = `
+                            <input type="file" id="pdf_${req._id}" accept="application/pdf" class="pdf-input">
+                            <button class="action-btn btn-done" onclick="uploadPdfAndMarkDone('${req._id}')">Upload PDF & Mark Done ✔️</button>
+                        `;
+                    } else {
+                        const docLink = req.documentUrl ? `<a href="${req.documentUrl}" target="_blank" style="color: #2980b9; font-weight:bold; font-size: 13px; display:block; margin-bottom:5px;">📄 View Verified PDF</a>` : '';
+                        actionHtml = `
+                            ${docLink}
+                            <button class="action-btn btn-pending" onclick="toggleStatus('${req._id}', 'Pending')">Mark Pending ⏳</button>
+                        `;
+                    }
+
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td><img src="${req.tenantPhoto || 'https://placehold.co/60x60?text=User'}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;"></td>
+                            <td><strong>Name:</strong> ${req.tenantName}<br><strong>Phone:</strong> ${req.tenantPhone}<br><strong>Aadhar:</strong> ${req.aadharNumber}</td>
+                            <td><strong>Permanent:</strong> ${req.tenantPermanentAddress} (PS: ${req.permanentPoliceStation})<br><strong>Current:</strong> ${req.propertyAddress} (PS: ${req.currentPoliceStation})</td>
+                            <td><strong>Owner:</strong> ${req.ownerName}<br><strong>Phone:</strong> ${req.ownerPhone}</td>
+                            <td><span class="status-badge ${statusClass}">${req.status}</span></td>
+                            <td style="min-width: 160px;">${actionHtml}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) { console.error(error); }
+        }
+
+        // 🚨 NAYA: PDF upload karne ka function
+        async function uploadPdfAndMarkDone(id) {
+            const fileInput = document.getElementById(`pdf_${id}`);
+            if (fileInput.files.length === 0) {
+                alert("❌ कृपया पहले पुलिस वेरिफिकेशन की PDF फाइल सेलेक्ट करें!"); return;
             }
+
+            const btn = fileInput.nextElementSibling;
+            btn.innerText = "Uploading... ⏳";
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('verificationDoc', fileInput.files[0]);
+
+            try {
+                const res = await fetch(`/api/admin/upload-verification-doc/${id}`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.success) {
+                    alert(result.message); loadVerificationRequests();
+                } else { alert("Upload fail!"); btn.innerText = "Upload PDF & Mark Done ✔️"; btn.disabled = false; }
+            } catch (error) { alert("Server error!"); }
         }
 
         async function toggleStatus(id, status) {
             try {
-                const res = await fetch(`/api/admin/change-verification-status/${id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ newStatus: status })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    loadVerificationRequests();
-                }
-            } catch (error) {
-                alert("Status update fail!");
-            }
+                await fetch(`/api/admin/change-verification-status/${id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newStatus: status }) });
+                loadVerificationRequests();
+            } catch (error) { alert("Status update fail!"); }
         }
 
         function logout() {
             if (localStorage.getItem('realAdmin') === 'yes') {
-                localStorage.setItem('userRole', 'admin');
-                localStorage.removeItem('realAdmin');
-                localStorage.setItem('brokerName', 'Admin');
-                localStorage.setItem('brokerEmail', 'devilking786k@sahu.com'); 
+                localStorage.setItem('userRole', 'admin'); localStorage.removeItem('realAdmin');
+                localStorage.setItem('brokerName', 'Admin'); localStorage.setItem('brokerEmail', 'devilking786k@sahu.com'); 
                 window.location.href = 'admin-dashboard.html';
-            } else {
-                localStorage.clear();
-                window.location.href = 'login.html';
-            }
+            } else { localStorage.clear(); window.location.href = 'login.html'; }
         }
     </script>
 </body>

@@ -130,5 +130,75 @@
             alert(`✅ ${serviceName} के लिए आपकी रिक्वेस्ट भेज दी गई है। हमारी टीम जल्द ही आपसे संपर्क करेगी!`);
         }
     </script>
+    <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
+        <h3 style="color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; display: inline-block;">📋 My Service Requests (Live Status)</h3>
+        
+        <div style="background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow-x: auto; margin-top: 15px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: sans-serif;">
+                <thead>
+                    <tr>
+                        <th style="padding: 15px; background-color: #34495e; color: white;">Service Type</th>
+                        <th style="padding: 15px; background-color: #34495e; color: white;">Applicant Details</th>
+                        <th style="padding: 15px; background-color: #34495e; color: white;">Live Status</th>
+                        <th style="padding: 15px; background-color: #34495e; color: white;">Download Document</th>
+                    </tr>
+                </thead>
+                <tbody id="myRequestsTableBody">
+                    <tr><td colspan="4" style="text-align: center; padding: 20px;">Fetching your requests... ⏳</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', loadMyRequests);
+
+        async function loadMyRequests() {
+            const email = localStorage.getItem('brokerEmail');
+            const tbody = document.getElementById('myRequestsTableBody');
+            
+            if(!email) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #e74c3c;">अपना स्टेटस देखने के लिए कृपया लॉगिन करें।</td></tr>`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/my-verifications?email=${email}`);
+                const result = await res.json();
+                tbody.innerHTML = '';
+
+                if(result.success && result.requests.length > 0) {
+                    result.requests.forEach(req => {
+                        const isDone = req.status === 'Done';
+                        const statusColor = isDone ? '#2ecc71' : '#f1c40f';
+                        const textColor = isDone ? 'white' : '#2c3e50';
+                        
+                        // 📄 Download Button Logic
+                        const docHtml = (isDone && req.documentUrl) 
+                            ? `<a href="${req.documentUrl}" target="_blank" style="background: #e74c3c; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">📥 Download PDF</a>` 
+                            : `<span style="color: #7f8c8d; font-size: 13px;">⏳ Processing...</span>`;
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd; font-weight: bold; color: #2980b9;">👮 Police Verification</td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">Tenant: ${req.tenantName}<br>Phone: ${req.tenantPhone}</td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">
+                                    <span style="background: ${statusColor}; color: ${textColor}; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                        ${isDone ? '✅ Verified' : '⏳ Pending'}
+                                    </span>
+                                </td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">${docHtml}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #7f8c8d;">आपने अभी तक किसी सर्विस के लिए अप्लाई नहीं किया है।</td></tr>`;
+                }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">डेटा लोड करने में एरर!</td></tr>`;
+            }
+        }
+    </script>
 </body>
 </html>
