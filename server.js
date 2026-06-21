@@ -65,7 +65,7 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
-// 👇 POLICE VERIFICATION SCHEMA (सही जगह पर) 👇
+// 👇 POLICE VERIFICATION SCHEMA 👇
 const verificationSchema = new mongoose.Schema({
     tenantName: String,
     tenantPhone: String,
@@ -85,7 +85,7 @@ const Verification = mongoose.model('Verification', verificationSchema);
 // 3️⃣ API ROUTES
 // ==========================================
 
-// 👇 POLICE VERIFICATION API (सही जगह पर) 👇
+// 👇 POLICE VERIFICATION API (फॉर्म सेव करने के लिए) 👇
 app.post('/api/submit-verification', async (req, res) => {
     try {
         const newRequest = new Verification(req.body);
@@ -97,7 +97,6 @@ app.post('/api/submit-verification', async (req, res) => {
     }
 });
 
-// -- Baaki saare purane APIs --
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -308,6 +307,29 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
             res.status(404).json({ success: false, message: 'User not found' });
         }
     } catch (error) { res.status(500).json({ success: false }); }
+});
+
+
+// ==========================================
+// 👮 POLICE VERIFICATION AGENT APIs (👇 ये जुड़ गया है! 👇)
+// ==========================================
+app.get('/api/admin/verifications', async (req, res) => {
+    try {
+        const requests = await Verification.find({}).sort({ createdAt: -1 }); 
+        res.json({ success: true, requests });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+app.post('/api/admin/change-verification-status/:id', async (req, res) => {
+    try {
+        const { newStatus } = req.body; 
+        await Verification.findByIdAndUpdate(req.params.id, { status: newStatus });
+        res.json({ success: true, message: `Status updated to ${newStatus} successfully!` });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
 });
 
 
