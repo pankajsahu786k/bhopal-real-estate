@@ -31,16 +31,26 @@
         .service-card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid #3498db; transition: 0.3s; }
         .service-card:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
         .service-icon { font-size: 40px; margin-bottom: 15px; }
-        .service-card h3 { color: #2c3e50; margin-top: 0; }
-        .service-card p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; }
-        .apply-btn { background: #3498db; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; display: inline-block; }
-        .apply-btn:hover { background: #2980b9; }
+        .service-card h3 { color: #2c3e50; margin-top: 0; margin-bottom: 10px; }
+        .service-card p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+        .apply-btn { background: #3498db; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; display: inline-block; cursor: pointer; border: none; font-size: 14px; }
+        .apply-btn:hover { opacity: 0.9; }
+
+        /* Mobile Responsive Sidebar */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; white-space: nowrap; padding: 10px 0; }
+            .sidebar h2 { display: none; }
+            .nav-links { display: flex; }
+            .nav-links a { padding: 10px 15px; border-left: none; border-bottom: 4px solid transparent; }
+            .nav-links a:hover, .nav-links a.active { border-bottom-color: #2ecc71; border-left-color: transparent; }
+        }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>Bhopal Properties</h2>
+        <h2 style="padding: 15px 0;">Bhopal Properties</h2>
         <ul class="nav-links">
             <li><a href="dashboard.html">My Properties</a></li>
             <li><a href="add-property.html">Add New Property</a></li>
@@ -60,30 +70,44 @@
         </header>
 
         <div class="content-body">
-            <h2>प्रीमियम सेवाएं (Premium Services)</h2>
-            <p style="color: #666;">अपनी प्रॉपर्टी की डील को और आसान बनाने के लिए हमारी विशेष सेवाओं का लाभ उठाएं:</p>
+            <h2 style="margin-top: 0; color: #2c3e50;">प्रीमियम सेवाएं (Premium Services)</h2>
+            <p style="color: #666; margin-bottom: 30px;">अपनी प्रॉपर्टी की डील को और आसान और सुरक्षित बनाने के लिए हमारी विशेष सेवाओं का लाभ उठाएं:</p>
 
             <div class="services-grid">
                 
-                <div class="service-card">
+                <div class="service-card" style="border-top-color: #8e44ad;">
+                    <div class="service-icon">📄</div>
+                    <h3>Rent Agreement (किरायानामा)</h3>
+                    <p>घर बैठे आसानी से अपना रेंट एग्रीमेंट (Rent Agreement) बनवाएं। हम स्टाम्प पेपर और लीगल ड्राफ्टिंग की पूरी सुविधा देते हैं।</p>
+                    <button class="apply-btn" style="background: #8e44ad;" onclick="applyService('Rent Agreement')">Apply Now</button>
+                </div>
+
+                <div class="service-card" style="border-top-color: #e74c3c;">
+                    <div class="service-icon">👮</div>
+                    <h3>Tenant Police Verification</h3>
+                    <p>सुरक्षा सबसे पहले! किरायेदारों का ऑनलाइन पुलिस वेरिफिकेशन (Police Verification) बिना किसी भागदौड़ के हमारे एक्सपर्ट्स द्वारा करवाएं।</p>
+                    <button class="apply-btn" style="background: #e74c3c;" onclick="applyService('Police Verification')">Get Verified</button>
+                </div>
+
+                <div class="service-card" style="border-top-color: #3498db;">
                     <div class="service-icon">🏦</div>
                     <h3>Home Loan Assistance</h3>
-                    <p>सबसे कम ब्याज दरों पर टॉप बैंकों से होम लोन प्राप्त करने में हमारी टीम आपकी मदद करेगी।</p>
-                    <a href="#" class="apply-btn" onclick="applyService('Home Loan')">Apply Now</a>
+                    <p>सबसे कम ब्याज दरों पर टॉप बैंकों (SBI, HDFC, ICICI) से होम लोन प्राप्त करने में हमारी टीम आपकी पूरी मदद करेगी।</p>
+                    <button class="apply-btn" style="background: #3498db;" onclick="applyService('Home Loan')">Apply for Loan</button>
                 </div>
 
                 <div class="service-card" style="border-top-color: #2ecc71;">
                     <div class="service-icon">⚖️</div>
                     <h3>Legal & Registry Support</h3>
-                    <p>प्रॉपर्टी के कागजात की जाँच और रजिस्ट्री के काम को बिना किसी परेशानी के पूरा करवाएं।</p>
-                    <a href="#" class="apply-btn" style="background: #2ecc71;" onclick="applyService('Legal Support')">Contact Expert</a>
+                    <p>प्रॉपर्टी के कागजात की जाँच और कलेक्ट्रेट में रजिस्ट्री के काम को बिना किसी परेशानी के एकदम सही तरीके से पूरा करवाएं।</p>
+                    <button class="apply-btn" style="background: #2ecc71;" onclick="applyService('Legal Support')">Contact Expert</button>
                 </div>
 
-                <div class="service-card" style="border-top-color: #e67e22;">
+                <div class="service-card" style="border-top-color: #f39c12;">
                     <div class="service-icon">🚚</div>
                     <h3>Packers & Movers</h3>
-                    <p>भोपाल में कहीं भी शिफ्टिंग करनी हो, हमारे वेरीफाइड पार्टनर्स आपका सामान सुरक्षित पहुंचाएंगे।</p>
-                    <a href="#" class="apply-btn" style="background: #e67e22;" onclick="applyService('Packers & Movers')">Get Quote</a>
+                    <p>भोपाल में कहीं भी शिफ्टिंग करनी हो, हमारे वेरीफाइड पार्टनर्स आपका सामान एकदम सुरक्षित और सस्ते दाम में पहुंचाएंगे।</p>
+                    <button class="apply-btn" style="background: #f39c12;" onclick="applyService('Packers & Movers')">Get Quote</button>
                 </div>
 
             </div>
@@ -102,6 +126,7 @@
         }
 
         function applyService(serviceName) {
+            // Aap chahein toh is alert ki jagah user ko ek form par ya WhatsApp par bhej sakte hain
             alert(`✅ ${serviceName} के लिए आपकी रिक्वेस्ट भेज दी गई है। हमारी टीम जल्द ही आपसे संपर्क करेगी!`);
         }
     </script>
