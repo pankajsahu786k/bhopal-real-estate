@@ -22,13 +22,19 @@ cloudinary.config({
     api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
-// 🚨 NAYA: 'pdf' format allow kar diya gaya hai!
+// 🚨 PDF SUPPORT FIX 🚨
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: { folder: 'bhopal_properties', allowedFormats: ['jpg', 'png', 'jpeg', 'webp', 'pdf'] } 
+    params: async (req, file) => {
+        // Agar file PDF hai, toh use 'raw' format me save karo taaki corrupt na ho
+        if (file.mimetype === 'application/pdf') {
+            return { folder: 'bhopal_properties_docs', format: 'pdf', resource_type: 'raw' };
+        }
+        // Agar photo hai, toh normal image format me save karo
+        return { folder: 'bhopal_properties', allowedFormats: ['jpg', 'png', 'jpeg', 'webp'] };
+    }
 });
 const upload = multer({ storage: storage });
-
 // ==========================================
 // 1️⃣ MONGODB DATABASE CONNECTION
 // ==========================================
