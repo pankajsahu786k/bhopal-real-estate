@@ -22,26 +22,18 @@ cloudinary.config({
     api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
-// 🚨 PERFECT PDF & IMAGE STORAGE LOGIC 🚨
-const storage = new CloudinaryStorage({
+// 📷 Images ke liye normal Cloudinary Storage setup
+const imageStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
-    params: async (req, file) => {
-        // 📄 Agar file PDF hai, toh direct params bypass karke raw resource type set karein
-        if (file.mimetype === 'application/pdf') {
-            return {
-                folder: 'bhopal_properties_docs',
-                resource_type: 'raw', // 👈 Yeh PDF ko bina corrupt kiye save karega
-                public_id: file.originalname.split('.')[0] + '_' + Date.now() // Unique naam dena zaroori hai
-            };
-        }
-        // 📷 Agar photo hai, toh normal image format me save karo
-        return {
-            folder: 'bhopal_properties',
-            allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
-        };
+    params: {
+        folder: 'bhopal_properties',
+        allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
     }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage: imageStorage });
+
+// 📄 PDFs ke liye Memory Storage setup taaki binary buffer direct upload ho sake
+const pdfUpload = multer({ storage: multer.memoryStorage() });
 
 // ==========================================
 // 1️⃣ MONGODB DATABASE CONNECTION
@@ -113,16 +105,12 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         await newRequest.save();
 
         // 🌟 NEW LOGIC: Jo bhi profile sabse pehle ya latest update hui hai, uska number uthao
-        // Isse aap kisi bhi email se profile update karenge, system vahi number utha lega!
         const latestProfile = await BrokerProfile.findOne({}).sort({ updatedAt: -1 });
 
         let activeAgentPhone = "919575611622"; // Purana default fallback
 
         if (latestProfile && latestProfile.phone) {
-            // Number saaf karke sirf digits rakhna
             activeAgentPhone = latestProfile.phone.replace(/\D/g, '');
-            
-            // Agar 10 digit ka number hai toh aage 91 jodh dena
             if (activeAgentPhone.length === 10) {
                 activeAgentPhone = "91" + activeAgentPhone;
             }
@@ -131,7 +119,7 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         res.json({ 
             success: true, 
             message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!',
-            agentPhone: activeAgentPhone // 👈 Ab ye aapka 9993352339 wala ya jo bhi active hoga vahi bhejega
+            agentPhone: activeAgentPhone 
         });
     } catch (error) { 
         console.error("Verification error:", error);
@@ -153,7 +141,6 @@ app.get('/api/my-verifications', async (req, res) => {
 
 app.get('/api/admin/verifications', async (req, res) => {
     try {
-        // 🚨 FIXED LOGIC: Ab agent ko sirf 'Pending' requests hi dikhengi, 'Done' wali chhup jayengi!
         const requests = await Verification.find({ status: 'Pending' }).sort({ createdAt: -1 }); 
         res.json({ success: true, requests });
     } catch (error) { 
@@ -161,12 +148,37 @@ app.get('/api/admin/verifications', async (req, res) => {
     }
 });
 
-app.post('/api/admin/upload-verification-doc/:id', upload.single('verificationDoc'), async (req, res) => {
+// 👇 🚨 UPDATED: DIRECT BINARY STREAM UPLOAD TO PREVENT PDF CORRUPTION 🚨 👇
+app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificationDoc'), async (req, res) => {
     try {
-        const docUrl = req.file ? (req.file.path || req.file.url) : '';
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        // File ke binary buffer ko direct stream ke zariye Cloudinary par safe bhejna
+        const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    folder: 'bhopal_properties_docs',
+                    resource_type: 'raw', 
+                    public_id: `Verification_${req.params.id}_${Date.now()}.pdf` // Explicit PDF extension
+                },
+                (error, result) => {
+                    if (error) return reject(error);
+                    resolve(result);
+                }
+            );
+            uploadStream.end(req.file.buffer);
+        });
+
+        const docUrl = uploadResult.secure_url || uploadResult.url;
+
         await Verification.findByIdAndUpdate(req.params.id, { status: 'Done', documentUrl: docUrl });
         res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Done!' });
-    } catch (error) { res.status(500).json({ success: false }); }
+    } catch (error) { 
+        console.error("Cloudinary Upload Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' }); 
+    }
 });
 
 app.post('/api/admin/change-verification-status/:id', async (req, res) => {
