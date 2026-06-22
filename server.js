@@ -112,16 +112,17 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         const newRequest = new Verification(verificationData);
         await newRequest.save();
 
-        // 🌟 DYNAMIC WHATSAPP LOGIC: Admin Profile se updated number nikalna
-        const adminEmail = "devilking786k@sahu.com";
-        const adminProfile = await BrokerProfile.findOne({ brokerEmail: adminEmail });
+        // 🌟 NEW LOGIC: Jo bhi profile sabse pehle ya latest update hui hai, uska number uthao
+        // Isse aap kisi bhi email se profile update karenge, system vahi number utha lega!
+        const latestProfile = await BrokerProfile.findOne({}).sort({ updatedAt: -1 });
 
-        let activeAgentPhone = "919575611622"; // Fallback / Purana Default Number
+        let activeAgentPhone = "919575611622"; // Purana default fallback
 
-        if (adminProfile && adminProfile.phone) {
-            // Number me se space ya non-digits hatana
-            activeAgentPhone = adminProfile.phone.replace(/\D/g, '');
-            // Agar bina country code ke 10 digit ka h, toh 91 jodhna
+        if (latestProfile && latestProfile.phone) {
+            // Number saaf karke sirf digits rakhna
+            activeAgentPhone = latestProfile.phone.replace(/\D/g, '');
+            
+            // Agar 10 digit ka number hai toh aage 91 jodh dena
             if (activeAgentPhone.length === 10) {
                 activeAgentPhone = "91" + activeAgentPhone;
             }
@@ -130,9 +131,12 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         res.json({ 
             success: true, 
             message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!',
-            agentPhone: activeAgentPhone // 👈 Ab ye hamesha profile se dynamic number bhejega
+            agentPhone: activeAgentPhone // 👈 Ab ye aapka 9993352339 wala ya jo bhi active hoga vahi bhejega
         });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
+    } catch (error) { 
+        console.error("Verification error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' }); 
+    }
 });
 
 app.get('/api/my-verifications', async (req, res) => {
