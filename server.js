@@ -42,6 +42,7 @@ const storage = new CloudinaryStorage({
     }
 });
 const upload = multer({ storage: storage });
+
 // ==========================================
 // 1️⃣ MONGODB DATABASE CONNECTION
 // ==========================================
@@ -79,7 +80,6 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
-// 👇 🚨 NAYA: userEmail aur documentUrl jod diya gaya hai 👇
 const verificationSchema = new mongoose.Schema({
     userEmail: String,      // Kis User ne form bhara
     documentUrl: String,    // Agent dwara upload ki gayi PDF
@@ -111,11 +111,18 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         const verificationData = { ...req.body, tenantPhoto: photoUrl };
         const newRequest = new Verification(verificationData);
         await newRequest.save();
-        res.json({ success: true, message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!' });
+
+        // 🚨 NAYA LOGIC: Abhi development phase me ek hi agent h, isliye uska number backend se bhej rahe hain
+        const activeAgentPhone = "919575611622"; 
+
+        res.json({ 
+            success: true, 
+            message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!',
+            agentPhone: activeAgentPhone
+        });
     } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
-// 👇 🚨 NAYA: User ko apni requests dikhane ke liye API 👇
 app.get('/api/my-verifications', async (req, res) => {
     try {
         const email = req.query.email;
@@ -128,11 +135,9 @@ app.get('/api/my-verifications', async (req, res) => {
 
 // -- POLICE AGENT APIs --
 
-// -- POLICE AGENT APIs (UPDATED TO FILTER OUT 'DONE' REQUESTS) --
-
 app.get('/api/admin/verifications', async (req, res) => {
     try {
-        // 🚨 CHNAGE: Ab agent ko sirf 'Pending' requests hi dikhengi, 'Done' wali chhup jayengi!
+        // Ab agent ko sirf 'Pending' requests hi dikhengi, 'Done' wali chhup jayengi!
         const requests = await Verification.find({ status: 'Pending' }).sort({ createdAt: -1 }); 
         res.json({ success: true, requests });
     } catch (error) { 
@@ -140,7 +145,6 @@ app.get('/api/admin/verifications', async (req, res) => {
     }
 });
 
-// 👇 🚨 NAYA: Agent dwara PDF upload karne aur status 'Done' karne ki API 👇
 app.post('/api/admin/upload-verification-doc/:id', upload.single('verificationDoc'), async (req, res) => {
     try {
         const docUrl = req.file ? (req.file.path || req.file.url) : '';
@@ -305,39 +309,27 @@ app.post('/api/admin/unpublish-property/:id', async (req, res) => {
 // ==========================================
 // 🗑️ SMART DELETE APIs (Deletes from DB + Cloudinary)
 // ==========================================
-
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
     try {
-        // 1. Pehle property dhundo
         const property = await Property.findById(req.params.id);
-        
-        // 2. Agar property me photos hain, toh unhe Cloudinary se udao
         if (property && property.images && property.images.length > 0) {
             for (const imgUrl of property.images) {
                 try {
-                    // URL se 'public_id' nikalna (jaise: bhopal_properties/image_name)
                     const publicId = imgUrl.split('/').slice(-2).join('/').split('.')[0];
                     await cloudinary.uploader.destroy(publicId);
                 } catch(e) { console.log("Cloudinary image delete error:", e); }
             }
         }
-        
-        // 3. Fir database se property hamesha ke liye delete kar do
         await Property.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Property and photos deleted permanently!' });
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 app.delete('/api/admin/delete-user/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
         if (user) {
-            // User ki saari properties dhundo
             const properties = await Property.find({ brokerEmail: user.email });
-            
-            // Un sab properties ki Cloudinary photos delete karo
             for (const prop of properties) {
                 if (prop.images && prop.images.length > 0) {
                     for (const imgUrl of prop.images) {
@@ -348,17 +340,11 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
                     }
                 }
             }
-            
-            // Ab database se property aur user dono delete kar do
             await Property.deleteMany({ brokerEmail: user.email });
             await User.findByIdAndDelete(req.params.id);
             res.json({ success: true, message: 'User, their properties, and all photos deleted!' });
-        } else {
-            res.status(404).json({ success: false, message: 'User not found' });
-        }
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+        } else { res.status(404).json({ success: false, message: 'User not found' }); }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
 const PORT = process.env.PORT || 3000;

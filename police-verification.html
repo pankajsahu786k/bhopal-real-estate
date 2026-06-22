@@ -119,9 +119,8 @@
                 if (result.success) {
                     alert(result.message);
                     
-                    // 🔔 WhatsApp Redirect (Free Notification जुगाड़) 🔔
-                    // यहाँ '91' के बाद अपने पुलिस एजेंट का असली नंबर डालें
-                    const agentNumber = "919876543210"; 
+                    // 🔔 Backend se aaya hua dynamic agent number 🔔
+                    const agentNumber = result.agentPhone || "919575611622"; 
                     
                     const tenantName = document.getElementById('tenantName').value;
                     const tenantPhone = document.getElementById('tenantPhone').value;
@@ -131,7 +130,7 @@
                     
                     window.open(whatsappUrl, '_blank');
 
-                    // User को वापस Services पेज पर भेज देना
+                    // User ko wapas Services page par bhejna
                     window.location.href = 'services.html'; 
                 } else {
                     alert("❌ Kuch gadbad hui. Fir se koshish karein.");
