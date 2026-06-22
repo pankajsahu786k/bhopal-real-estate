@@ -112,13 +112,25 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         const newRequest = new Verification(verificationData);
         await newRequest.save();
 
-        // 🚨 NAYA LOGIC: Abhi development phase me ek hi agent h, isliye uska number backend se bhej rahe hain
-        const activeAgentPhone = "919575611622"; 
+        // 🌟 DYNAMIC WHATSAPP LOGIC: Admin Profile se updated number nikalna
+        const adminEmail = "devilking786k@sahu.com";
+        const adminProfile = await BrokerProfile.findOne({ brokerEmail: adminEmail });
+
+        let activeAgentPhone = "919575611622"; // Fallback / Purana Default Number
+
+        if (adminProfile && adminProfile.phone) {
+            // Number me se space ya non-digits hatana
+            activeAgentPhone = adminProfile.phone.replace(/\D/g, '');
+            // Agar bina country code ke 10 digit ka h, toh 91 jodhna
+            if (activeAgentPhone.length === 10) {
+                activeAgentPhone = "91" + activeAgentPhone;
+            }
+        }
 
         res.json({ 
             success: true, 
             message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!',
-            agentPhone: activeAgentPhone
+            agentPhone: activeAgentPhone // 👈 Ab ye hamesha profile se dynamic number bhejega
         });
     } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
@@ -137,7 +149,7 @@ app.get('/api/my-verifications', async (req, res) => {
 
 app.get('/api/admin/verifications', async (req, res) => {
     try {
-        // Ab agent ko sirf 'Pending' requests hi dikhengi, 'Done' wali chhup jayengi!
+        // 🚨 FIXED LOGIC: Ab agent ko sirf 'Pending' requests hi dikhengi, 'Done' wali chhup jayengi!
         const requests = await Verification.find({ status: 'Pending' }).sort({ createdAt: -1 }); 
         res.json({ success: true, requests });
     } catch (error) { 
