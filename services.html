@@ -78,14 +78,14 @@
                 <div class="service-card" style="border-top-color: #8e44ad;">
                     <div class="service-icon">📄</div>
                     <h3>Rent Agreement (किरायानामा)</h3>
-                    <p>घर बैठे आसानी से अपना रेंट एग्रीमेंट (Rent Agreement) बनवाएं। हम स्टाम्प पेपर और लीगल ड्राफ्टिंग की पूरी सुविधा देते हैं।</p>
+                    <p>घर बैठे आसानी से अपना रेंट एग्रीमेंट (Rent Agreement) बनवाएं। हम स्टाम्प पेपर and लीगल ड्राफ्टिंग की पूरी सुविधा देते हैं।</p>
                     <button class="apply-btn" style="background: #8e44ad;" onclick="applyService('Rent Agreement')">Apply Now</button>
                 </div>
 
                <div class="service-card" style="border-top-color: #e74c3c;">
                     <div class="service-icon">👮</div>
                     <h3>Tenant Police Verification</h3>
-                    <p>सुरक्षा सबसे पहले! किरायेदारों का ऑनलाइन पुलिस वेरिफिकेशन (Police Verification) बिना किसी भागदौड़ के हमारे एक्सपर्ट्स द्वारा करवाएं।</p>
+                    <p>सुरक्षा सबसे पहले! किरायेदारों का ऑनलाइन पुलिस वेरिफिकेशन (Police Verification) बिना किसी भागदौड़ के हमारे एक्सपर्ट्स द्वारा करवाएं।</p>
                     <a href="police-verification.html" class="apply-btn" style="background: #e74c3c; display: inline-block; box-sizing: border-box; text-decoration: none;">Get Verified</a>
                 </div>
 
@@ -114,22 +114,6 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const name = localStorage.getItem('brokerName') || 'User';
-            document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
-        });
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = 'login.html';
-        }
-
-        function applyService(serviceName) {
-            // Aap chahein toh is alert ki jagah user ko ek form par ya WhatsApp par bhej sakte hain
-            alert(`✅ ${serviceName} के लिए आपकी रिक्वेस्ट भेज दी गई है। हमारी टीम जल्द ही आपसे संपर्क करेगी!`);
-        }
-    </script>
     <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
         <h3 style="color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; display: inline-block;">📋 My Service Requests (Live Status)</h3>
         
@@ -144,61 +128,4 @@
                     </tr>
                 </thead>
                 <tbody id="myRequestsTableBody">
-                    <tr><td colspan="4" style="text-align: center; padding: 20px;">Fetching your requests... ⏳</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', loadMyRequests);
-
-        async function loadMyRequests() {
-            const email = localStorage.getItem('brokerEmail');
-            const tbody = document.getElementById('myRequestsTableBody');
-            
-            if(!email) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #e74c3c;">अपना स्टेटस देखने के लिए कृपया लॉगिन करें।</td></tr>`;
-                return;
-            }
-
-            try {
-                const res = await fetch(`/api/my-verifications?email=${email}`);
-                const result = await res.json();
-                tbody.innerHTML = '';
-
-                if(result.success && result.requests.length > 0) {
-                    result.requests.forEach(req => {
-                        const isDone = req.status === 'Done';
-                        const statusColor = isDone ? '#2ecc71' : '#f1c40f';
-                        const textColor = isDone ? 'white' : '#2c3e50';
-                        
-                        // 📄 Download Button Logic
-                        const docHtml = (isDone && req.documentUrl) 
-                            ? `<a href="${req.documentUrl}" target="_blank" style="background: #e74c3c; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">📥 Download PDF</a>` 
-                            : `<span style="color: #7f8c8d; font-size: 13px;">⏳ Processing...</span>`;
-
-                        tbody.innerHTML += `
-                            <tr>
-                                <td style="padding: 15px; border-bottom: 1px solid #ddd; font-weight: bold; color: #2980b9;">👮 Police Verification</td>
-                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">Tenant: ${req.tenantName}<br>Phone: ${req.tenantPhone}</td>
-                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">
-                                    <span style="background: ${statusColor}; color: ${textColor}; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
-                                        ${isDone ? '✅ Verified' : '⏳ Pending'}
-                                    </span>
-                                </td>
-                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">${docHtml}</td>
-                            </tr>
-                        `;
-                    });
-                } else {
-                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #7f8c8d;">आपने अभी तक किसी सर्विस के लिए अप्लाई नहीं किया है।</td></tr>`;
-                }
-            } catch (e) {
-                console.error(e);
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">डेटा लोड करने में एरर!</td></tr>`;
-            }
-        }
-    </script>
-</body>
-</html>
+                    <tr><td colspan="4" style="text-align: center; padding: 20px;">Fetching your requests...
