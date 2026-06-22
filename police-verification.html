@@ -89,10 +89,9 @@
 
             const formData = new FormData();
             
-            // 👇 🚨 NAYA: User ka email add kiya (Status track karne ke liye) 👇
+            // User ka email add kiya status mapping ke liye
             const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
             formData.append('userEmail', userEmail);
-            // -----------------------------------------------------------
 
             formData.append('tenantName', document.getElementById('tenantName').value);
             formData.append('familyMembers', document.getElementById('familyMembers').value);
@@ -119,6 +118,20 @@
                 const result = await res.json();
                 if (result.success) {
                     alert(result.message);
+                    
+                    // 🔔 WhatsApp Redirect (Free Notification जुगाड़) 🔔
+                    // यहाँ '91' के बाद अपने पुलिस एजेंट का असली नंबर डालें
+                    const agentNumber = "919876543210"; 
+                    
+                    const tenantName = document.getElementById('tenantName').value;
+                    const tenantPhone = document.getElementById('tenantPhone').value;
+                    
+                    const waMessage = `🔔 *New Police Verification Lead!*\n\n*Tenant Name:* ${tenantName}\n*Phone:* ${tenantPhone}\n\nSir, ek nayi police verification request aayi hai. Kripya apna Agent Dashboard check karein!`;
+                    const whatsappUrl = `https://wa.me/${agentNumber}?text=${encodeURIComponent(waMessage)}`;
+                    
+                    window.open(whatsappUrl, '_blank');
+
+                    // User को वापस Services पेज पर भेज देना
                     window.location.href = 'services.html'; 
                 } else {
                     alert("❌ Kuch gadbad hui. Fir se koshish karein.");
