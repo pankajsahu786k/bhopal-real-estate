@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 // ==========================================
-// ☁️ CLOUDINARY SETUP (PDF CORRUPTION FIX)
+// ☁️ CLOUDINARY SETUP 
 // ==========================================
 cloudinary.config({
     cloud_name: 'duy3ipjoj',
@@ -30,6 +30,8 @@ const imageStorage = new CloudinaryStorage({
         allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
     }
 });
+
+// Purane saare routes me 'upload' variable use ho raha hai, isliye iska naam 'upload' hi rakhenge
 const upload = multer({ storage: imageStorage });
 
 // 📄 PDFs ke liye Memory Storage setup taaki binary buffer direct upload ho sake
@@ -73,8 +75,8 @@ const brokerProfileSchema = new mongoose.Schema({
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
 const verificationSchema = new mongoose.Schema({
-    userEmail: String,      // Kis User ne form bhara
-    documentUrl: String,    // Agent dwara upload ki gayi PDF
+    userEmail: String,      
+    documentUrl: String,    
     tenantName: String,
     tenantPhone: String,
     aadharNumber: String,
@@ -104,10 +106,8 @@ app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, r
         const newRequest = new Verification(verificationData);
         await newRequest.save();
 
-        // 🌟 NEW LOGIC: Jo bhi profile sabse pehle ya latest update hui hai, uska number uthao
         const latestProfile = await BrokerProfile.findOne({}).sort({ updatedAt: -1 });
-
-        let activeAgentPhone = "919575611622"; // Purana default fallback
+        let activeAgentPhone = "919575611622"; 
 
         if (latestProfile && latestProfile.phone) {
             activeAgentPhone = latestProfile.phone.replace(/\D/g, '');
@@ -143,25 +143,22 @@ app.get('/api/admin/verifications', async (req, res) => {
     try {
         const requests = await Verification.find({ status: 'Pending' }).sort({ createdAt: -1 }); 
         res.json({ success: true, requests });
-    } catch (error) { 
-        res.status(500).json({ success: false }); 
-    }
+    } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 👇 🚨 UPDATED: DIRECT BINARY STREAM UPLOAD TO PREVENT PDF CORRUPTION 🚨 👇
+// direct stream upload logic to prevent pdf corruption
 app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificationDoc'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
 
-        // File ke binary buffer ko direct stream ke zariye Cloudinary par safe bhejna
         const uploadResult = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: 'bhopal_properties_docs',
                     resource_type: 'raw', 
-                    public_id: `Verification_${req.params.id}_${Date.now()}.pdf` // Explicit PDF extension
+                    public_id: `Verification_${req.params.id}_${Date.now()}.pdf`
                 },
                 (error, result) => {
                     if (error) return reject(error);
@@ -334,9 +331,7 @@ app.post('/api/admin/unpublish-property/:id', async (req, res) => {
     try { await Property.findByIdAndUpdate(req.params.id, { status: 'pending' }); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// ==========================================
-// 🗑️ SMART DELETE APIs (Deletes from DB + Cloudinary)
-// ==========================================
+// SMART DELETE APIs
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
