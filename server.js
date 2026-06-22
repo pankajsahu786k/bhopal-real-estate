@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
 // ==========================================
-// ☁️ CLOUDINARY SETUP 
+// ☁️ CLOUDINARY SETUP (PDF CORRUPTION FIX)
 // ==========================================
 cloudinary.config({
     cloud_name: 'duy3ipjoj',
@@ -22,16 +22,23 @@ cloudinary.config({
     api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
-// 🚨 PDF SUPPORT FIX 🚨
+// 🚨 PERFECT PDF & IMAGE STORAGE LOGIC 🚨
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
-        // Agar file PDF hai, toh use 'raw' format me save karo taaki corrupt na ho
+        // 📄 Agar file PDF hai, toh direct params bypass karke raw resource type set karein
         if (file.mimetype === 'application/pdf') {
-            return { folder: 'bhopal_properties_docs', format: 'pdf', resource_type: 'raw' };
+            return {
+                folder: 'bhopal_properties_docs',
+                resource_type: 'raw', // 👈 Yeh PDF ko bina corrupt kiye save karega
+                public_id: file.originalname.split('.')[0] + '_' + Date.now() // Unique naam dena zaroori hai
+            };
         }
-        // Agar photo hai, toh normal image format me save karo
-        return { folder: 'bhopal_properties', allowedFormats: ['jpg', 'png', 'jpeg', 'webp'] };
+        // 📷 Agar photo hai, toh normal image format me save karo
+        return {
+            folder: 'bhopal_properties',
+            allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
+        };
     }
 });
 const upload = multer({ storage: storage });
