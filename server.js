@@ -157,8 +157,9 @@ app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificatio
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: 'bhopal_properties_docs',
-                    resource_type: 'raw', 
-                    public_id: `Verification_${req.params.id}_${Date.now()}.pdf`
+                    resource_type: 'auto', // 👈 NAYA: 'raw' ki jagah 'auto' kiya
+                    format: 'pdf',         // 👈 NAYA: Strictly PDF format set kiya
+                    public_id: `Verification_${req.params.id}_${Date.now()}`
                 },
                 (error, result) => {
                     if (error) return reject(error);
@@ -371,4 +372,4 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`)); 

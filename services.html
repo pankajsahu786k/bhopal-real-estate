@@ -133,7 +133,6 @@
     </div>
 
     <script>
-        // Combined and safe single script execution block
         document.addEventListener('DOMContentLoaded', () => {
             const name = localStorage.getItem('brokerName') || 'User';
             document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
@@ -169,9 +168,9 @@
                         const statusColor = isDone ? '#2ecc71' : '#f1c40f';
                         const textColor = isDone ? 'white' : '#2c3e50';
                         
-                        // Cross-origin corrupt-free download button triggering binary blob fetch
+                        // 🌟 NAYA: Direct browser PDF viewer me open karne ka logic (CORS Error Bypass)
                         const docHtml = (isDone && req.documentUrl) 
-                            ? `<button onclick="downloadPdfFile('${req.documentUrl}', 'Verification_${req.tenantName}')" style="background: #e74c3c; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;">📥 Download PDF</button>` 
+                            ? `<a href="${req.documentUrl}" target="_blank" style="background: #e74c3c; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">👁️ View / Download PDF</a>` 
                             : `<span style="color: #7f8c8d; font-size: 13px;">⏳ Processing...</span>`;
 
                         tbody.innerHTML += `
@@ -193,24 +192,6 @@
             } catch (e) {
                 console.error(e);
                 tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">डेटा लोड करने में एरर!</td></tr>`;
-            }
-        }
-
-        // Direct binary safe download logic to bypass raw browser preview errors
-        async function downloadPdfFile(url, fileName) {
-            try {
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = `${fileName}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(blobUrl);
-            } catch (error) {
-                alert("❌ PDF डाउनलोड करने में समस्या आई, कृपया यूआरएल चेक करें।");
             }
         }
     </script>
