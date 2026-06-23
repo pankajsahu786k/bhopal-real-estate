@@ -30,8 +30,6 @@ const imageStorage = new CloudinaryStorage({
         allowedFormats: ['jpg', 'png', 'jpeg', 'webp']
     }
 });
-
-// Purane saare routes me 'upload' variable use ho raha hai, isliye iska naam 'upload' hi rakhenge
 const upload = multer({ storage: imageStorage });
 
 // 📄 PDFs ke liye Memory Storage setup taaki binary buffer direct upload ho sake
@@ -78,6 +76,8 @@ const verificationSchema = new mongoose.Schema({
     userEmail: String,      
     documentUrl: String,    
     tenantName: String,
+    tenantFatherName: String,  // 🌟 NAYA: Pita/Pati ka naam (MP Police Format)
+    tenantDOB: String,         // 🌟 NAYA: Janm Tithi / DOB (MP Police Format)
     tenantPhone: String,
     aadharNumber: String,
     tenantPermanentAddress: String, 
@@ -135,7 +135,8 @@ app.get('/api/my-verifications', async (req, res) => {
         res.json({ success: true, requests });
     } catch (error) { res.status(500).json({ success: false }); }
 });
-// 👇 NAYA: User dwara request delete karne ki API 👇
+
+// User dwara request delete karne ki API
 app.delete('/api/user/delete-verification/:id', async (req, res) => {
     try {
         const request = await Verification.findById(req.params.id);
@@ -177,8 +178,8 @@ app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificatio
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: 'bhopal_properties_docs',
-                    resource_type: 'auto', // 👈 NAYA: 'raw' ki jagah 'auto' kiya
-                    format: 'pdf',         // 👈 NAYA: Strictly PDF format set kiya
+                    resource_type: 'auto', // PDF proper format me save karne ke liye
+                    format: 'pdf',         
                     public_id: `Verification_${req.params.id}_${Date.now()}`
                 },
                 (error, result) => {
@@ -206,7 +207,7 @@ app.post('/api/admin/change-verification-status/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// -- BAAKI PURANE APIs --
+// -- OTHER GENERAL APIs --
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -392,4 +393,4 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`)); 
+app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));

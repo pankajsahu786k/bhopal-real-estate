@@ -6,74 +6,95 @@
     <title>Police Verification Form - Bhopal Properties</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .form-container { max-width: 600px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #e74c3c; }
+        .form-container { max-width: 650px; margin: 20px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #e74c3c; }
         h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
         p.subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
-        .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+        .form-group { flex: 1; margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; font-size: 13px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
         .submit-btn { background: #e74c3c; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
         .submit-btn:hover { background: #c0392b; }
         .back-btn { display: inline-block; margin-bottom: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
-        .section-title { color: #2980b9; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; }
+        .section-title { color: #2980b9; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px; font-size: 16px; }
+        @media (max-width: 600px) { .form-row { flex-direction: column; gap: 0; } }
     </style>
 </head>
 <body>
 
     <div class="form-container">
         <a href="services.html" class="back-btn">← Back to Services</a>
-        <h2>👮 Tenant Police Verification</h2>
-        <p class="subtitle">Kripya tenant aur landlord ki sahi jankari bharein</p>
+        <h2>👮 MP Police Tenant Verification</h2>
+        <p class="subtitle">सिटिज़न पोर्टल के अनुसार सभी सही जानकारी भरें</p>
 
         <form id="verificationForm">
-            <h4 class="section-title">Tenant Details (किरायेदार की जानकारी)</h4>
-            
-            <div class="form-group">
-                <label>Tenant Ka Pura Naam *</label>
-                <input type="text" id="tenantName" required placeholder="Jaise: Rahul Kumar">
+            <h4 class="section-title">मालिक सूचना (Owner Details)</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>मालिक का नाम (Owner Name) *</label>
+                    <input type="text" id="ownerName" required placeholder="Suresh Sharma">
+                </div>
+                <div class="form-group">
+                    <label>मोबाइल नंबर (Mobile) *</label>
+                    <input type="tel" id="ownerPhone" required pattern="[0-9]{10}" placeholder="10 Digits">
+                </div>
             </div>
             <div class="form-group">
-                <label>Tenant Ki Passport Photo Upload Karein *</label>
-                <input type="file" id="tenantPhoto" accept="image/*" required>
+                <label>किराये की प्रॉपर्टी का पूरा पता (Property Address) *</label>
+                <textarea id="propertyAddress" rows="2" required placeholder="मकान नंबर, कॉलोनी, एरिया..."></textarea>
             </div>
             <div class="form-group">
-                <label>Family Me Kitne Member Hain? *</label>
-                <input type="number" id="familyMembers" min="1" required placeholder="Jaise: 4">
-            </div>
-            <div class="form-group">
-                <label>Mobile Number *</label>
-                <input type="tel" id="tenantPhone" required pattern="[0-9]{10}" placeholder="10 digits number">
-            </div>
-            <div class="form-group">
-                <label>Aadhar Card Number *</label>
-                <input type="text" id="aadharNumber" required pattern="[0-9]{12}" placeholder="12 digits number">
-            </div>
-            <div class="form-group">
-                <label>Tenant Ka Sthayi Pata (Permanent Address) *</label>
-                <textarea id="tenantPermanentAddress" rows="2" required placeholder="Pura permanent pata..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Sthayi Pate Ka Police Station *</label>
-                <input type="text" id="permanentPoliceStation" required placeholder="Jaise: Thana Misrod">
+                <label>प्रॉपर्टी का पुलिस स्टेशन (Current Police Station) *</label>
+                <select id="currentPoliceStation" required>
+                    <option value="">-- पुलिस स्टेशन चुनें --</option>
+                    <option value="ऐशबाग">ऐशबाग</option><option value="अरेरा हिल्स">अरेरा हिल्स</option><option value="अशोका गार्डन">अशोका गार्डन</option><option value="अवधपुरी">अवधपुरी</option><option value="अयोध्या नगर">अयोध्या नगर</option><option value="बागसेवनिया">बागसेवनिया</option><option value="बैरागढ़">बैरागढ़</option><option value="छोला मंदिर">छोला मंदिर</option><option value="चूनाभट्टी">चूनाभट्टी</option><option value="क्राइम ब्रांच">क्राइम ब्रांच</option><option value="गाँधी नगर">गाँधी नगर</option><option value="गौतम नगर">गौतम नगर</option><option value="गोविन्दपुरा">गोविन्दपुरा</option><option value="हबीब गंज">हबीब गंज</option><option value="हनुमानगंज">हनुमानगंज</option><option value="जहाँगीराबाद">जहाँगीराबाद</option><option value="कजलीखेड़ा">कजलीखेड़ा</option><option value="कमला नगर">कमला नगर</option><option value="कटारा हिल्स">कटारा हिल्स</option><option value="खजूरी सड़क">खजूरी सड़क</option><option value="कोहेफिजा">कोहेफिजा</option><option value="कोलार रोड">कोलार रोड</option><option value="कोतवाली भोपाल">कोतवाली भोपाल</option><option value="महाराणाप्रताप नगर">महाराणाप्रताप नगर (MP Nagar)</option><option value="महिला थाना">महिला थाना</option><option value="मंगलवारा">मंगलवारा</option><option value="मिसरोद">मिसरोद</option><option value="निशातपुरा">निशातपुरा</option><option value="पिपलानी">पिपलानी</option><option value="यातायात थाना भोपाल">यातायात थाना भोपाल</option><option value="रातीबड़">रातीबड़</option><option value="शाहजहानाबाद">शाहजहानाबाद</option><option value="शाहपुरा">शाहपुरा</option><option value="श्यामला हिल्स">श्यामला हिल्स</option><option value="स्टेशन बजरिया">स्टेशन बजरिया</option><option value="टी टी नगर">टी टी नगर (TT Nagar)</option><option value="तलैया">तलैया</option><option value="टीलाजमालपुरा">टीलाजमालपुरा</option>
+                </select>
             </div>
 
-            <h4 class="section-title">Owner & Property Details (मकान मालिक की जानकारी)</h4>
-            
-            <div class="form-group">
-                <label>Makan Malik Ka Naam *</label>
-                <input type="text" id="ownerName" required placeholder="Jaise: Suresh Sharma">
+            <h4 class="section-title">किरायेदार सूचना (Tenant Details)</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>किरायेदार का नाम (Tenant Name) *</label>
+                    <input type="text" id="tenantName" required placeholder="First & Last Name">
+                </div>
+                <div class="form-group">
+                    <label>पिता/पति का नाम (Father/Husband) *</label>
+                    <input type="text" id="tenantFatherName" required placeholder="Relative Name">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>जन्म तिथि (DOB) *</label>
+                    <input type="date" id="tenantDOB" required>
+                </div>
+                <div class="form-group">
+                    <label>मोबाइल नंबर (Mobile) *</label>
+                    <input type="tel" id="tenantPhone" required pattern="[0-9]{10}" placeholder="10 Digits">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>आधार कार्ड (Aadhar Number) *</label>
+                    <input type="text" id="aadharNumber" required pattern="[0-9]{12}" placeholder="12 Digits">
+                </div>
+                <div class="form-group">
+                    <label>परिवार के सदस्य (Family Members) *</label>
+                    <input type="number" id="familyMembers" min="1" required placeholder="Count">
+                </div>
             </div>
             <div class="form-group">
-                <label>Malik Ka Mobile Number *</label>
-                <input type="tel" id="ownerPhone" required pattern="[0-9]{10}" placeholder="10 digits number">
+                <label>किरायेदार की पासपोर्ट फोटो (Passport Photo) *</label>
+                <input type="file" id="tenantPhoto" accept="image/*" required>
+            </div>
+
+            <h4 class="section-title">स्थायी पता (Permanent Address)</h4>
+            <div class="form-group">
+                <label>किरायेदार का स्थायी पता (Permanent Address) *</label>
+                <textarea id="tenantPermanentAddress" rows="2" required placeholder="पूरा पता (House, Village, City, State)"></textarea>
             </div>
             <div class="form-group">
-                <label>Kiraye Ki Property Ka Pura Pata *</label>
-                <textarea id="propertyAddress" rows="2" required placeholder="Makan number, area, Bhopal..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Vartman Pate Ka Police Station (Bhopal) *</label>
-                <input type="text" id="currentPoliceStation" required placeholder="Bhopal ka vartman thana">
+                <label>स्थायी पते का पुलिस स्टेशन (Permanent P.S.) *</label>
+                <input type="text" id="permanentPoliceStation" required placeholder="स्थायी थाने का नाम">
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">Submit Verification Request 🚀</button>
@@ -84,63 +105,49 @@
         document.getElementById('verificationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "Uploading Photo & Submitting... ⏳";
+            btn.innerText = "Uploading Data... ⏳";
             btn.disabled = true;
 
             const formData = new FormData();
-            
-            // User ka email add kiya status mapping ke liye
             const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
             formData.append('userEmail', userEmail);
 
-            formData.append('tenantName', document.getElementById('tenantName').value);
-            formData.append('familyMembers', document.getElementById('familyMembers').value);
-            formData.append('tenantPhone', document.getElementById('tenantPhone').value);
-            formData.append('aadharNumber', document.getElementById('aadharNumber').value);
-            formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
-            formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
             formData.append('ownerName', document.getElementById('ownerName').value);
             formData.append('ownerPhone', document.getElementById('ownerPhone').value);
             formData.append('propertyAddress', document.getElementById('propertyAddress').value);
             formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
             
+            formData.append('tenantName', document.getElementById('tenantName').value);
+            formData.append('tenantFatherName', document.getElementById('tenantFatherName').value);
+            formData.append('tenantDOB', document.getElementById('tenantDOB').value);
+            formData.append('tenantPhone', document.getElementById('tenantPhone').value);
+            formData.append('aadharNumber', document.getElementById('aadharNumber').value);
+            formData.append('familyMembers', document.getElementById('familyMembers').value);
+            
+            formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
+            formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
+            
             const photoInput = document.getElementById('tenantPhoto');
-            if (photoInput.files.length > 0) {
-                formData.append('tenantPhoto', photoInput.files[0]);
-            }
+            if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
 
             try {
-                const res = await fetch('/api/submit-verification', {
-                    method: 'POST',
-                    body: formData 
-                });
-                
+                const res = await fetch('/api/submit-verification', { method: 'POST', body: formData });
                 const result = await res.json();
+                
                 if (result.success) {
                     alert(result.message);
-                    
-                    // 🔔 Backend se aaya hua dynamic agent number 🔔
                     const agentNumber = result.agentPhone || "919575611622"; 
-                    
                     const tenantName = document.getElementById('tenantName').value;
                     const tenantPhone = document.getElementById('tenantPhone').value;
                     
-                    const waMessage = `🔔 *New Police Verification Lead!*\n\n*Tenant Name:* ${tenantName}\n*Phone:* ${tenantPhone}\n\nSir, ek nayi police verification request aayi hai. Kripya apna Agent Dashboard check karein!`;
-                    const whatsappUrl = `https://wa.me/${agentNumber}?text=${encodeURIComponent(waMessage)}`;
-                    
-                    window.open(whatsappUrl, '_blank');
-
-                    // User ko wapas Services page par bhejna
+                    const waMessage = `🔔 *New MP Police Verification Lead!*\n\n*Tenant:* ${tenantName}\n*Phone:* ${tenantPhone}\n\nSir, naya verification aaya hai. 1-Click Copy use karne ke liye Agent Panel open karein!`;
+                    window.open(`https://wa.me/${agentNumber}?text=${encodeURIComponent(waMessage)}`, '_blank');
                     window.location.href = 'services.html'; 
                 } else {
-                    alert("❌ Kuch gadbad hui. Fir se koshish karein.");
-                    btn.innerText = "Submit Verification Request 🚀";
-                    btn.disabled = false;
+                    alert("❌ Kuch gadbad hui."); btn.innerText = "Submit Verification Request 🚀"; btn.disabled = false;
                 }
             } catch (error) {
-                alert("❌ Server Error!");
-                btn.innerText = "Submit Verification Request 🚀";
-                btn.disabled = false;
+                alert("❌ Server Error!"); btn.innerText = "Submit Verification Request 🚀"; btn.disabled = false;
             }
         });
     </script>
