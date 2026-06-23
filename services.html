@@ -74,11 +74,10 @@
             <p style="color: #666; margin-bottom: 30px;">अपनी प्रॉपर्टी की डील को और आसान और सुरक्षित बनाने के लिए हमारी विशेष सेवाओं का लाभ उठाएं:</p>
 
             <div class="services-grid">
-                
                 <div class="service-card" style="border-top-color: #8e44ad;">
                     <div class="service-icon">📄</div>
                     <h3>Rent Agreement (किरायानामा)</h3>
-                    <p>घर बैठे आसानी से अपना रेंट एग्रीमेंट (Rent Agreement) बनवाएं। हम स्टाम्प पेपर and लीगल ड्राफ्टिंग की पूरी सुविधा देते हैं।</p>
+                    <p>घर बैठे आसानी से अपना रेंट एग्रीमेंट (Rent Agreement) बनवाएं। हम स्टाम्प पेपर और लीगल ड्राफ्टिंग की पूरी सुविधा देते हैं।</p>
                     <button class="apply-btn" style="background: #8e44ad;" onclick="applyService('Rent Agreement')">Apply Now</button>
                 </div>
 
@@ -92,7 +91,7 @@
                 <div class="service-card" style="border-top-color: #3498db;">
                     <div class="service-icon">🏦</div>
                     <h3>Home Loan Assistance</h3>
-                    <p>सबसे कम ब्याज दरों पर टॉप बैंकों (SBI, HDFC, ICICI) से होम लोन प्राप्त करने में हमारी टीम आपकी पूरी मदद करेगी।</p>
+                    <p>सबसे कम ब्याज दरों पर टॉप बैंकों (SBI, HDFC, ICICI) से होम लोन प्राप्त करने में हमारी team आपकी पूरी मदद करेगी।</p>
                     <button class="apply-btn" style="background: #3498db;" onclick="applyService('Home Loan')">Apply for Loan</button>
                 </div>
 
@@ -109,23 +108,111 @@
                     <p>भोपाल में कहीं भी शिफ्टिंग करनी हो, हमारे वेरीफाइड पार्टनर्स आपका सामान एकदम सुरक्षित और सस्ते दाम में पहुंचाएंगे।</p>
                     <button class="apply-btn" style="background: #f39c12;" onclick="applyService('Packers & Movers')">Get Quote</button>
                 </div>
+            </div>
 
+            <div style="margin-top: 50px;">
+                <h3 style="color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; display: inline-block;">📋 My Service Requests (Live Status)</h3>
+                
+                <div style="background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow-x: auto; margin-top: 15px;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: sans-serif;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 15px; background-color: #34495e; color: white;">Service Type</th>
+                                <th style="padding: 15px; background-color: #34495e; color: white;">Applicant Details</th>
+                                <th style="padding: 15px; background-color: #34495e; color: white;">Live Status</th>
+                                <th style="padding: 15px; background-color: #34495e; color: white;">Download Document</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myRequestsTableBody">
+                            <tr><td colspan="4" style="text-align: center; padding: 20px;">Fetching your requests... ⏳</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
-    <div style="max-width: 1200px; margin: 40px auto; padding: 0 20px;">
-        <h3 style="color: #2c3e50; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; display: inline-block;">📋 My Service Requests (Live Status)</h3>
-        
-        <div style="background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow-x: auto; margin-top: 15px;">
-            <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: sans-serif;">
-                <thead>
-                    <tr>
-                        <th style="padding: 15px; background-color: #34495e; color: white;">Service Type</th>
-                        <th style="padding: 15px; background-color: #34495e; color: white;">Applicant Details</th>
-                        <th style="padding: 15px; background-color: #34495e; color: white;">Live Status</th>
-                        <th style="padding: 15px; background-color: #34495e; color: white;">Download Document</th>
-                    </tr>
-                </thead>
-                <tbody id="myRequestsTableBody">
-                    <tr><td colspan="4" style="text-align: center; padding: 20px;">Fetching your requests...
+    <script>
+        // Combined and safe single script execution block
+        document.addEventListener('DOMContentLoaded', () => {
+            const name = localStorage.getItem('brokerName') || 'User';
+            document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
+            loadMyRequests();
+        });
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        function applyService(serviceName) {
+            alert(`✅ ${serviceName} के लिए आपकी रिक्वेस्ट भेज दी गई है। हमारी टीम जल्द ही आपसे संपर्क करेगी!`);
+        }
+
+        async function loadMyRequests() {
+            const email = localStorage.getItem('brokerEmail');
+            const tbody = document.getElementById('myRequestsTableBody');
+            
+            if(!email) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #e74c3c;">अपना स्टेटस देखने के लिए कृपया लॉगिन करें।</td></tr>`;
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/my-verifications?email=${email}`);
+                const result = await res.json();
+                tbody.innerHTML = '';
+
+                if(result.success && result.requests.length > 0) {
+                    result.requests.forEach(req => {
+                        const isDone = req.status === 'Done';
+                        const statusColor = isDone ? '#2ecc71' : '#f1c40f';
+                        const textColor = isDone ? 'white' : '#2c3e50';
+                        
+                        // Cross-origin corrupt-free download button triggering binary blob fetch
+                        const docHtml = (isDone && req.documentUrl) 
+                            ? `<button onclick="downloadPdfFile('${req.documentUrl}', 'Verification_${req.tenantName}')" style="background: #e74c3c; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;">📥 Download PDF</button>` 
+                            : `<span style="color: #7f8c8d; font-size: 13px;">⏳ Processing...</span>`;
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd; font-weight: bold; color: #2980b9;">👮 Police Verification</td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">Tenant: ${req.tenantName}<br>Phone: ${req.tenantPhone}</td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">
+                                    <span style="background: ${statusColor}; color: ${textColor}; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                        ${isDone ? '✅ Verified' : '⏳ Pending'}
+                                    </span>
+                                </td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">${docHtml}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: #7f8c8d;">आपने अभी तक किसी सर्विस के लिए अप्लाई नहीं किया है।</td></tr>`;
+                }
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">डेटा लोड करने में एरर!</td></tr>`;
+            }
+        }
+
+        // Direct binary safe download logic to bypass raw browser preview errors
+        async function downloadPdfFile(url, fileName) {
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `${fileName}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(blobUrl);
+            } catch (error) {
+                alert("❌ PDF डाउनलोड करने में समस्या आई, कृपया यूआरएल चेक करें।");
+            }
+        }
+    </script>
+</body>
+</html>
