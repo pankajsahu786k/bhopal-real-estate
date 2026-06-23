@@ -135,6 +135,26 @@ app.get('/api/my-verifications', async (req, res) => {
         res.json({ success: true, requests });
     } catch (error) { res.status(500).json({ success: false }); }
 });
+// 👇 NAYA: User dwara request delete karne ki API 👇
+app.delete('/api/user/delete-verification/:id', async (req, res) => {
+    try {
+        const request = await Verification.findById(req.params.id);
+        
+        // Agar agent ne PDF upload kar di thi, toh Cloudinary se PDF bhi delete karein taaki storage free rahe
+        if (request && request.documentUrl) {
+            try {
+                const publicId = request.documentUrl.split('/').slice(-2).join('/').split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            } catch(e) { console.log("Cloudinary PDF delete error:", e); }
+        }
+        
+        // Database se record hamesha ke liye delete
+        await Verification.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'Data permanently deleted!' });
+    } catch (error) { 
+        res.status(500).json({ success: false, message: 'Server Error' }); 
+    }
+});
 
 
 // -- POLICE AGENT APIs --

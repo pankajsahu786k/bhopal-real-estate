@@ -45,6 +45,16 @@
             .nav-links a { padding: 10px 15px; border-left: none; border-bottom: 4px solid transparent; }
             .nav-links a:hover, .nav-links a.active { border-bottom-color: #2ecc71; border-left-color: transparent; }
         }
+
+        /* 🌟 NAYA: Modal (Popup) Styles for View Data */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: fadeIn 0.3s ease; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .close-modal { cursor: pointer; font-size: 20px; color: #e74c3c; border: none; background: none; font-weight: bold; transition: 0.2s; }
+        .close-modal:hover { transform: scale(1.2); }
+        .data-row { margin-bottom: 12px; font-size: 14px; color: #2c3e50; }
+        .data-row strong { color: #34495e; display: inline-block; width: 140px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -120,7 +130,7 @@
                                 <th style="padding: 15px; background-color: #34495e; color: white;">Service Type</th>
                                 <th style="padding: 15px; background-color: #34495e; color: white;">Applicant Details</th>
                                 <th style="padding: 15px; background-color: #34495e; color: white;">Live Status</th>
-                                <th style="padding: 15px; background-color: #34495e; color: white;">Download Document</th>
+                                <th style="padding: 15px; background-color: #34495e; color: white; text-align: center;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="myRequestsTableBody">
@@ -132,7 +142,20 @@
         </div>
     </div>
 
+    <div id="viewDataModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0; color:#2980b9;">📄 Verification Data</h3>
+                <button class="close-modal" onclick="closeModal()">✖</button>
+            </div>
+            <div id="modalBody">
+                </div>
+        </div>
+    </div>
+
     <script>
+        let globalRequests = []; // Data ko popup me dikhane ke liye yahan save karenge
+
         document.addEventListener('DOMContentLoaded', () => {
             const name = localStorage.getItem('brokerName') || 'User';
             document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
@@ -163,15 +186,17 @@
                 tbody.innerHTML = '';
 
                 if(result.success && result.requests.length > 0) {
+                    globalRequests = result.requests; // Data global array me save kiya
+
                     result.requests.forEach(req => {
                         const isDone = req.status === 'Done';
                         const statusColor = isDone ? '#2ecc71' : '#f1c40f';
                         const textColor = isDone ? 'white' : '#2c3e50';
                         
-                        // 🌟 NAYA: Direct browser PDF viewer me open karne ka logic (CORS Error Bypass)
+                        // Sirf PDF dekhne ka link
                         const docHtml = (isDone && req.documentUrl) 
-                            ? `<a href="${req.documentUrl}" target="_blank" style="background: #e74c3c; color: white; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-block;">👁️ View / Download PDF</a>` 
-                            : `<span style="color: #7f8c8d; font-size: 13px;">⏳ Processing...</span>`;
+                            ? `<a href="${req.documentUrl}" target="_blank" style="background: #27ae60; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: bold; display: block; margin-top: 8px; text-align: center;">📄 View PDF</a>` 
+                            : `<div style="font-size: 11px; color: #7f8c8d; margin-top: 5px; text-align: center;">⏳ No PDF</div>`;
 
                         tbody.innerHTML += `
                             <tr>
@@ -182,7 +207,13 @@
                                         ${isDone ? '✅ Verified' : '⏳ Pending'}
                                     </span>
                                 </td>
-                                <td style="padding: 15px; border-bottom: 1px solid #ddd;">${docHtml}</td>
+                                <td style="padding: 15px; border-bottom: 1px solid #ddd; text-align: center;">
+                                    <div style="display: flex; gap: 8px; justify-content: center;">
+                                        <button onclick="viewData('${req._id}')" style="background: #3498db; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;" title="View Data">👁️</button>
+                                        <button onclick="deleteRequest('${req._id}')" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 14px;" title="Delete Request">❌</button>
+                                    </div>
+                                    ${docHtml}
+                                </td>
                             </tr>
                         `;
                     });
@@ -192,6 +223,58 @@
             } catch (e) {
                 console.error(e);
                 tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">डेटा लोड करने में एरर!</td></tr>`;
+            }
+        }
+
+        // 🌟 NAYA: Data View Function
+        function viewData(id) {
+            const req = globalRequests.find(r => r._id === id);
+            if(!req) return;
+
+            const modalBody = document.getElementById('modalBody');
+            modalBody.innerHTML = `
+                <div style="margin-bottom: 15px; text-align: center;">
+                    <img src="${req.tenantPhoto}" alt="Tenant Photo" style="width: 80px; height: 80px; border-radius: 5px; object-fit: cover; border: 2px solid #3498db;">
+                </div>
+                <h4 style="margin: 0 0 10px 0; color: #e74c3c; border-bottom: 1px solid #eee; padding-bottom: 5px;">Tenant Details</h4>
+                <div class="data-row"><strong>Name:</strong> ${req.tenantName}</div>
+                <div class="data-row"><strong>Phone:</strong> ${req.tenantPhone}</div>
+                <div class="data-row"><strong>Aadhar:</strong> ${req.aadharNumber}</div>
+                <div class="data-row"><strong>Family Members:</strong> ${req.familyMembers}</div>
+                <div class="data-row"><strong>Permanent Addr:</strong> ${req.tenantPermanentAddress}</div>
+                <div class="data-row"><strong>Permanent P.S.:</strong> ${req.permanentPoliceStation}</div>
+                
+                <h4 style="margin: 20px 0 10px 0; color: #e74c3c; border-bottom: 1px solid #eee; padding-bottom: 5px;">Owner & Property Details</h4>
+                <div class="data-row"><strong>Owner Name:</strong> ${req.ownerName}</div>
+                <div class="data-row"><strong>Owner Phone:</strong> ${req.ownerPhone}</div>
+                <div class="data-row"><strong>Property Addr:</strong> ${req.propertyAddress}</div>
+                <div class="data-row"><strong>Current P.S.:</strong> ${req.currentPoliceStation}</div>
+            `;
+            document.getElementById('viewDataModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('viewDataModal').style.display = 'none';
+        }
+
+        // 🌟 NAYA: Delete Request Function with Strict Warning
+        async function deleteRequest(id) {
+            const confirmDelete = confirm("⚠️ चेतावनी (WARNING) ⚠️\n\nयह डेटा हमेशा के लिए डिलीट हो रहा है।\nभविष्य में आप इसे दोबारा प्राप्त (Recover) नहीं कर पाएंगे।\n\nक्या आप वाकई इसे डिलीट करना चाहते हैं?");
+            
+            if(!confirmDelete) return;
+
+            try {
+                const res = await fetch(`/api/user/delete-verification/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                
+                if(result.success) {
+                    alert("✅ डेटा सफलतापूर्वक डिलीट हो गया है!");
+                    loadMyRequests(); // Table ko refresh karega
+                } else {
+                    alert("❌ डिलीट करने में समस्या आई।");
+                }
+            } catch(e) {
+                alert("❌ Server Error!");
             }
         }
     </script>
