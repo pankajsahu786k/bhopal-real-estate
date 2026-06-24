@@ -7,14 +7,14 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
-        /* 🌟 NAYA: Sidebar Styling */
+        /* 🌟 Sidebar Styling */
         .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #1a252f; font-size: 18px; }
         .nav-links { list-style: none; padding: 0; margin: 0; }
         .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
         .nav-links a:hover, .nav-links a.active { background-color: #34495e; color: white; border-left-color: #e74c3c; }
 
-        /* 🌟 NAYA: Main Content Area */
+        /* 🌟 Main Content Area */
         .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
         
         /* Header Styling */
@@ -56,7 +56,7 @@
     <div class="sidebar">
         <h2>Bhopal Admin</h2>
         <ul class="nav-links">
-            <li><a href="admin.html" class="active">📋 All Data Summary</a></li>
+            <li><a href="admin-dashboard.html" class="active">📋 All Data Summary</a></li>
             <li><a href="police-dashboard.html">👮 Verification Agent</a></li>
             <li><a href="admin-analytics.html">📈 Service Analytics</a></li>
         </ul>
@@ -75,6 +75,18 @@
         <div class="container">
             <h2 style="color: #2c3e50; margin-top: 0;">स्वागत है बॉस! 👋</h2>
             
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #9b59b6; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; color: #2c3e50;">🛡️ Master Payment Control</h3>
+                    <p style="margin: 0; color: #7f8c8d; font-size: 13px;">एक क्लिक में पूरी वेबसाइट पर पेमेंट चालू या बाईपास (फ्री) करें।</p>
+                </div>
+                <div>
+                    <button id="paymentToggleBtn" onclick="togglePaymentMode()" style="background: #27ae60; color: white; border: none; padding: 12px 20px; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.3s;">
+                        Checking Status... ⏳
+                    </button>
+                </div>
+            </div>
+
             <div class="dashboard-cards">
                 <div class="card">
                     <h3>कुल यूज़र्स / ब्रोकर्स / एजेंट्स</h3>
@@ -106,6 +118,44 @@
             window.location.href = 'index.html'; 
         }
 
+        let currentBypassStatus = false;
+
+        // 🌟 Payment mode check karne ka system
+        async function checkCurrentPaymentStatus() {
+            try {
+                const res = await fetch('/api/payment-status');
+                const data = await res.json();
+                currentBypassStatus = data.isPaymentBypassed;
+                
+                const btn = document.getElementById('paymentToggleBtn');
+                if (currentBypassStatus) {
+                    btn.innerText = "🔓 FREE MODE ACTIVE (Click to Charge)";
+                    btn.style.background = "#e67e22";
+                } else {
+                    btn.innerText = "💳 RAZORPAY ACTIVE (Click to Bypass)";
+                    btn.style.background = "#2ecc71";
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // 🌟 Toggle button logic
+        async function togglePaymentMode() {
+            if(!confirm("क्या आप सच में पूरी वेबसाइट का पेमेंट मोड बदलना चाहते हैं?")) return;
+            
+            try {
+                const res = await fetch('/api/admin/toggle-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bypass: !currentBypassStatus })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    alert(data.message);
+                    checkCurrentPaymentStatus();
+                }
+            } catch(e) { alert("Error changing mode"); }
+        }
+
         async function loadAdminData() {
             try {
                 const response = await fetch('/api/admin/all-data');
@@ -123,7 +173,6 @@
                         usersContainer.innerHTML = '<p>कोई यूज़र नहीं मिला।</p>';
                     } else if (result.users) {
                         result.users.forEach(user => {
-                            // 🔄 SMART ROLE SELECTOR
                             let roleHtml = '';
                             if(user.role !== 'admin') {
                                 roleHtml = `
@@ -198,7 +247,6 @@
             }
         }
 
-        // 👑 ADMIN ACTIONS
         function loginAsUser(userName, userEmail, userRole) {
             if(confirm("क्या आप " + userName + " के डैशबोर्ड में जाना चाहते हैं?")) {
                 localStorage.setItem('brokerName', userName);
@@ -206,7 +254,6 @@
                 localStorage.setItem('userRole', userRole); 
                 localStorage.setItem('realAdmin', 'yes'); 
                 
-                // 🚀 Role-based redirection when logging in as another user
                 if (userRole === 'police_agent') {
                     window.location.href = 'police-dashboard.html';
                 } else if (userRole === 'notary') {
@@ -216,19 +263,16 @@
                 } else if (userRole === 'transporter') {
                     window.location.href = 'transporter-dashboard.html';
                 } else {
-                    window.location.href = 'dashboard.html'; // Normal User or Employee
+                    window.location.href = 'dashboard.html';
                 }
             }
         }
 
-        // 🔄 SMART USER ROLE CHANGE LOGIC
         async function changeUserRole(userId) {
             const dropdown = document.getElementById(`roleSelect_${userId}`);
             const newRole = dropdown.value;
             
-            if (!confirm(`क्या आप इस यूज़र का रोल बदलकर '${newRole}' करना चाहते हैं?`)) {
-                return;
-            }
+            if (!confirm(`क्या आप इस यूज़र का रोल बदलकर '${newRole}' करना चाहते हैं?`)) return;
 
             try {
                 const res = await fetch(`/api/admin/change-role/${userId}`, {
@@ -236,16 +280,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ newRole: newRole })
                 });
-                
                 const data = await res.json();
                 if(data.success) {
                     alert('✅ ' + data.message);
-                    loadAdminData(); // 👈 Page reload ki jagah sirf data refresh hoga
+                    loadAdminData();
                 } else {
                     alert('❌ ' + data.message);
                 }
             } catch(error) {
-                console.error(error);
                 alert("Server Error");
             }
         }
@@ -255,7 +297,7 @@
                 try {
                     const response = await fetch(`/api/admin/approve-property/${propertyId}`, { method: 'POST' });
                     const result = await response.json();
-                    if (result.success) { alert(result.message); loadAdminData(); }
+                    if (result.success) { loadAdminData(); }
                 } catch (error) { alert("प्रॉपर्टी अप्रूव करने में कोई गड़बड़ हुई!"); }
             }
         }
@@ -265,7 +307,7 @@
                 try {
                     const response = await fetch(`/api/admin/unpublish-property/${propertyId}`, { method: 'POST' });
                     const result = await response.json();
-                    if (result.success) { alert(result.message); loadAdminData(); }
+                    if (result.success) { loadAdminData(); }
                 } catch (error) { alert("प्रॉपर्टी को पेंडिंग करने में कोई गड़बड़ हुई!"); }
             }
         }
@@ -275,7 +317,7 @@
                 try {
                     const response = await fetch(`/api/admin/delete-property/${propertyId}`, { method: 'DELETE' });
                     const result = await response.json();
-                    if (result.success) { alert(result.message); loadAdminData(); }
+                    if (result.success) { loadAdminData(); }
                 } catch (error) { alert("डिलीट करने में कोई गड़बड़ हुई!"); }
             }
         }
@@ -285,11 +327,13 @@
                 try {
                     const response = await fetch(`/api/admin/delete-user/${userId}`, { method: 'DELETE' });
                     const result = await response.json();
-                    if (result.success) { alert(result.message); loadAdminData(); }
+                    if (result.success) { loadAdminData(); }
                 } catch (error) { alert("यूज़र डिलीट करने में समस्या आई!"); }
             }
         }
 
+        // Both functions called properly
+        checkCurrentPaymentStatus();
         loadAdminData();
     </script>
 </body>

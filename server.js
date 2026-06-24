@@ -91,19 +91,30 @@ const verificationSchema = new mongoose.Schema({
     status: { type: String, default: 'Pending' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
-// ==========================================
-// 🌟 NAYA: SUPER APP SERVICES TRACKER 🌟
-// ==========================================
+
+// 🌟 NAYA: SUPER APP SERVICES TRACKER
 const serviceAnalyticsSchema = new mongoose.Schema({
     serviceName: { type: String, unique: true },
     clicks: { type: Number, default: 0 }
 });
 const ServiceAnalytics = mongoose.model('ServiceAnalytics', serviceAnalyticsSchema);
 
+// 🎛️ NAYA: PAYMENT BYPASS CONFIGURATION
+const configSchema = new mongoose.Schema({
+    key: { type: String, unique: true },
+    value: Boolean
+});
+const Config = mongoose.model('Config', configSchema);
+
+
+// ==========================================
+// 3️⃣ API ROUTES
+// ==========================================
+
+// -- SUPER APP SERVICES TRACKER APIs --
 app.post('/api/track-service/:serviceName', async (req, res) => {
     try {
         const serviceName = req.params.serviceName;
-        // Data base me check karega, agar service nahi hai toh nayi banayega, hai toh count +1 karega
         await ServiceAnalytics.findOneAndUpdate(
             { serviceName: serviceName },
             { $inc: { clicks: 1 } },
@@ -117,20 +128,39 @@ app.post('/api/track-service/:serviceName', async (req, res) => {
 
 app.get('/api/admin/service-analytics', async (req, res) => {
     try {
-        const analytics = await ServiceAnalytics.find({}).sort({ clicks: -1 }); // Sabse jyada click wali upar
+        const analytics = await ServiceAnalytics.find({}).sort({ clicks: -1 });
         res.json({ success: true, data: analytics });
     } catch(e) {
         res.status(500).json({ success: false });
     }
 });
 
+// -- PAYMENT BYPASS APIs --
+app.get('/api/payment-status', async (req, res) => {
+    try {
+        const bypassConfig = await Config.findOne({ key: 'bypassPayment' });
+        const isBypassed = bypassConfig ? bypassConfig.value : false;
+        res.json({ success: true, isPaymentBypassed: isBypassed });
+    } catch (e) {
+        res.status(500).json({ success: false, isPaymentBypassed: false });
+    }
+});
 
-// ==========================================
-// 3️⃣ API ROUTES
-// ==========================================
+app.post('/api/admin/toggle-payment', async (req, res) => {
+    try {
+        const { bypass } = req.body;
+        await Config.findOneAndUpdate(
+            { key: 'bypassPayment' },
+            { value: bypass },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, message: bypass ? "Payment BYPASSED (Free Mode Active) 🔓" : "Payment ENABLED (Paid Mode Active) 💳" });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
 
 // -- USER APIs --
-
 app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, res) => {
     try {
         const photoUrl = req.file ? (req.file.path || req.file.url) : 'https://placehold.co/150x150?text=No+Photo';
@@ -168,20 +198,15 @@ app.get('/api/my-verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// User dwara request delete karne ki API
 app.delete('/api/user/delete-verification/:id', async (req, res) => {
     try {
         const request = await Verification.findById(req.params.id);
-        
-        // Agar agent ne PDF upload kar di thi, toh Cloudinary se PDF bhi delete karein taaki storage free rahe
         if (request && request.documentUrl) {
             try {
                 const publicId = request.documentUrl.split('/').slice(-2).join('/').split('.')[0];
                 await cloudinary.uploader.destroy(publicId);
             } catch(e) { console.log("Cloudinary PDF delete error:", e); }
         }
-        
-        // Database se record hamesha ke liye delete
         await Verification.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Data permanently deleted!' });
     } catch (error) { 
@@ -189,9 +214,7 @@ app.delete('/api/user/delete-verification/:id', async (req, res) => {
     }
 });
 
-
 // -- POLICE AGENT APIs --
-
 app.get('/api/admin/verifications', async (req, res) => {
     try {
         const requests = await Verification.find({ status: 'Pending' }).sort({ createdAt: -1 }); 
@@ -199,7 +222,6 @@ app.get('/api/admin/verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// direct stream upload logic to prevent pdf corruption
 app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificationDoc'), async (req, res) => {
     try {
         if (!req.file) {
@@ -210,8 +232,8 @@ app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificatio
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: 'bhopal_properties_docs',
-                    resource_type: 'auto', // PDF proper format me save karne ke liye
-                    format: 'pdf',         
+                    resource_type: 'auto',
+                    format: 'pdf',          
                     public_id: `Verification_${req.params.id}_${Date.now()}`
                 },
                 (error, result) => {
@@ -223,7 +245,6 @@ app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificatio
         });
 
         const docUrl = uploadResult.secure_url || uploadResult.url;
-
         await Verification.findByIdAndUpdate(req.params.id, { status: 'Done', documentUrl: docUrl });
         res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Done!' });
     } catch (error) { 
@@ -397,7 +418,7 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
                 } catch(e) { console.log("Cloudinary image delete error:", e); }
             }
         }
-        await Property.findByIdAndDelete(req.params.id);
+        await property.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Property and photos deleted permanently!' });
     } catch (error) { res.status(500).json({ success: false }); }
 });

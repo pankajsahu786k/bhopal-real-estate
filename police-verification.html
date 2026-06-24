@@ -105,51 +105,114 @@
         document.getElementById('verificationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "Uploading Data... ⏳";
+            btn.innerText = "Checking Payment Status... ⏳";
             btn.disabled = true;
 
-            const formData = new FormData();
-            const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
-            formData.append('userEmail', userEmail);
-
-            formData.append('ownerName', document.getElementById('ownerName').value);
-            formData.append('ownerPhone', document.getElementById('ownerPhone').value);
-            formData.append('propertyAddress', document.getElementById('propertyAddress').value);
-            formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
-            
-            formData.append('tenantName', document.getElementById('tenantName').value);
-            formData.append('tenantFatherName', document.getElementById('tenantFatherName').value);
-            formData.append('tenantDOB', document.getElementById('tenantDOB').value);
-            formData.append('tenantPhone', document.getElementById('tenantPhone').value);
-            formData.append('aadharNumber', document.getElementById('aadharNumber').value);
-            formData.append('familyMembers', document.getElementById('familyMembers').value);
-            
-            formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
-            formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
-            
-            const photoInput = document.getElementById('tenantPhoto');
-            if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
-
             try {
-                const res = await fetch('/api/submit-verification', { method: 'POST', body: formData });
-                const result = await res.json();
+                // 🎛️ STEP 1: Sabse pehle backend se check karega ki Payment Enabled hai ya Bypassed (Free)
+                const resStatus = await fetch('/api/payment-status');
+                const paymentData = await resStatus.json();
+
+                // Form ka saara data akatha karo
+                const formData = new FormData();
+                const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
+                formData.append('userEmail', userEmail);
+                formData.append('ownerName', document.getElementById('ownerName').value);
+                formData.append('ownerPhone', document.getElementById('ownerPhone').value);
+                formData.append('propertyAddress', document.getElementById('propertyAddress').value);
+                formData.append('propertyDistrict', document.getElementById('propertyDistrict').value);
+                formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
+                formData.append('tenantName', document.getElementById('tenantName').value);
+                formData.append('tenantFatherName', document.getElementById('tenantFatherName').value);
+                formData.append('tenantDOB', document.getElementById('tenantDOB').value);
+                formData.append('tenantPhone', document.getElementById('tenantPhone').value);
+                formData.append('aadharNumber', document.getElementById('aadharNumber').value);
+                formData.append('familyMembers', document.getElementById('familyMembers').value);
+                formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
+                formData.append('permanentDistrict', document.getElementById('permanentDistrict').value);
+                formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
                 
-                if (result.success) {
-                    alert(result.message);
-                    const agentNumber = result.agentPhone || "919575611622"; 
-                    const tenantName = document.getElementById('tenantName').value;
-                    const tenantPhone = document.getElementById('tenantPhone').value;
+                const photoInput = document.getElementById('tenantPhoto');
+                if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
+
+                // 🔓 CONDITION A: Agar Admin ne FREE MODE (Bypass) active kiya hai
+                if (paymentData.isPaymentBypassed) {
+                    btn.innerText = "Uploading Data... ⏳";
                     
-                    const waMessage = `🔔 *New MP Police Verification Lead!*\n\n*Tenant:* ${tenantName}\n*Phone:* ${tenantPhone}\n\nSir, naya verification aaya hai. 1-Click Copy use karne ke liye Agent Panel open karein!`;
-                    window.open(`https://wa.me/${agentNumber}?text=${encodeURIComponent(waMessage)}`, '_blank');
-                    window.location.href = 'services.html'; 
-                } else {
-                    alert("❌ Kuch gadbad hui."); btn.innerText = "Submit Verification Request 🚀"; btn.disabled = false;
+                    // Seedha data save karo, bina Razorpay dikhaye
+                    const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
+                    const result = await saveRes.json();
+                    
+                    if (result.success) {
+                        alert("🔓 फ्री सर्विस एक्टिव है! आपकी रिक्वेस्ट बिना पेमेंट के सबमिट हो गई है।");
+                        redirectToWhatsApp(result.agentPhone, document.getElementById('tenantName').value, document.getElementById('tenantPhone').value);
+                    } else {
+                        alert("❌ Form submit karne me dikkat aayi.");
+                        resetBtn(btn);
+                    }
+                } 
+                // 💳 CONDITION B: Agar Paid Mode active hai (Razorpay open hoga)
+                else {
+                    btn.innerText = "Initiating Payment... 💳";
+                    
+                    // 1. Backend se Razorpay ka order create karwayenge
+                    const orderRes = await fetch('/api/create-order', { method: 'POST' });
+                    const orderData = await orderRes.json();
+                    
+                    if(!orderData.success) {
+                        alert("❌ Payment Order create nahi ho paya.");
+                        resetBtn(btn);
+                        return;
+                    }
+
+                    // 2. Razorpay ka checkout window settings
+                    const options = {
+                        "key": "rzp_test_T3oTzNzTDvWgUL", // Aapki test key
+                        "amount": orderData.order.amount,
+                        "currency": "INR",
+                        "name": "Bhopal Properties",
+                        "description": "Tenant Police Verification Charges",
+                        "order_id": orderData.order.id,
+                        "handler": async function (response) {
+                            // Ye function tab chalega jab payment SUCCESSFUL ho jayegi
+                            btn.innerText = "Saving Data after Payment... ⏳";
+                            
+                            // Form data ke sath payment details bhi bhej sakte ho agar chaho toh
+                            const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
+                            const result = await saveRes.json();
+                            
+                            if (result.success) {
+                                alert("💳 पेमेंट सफल! आपकी वेरिफिकेशन रिक्वेस्ट सबमिट हो गई है।");
+                                redirectToWhatsApp(result.agentPhone, document.getElementById('tenantName').value, document.getElementById('tenantPhone').value);
+                            }
+                        },
+                        "theme": { "color": "#e74c3c" }
+                    };
+                    
+                    const rzp1 = new Razorpay(options);
+                    rzp1.open();
+                    resetBtn(btn); // Payment window khulne par button wapas normal kar do
                 }
+
             } catch (error) {
-                alert("❌ Server Error!"); btn.innerText = "Submit Verification Request 🚀"; btn.disabled = false;
+                console.error(error);
+                alert("❌ Server Error!");
+                resetBtn(btn);
             }
         });
+
+        // 🛠️ Helper Functions taaki code saaf dikhe
+        function resetBtn(btn) {
+            btn.innerText = "Submit Verification Request 🚀";
+            btn.disabled = false;
+        }
+
+        function redirectToWhatsApp(agentPhone, tenantName, tenantPhone) {
+            const agentNumber = agentPhone || "919575611622";
+            const waMessage = `🔔 *New MP Police Verification Lead!*\n\n*Tenant:* ${tenantName}\n*Phone:* ${tenantPhone}\n\nSir, naya verification aaya hai. Agent Panel check karein!`;
+            window.open(`https://wa.me/${agentNumber}?text=${encodeURIComponent(waMessage)}`, '_blank');
+            window.location.href = 'services.html';
+        }
     </script>
 </body>
 </html>
