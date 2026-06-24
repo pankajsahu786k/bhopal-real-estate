@@ -91,6 +91,38 @@ const verificationSchema = new mongoose.Schema({
     status: { type: String, default: 'Pending' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
+// ==========================================
+// 🌟 NAYA: SUPER APP SERVICES TRACKER 🌟
+// ==========================================
+const serviceAnalyticsSchema = new mongoose.Schema({
+    serviceName: { type: String, unique: true },
+    clicks: { type: Number, default: 0 }
+});
+const ServiceAnalytics = mongoose.model('ServiceAnalytics', serviceAnalyticsSchema);
+
+app.post('/api/track-service/:serviceName', async (req, res) => {
+    try {
+        const serviceName = req.params.serviceName;
+        // Data base me check karega, agar service nahi hai toh nayi banayega, hai toh count +1 karega
+        await ServiceAnalytics.findOneAndUpdate(
+            { serviceName: serviceName },
+            { $inc: { clicks: 1 } },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true });
+    } catch(e) {
+        res.status(500).json({ success: false });
+    }
+});
+
+app.get('/api/admin/service-analytics', async (req, res) => {
+    try {
+        const analytics = await ServiceAnalytics.find({}).sort({ clicks: -1 }); // Sabse jyada click wali upar
+        res.json({ success: true, data: analytics });
+    } catch(e) {
+        res.status(500).json({ success: false });
+    }
+});
 
 
 // ==========================================
