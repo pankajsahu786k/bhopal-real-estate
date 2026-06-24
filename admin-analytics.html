@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Analytics - Admin Panel</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; }
+        
+        /* Sidebar Styling */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; }
+        .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #1a252f; font-size: 18px; }
+        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
+        .nav-links a:hover, .nav-links a.active { background-color: #34495e; color: white; border-left-color: #e74c3c; }
+
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .header h1 { color: #2c3e50; margin: 0; font-size: 24px; }
+        
+        /* Dashboard Cards / Layout */
+        .analytics-container { display: flex; flex-direction: column; gap: 30px; }
+        .chart-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        .data-table-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; font-size: 14px; }
+        td { color: #2c3e50; font-size: 14px; font-weight: bold; }
+        
+        .badge-count { background: #3498db; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; }
+        .rank-number { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Bhopal Admin</h2>
+        <ul class="nav-links">
+            <li><a href="#">📋 All Data Summary</a></li>
+            <li><a href="police-dashboard.html">👮 Verification Agent</a></li>
+            <li><a href="admin-analytics.html" class="active">📈 Service Analytics</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>📊 Consumer Demand & Service Analytics</h1>
+            <button onclick="location.reload()" style="background:#3498db; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">🔄 Refresh Data</button>
+        </div>
+
+        <div class="analytics-container">
+            <div class="chart-card">
+                <h3 style="margin-top:0; color:#34495e;">Live Consumer Interest Graph (Most Clicked)</h3>
+                <div style="max-height: 350px; position: relative;">
+                    <canvas id="servicesChart"></canvas>
+                </div>
+            </div>
+
+            <div class="data-table-card">
+                <h3 style="margin-top:0; color:#34495e;">Service Popularity Leaderboard</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Rank</th>
+                            <th>Service Name</th>
+                            <th>Total Consumer Clicks / Inquiries</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyticsTableBody">
+                        <tr><td colspan="3" style="text-align:center;">Loading Analytics Data... ⏳</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', fetchAnalyticsData);
+
+        async function fetchAnalyticsData() {
+            try {
+                const res = await fetch('/api/admin/service-analytics');
+                const result = await res.json();
+                
+                if(result.success && result.data.length > 0) {
+                    renderTable(result.data);
+                    renderChart(result.data);
+                } else {
+                    document.getElementById('analyticsTableBody').innerHTML = `<tr><td colspan="3" style="text-align:center; color:#7f8c8d;">Abhi tak kisi service par koi click nahi hua hai.</td></tr>`;
+                }
+            } catch (error) {
+                console.error("Error fetching analytics:", error);
+                document.getElementById('analyticsTableBody').innerHTML = `<tr><td colspan="3" style="text-align:center; color:red;">Data load karne me error aayi!</td></tr>`;
+            }
+        }
+
+        // Table me Data show karne ka logic
+        function renderTable(data) {
+            const tbody = document.getElementById('analyticsTableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach((item, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="rank-number">#${index + 1}</td>
+                        <td>${item.serviceName}</td>
+                        <td><span class="badge-count">${item.clicks} Clicks</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Chart.js se mast dynamic Bar Graph banane ka logic
+        function renderChart(data) {
+            const labels = data.map(item => item.serviceName);
+            const clicksData = data.map(item => item.clicks);
+            
+            const ctx = document.getElementById('servicesChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Clicks / Inquiries',
+                        data: clicksData,
+                        backgroundColor: [
+                            'rgba(52, 152, 219, 0.7)', // Blue
+                            'rgba(231, 76, 60, 0.7)',  // Red
+                            'rgba(46, 204, 113, 0.7)', // Green
+                            'rgba(241, 196, 15, 0.7)', // Yellow
+                            'rgba(155, 89, 182, 0.7)', // Purple
+                            'rgba(230, 126, 34, 0.7)'  // Orange
+                        ],
+                        borderColor: [
+                            '#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false } // Extra labels hide karne ke liye
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
