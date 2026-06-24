@@ -219,6 +219,31 @@
                             </td>
                             <td>
                                 <button class="edit-btn" onclick="openEditModal('${prop._id}')">Edit</button>
+                                <button class="delete-btn" onclick="deleteProperty('${prop._id}')" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px;">Delete</button>
+                            </td>
+                        </tr>`;
+                });
+
+                    // 🧾 Lifelong dynamic receipt values from Database 
+                    const txn = prop.transactionId || 'FREE_BYPASS';
+                    const amt = prop.amountPaid !== undefined ? prop.amountPaid : 0;
+                    const srv = amt === 0 ? 'Property Listing (FREE Mode)' : 'Property Listing Premium';
+                    const receiptLink = `receipt.html?txn=${txn}&service=${encodeURIComponent(srv)}&amount=${amt}`;
+
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td><img src="${propertyImgSrc}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;" onerror="this.onerror=null; this.src='https://placehold.co/80x50?text=Image';"></td>
+                            <td>${prop.title}</td>
+                            <td>${prop.location}</td>
+                            <td>${priceText}</td>
+                            <td><span class="status ${statusClass}">${statusText}</span></td>
+                            <td style="font-weight:bold; color:#2980b9; text-align: center; font-size: 16px;">${prop.views || 0}</td>
+                            <td style="font-weight:bold; color:#27ae60; text-align: center; font-size: 16px;">${prop.clicks || 0}</td>
+                            <td style="text-align:center;">
+                                <a href="${receiptLink}" target="_blank" style="background: #9b59b6; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">🧾 View Receipt</a>
+                            </td>
+                            <td>
+                                <button class="edit-btn" onclick="openEditModal('${prop._id}')">Edit</button>
                                 <button class="delete-btn" onclick="deleteProperty('${prop._id}')">Delete</button>
                             </td>
                         </tr>`;
