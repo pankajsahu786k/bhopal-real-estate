@@ -80,8 +80,8 @@ const verificationSchema = new mongoose.Schema({
     userEmail: String,      
     documentUrl: String,    
     tenantName: String,
-    tenantFatherName: String,  // 🌟 NAYA: Pita/Pati ka naam (MP Police Format)
-    tenantDOB: String,         // 🌟 NAYA: Janm Tithi / DOB (MP Police Format)
+    tenantFatherName: String,  
+    tenantDOB: String,         
     tenantPhone: String,
     aadharNumber: String,
     tenantPermanentAddress: String, 
@@ -110,10 +110,49 @@ const configSchema = new mongoose.Schema({
 });
 const Config = mongoose.model('Config', configSchema);
 
+// 🧾 NAYA: UNIVERSAL AUTOMATED RECEIPT SCHEMA (Har service ke liye)
+const universalReceiptSchema = new mongoose.Schema({
+    userEmail: { type: String, required: true },
+    serviceName: { type: String, required: true }, 
+    transactionId: { type: String, required: true },
+    amountPaid: { type: Number, required: true },
+    paymentStatus: { type: String, default: 'Paid' }
+}, { timestamps: true });
+const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
+
 
 // ==========================================
 // 3️⃣ API ROUTES
 // ==========================================
+
+// -- UNIVERSAL AUTOMATED RECEIPT APIs --
+app.post('/api/save-receipt', async (req, res) => {
+    try {
+        const { userEmail, serviceName, transactionId, amountPaid, paymentStatus } = req.body;
+        const newReceipt = new UniversalReceipt({
+            userEmail: userEmail.toLowerCase().trim(),
+            serviceName,
+            transactionId,
+            amountPaid,
+            paymentStatus: paymentStatus || 'Paid'
+        });
+        await newReceipt.save();
+        res.json({ success: true, message: "Receipt generated automatically!" });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+app.get('/api/my-receipts', async (req, res) => {
+    try {
+        const email = req.query.email;
+        if (!email) return res.status(400).json({ success: false, message: "Email required" });
+        const receipts = await UniversalReceipt.find({ userEmail: email.toLowerCase().trim() }).sort({ createdAt: -1 });
+        res.json({ success: true, receipts });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
 
 // -- SUPER APP SERVICES TRACKER APIs --
 app.post('/api/track-service/:serviceName', async (req, res) => {
@@ -202,13 +241,12 @@ app.get('/api/my-verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 🗑️ NAYA: User Only Delete Property API
+// 🗑️ User Only Delete Property API
 app.delete('/api/user/delete-property/:id', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
 
-        // Cloudinary se images delete karne ka logic
         if (property.images && property.images.length > 0) {
             for (const imgUrl of property.images) {
                 try {
