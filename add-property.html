@@ -113,7 +113,7 @@
 
     <script>
         let userRole = 'user'; 
-        let isPaymentBypassedGlobal = false; // Live payment configuration state
+        let isPaymentBypassedGlobal = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -125,29 +125,22 @@
                 return;
             }
 
-            // 🎛️ NAYA: Backend se payment master status check karega
             try {
                 const res = await fetch('/api/payment-status');
                 const data = await res.json();
                 isPaymentBypassedGlobal = data.isPaymentBypassed;
-            } catch (e) {
-                console.error("Error fetching payment status:", e);
-            }
+            } catch (e) { console.error(e); }
 
-            // 🟢 NAYA: Master Control Switch aur Role ke combination se dynamic text set karein
             const submitBtn = document.getElementById('submitBtn');
             if (isPaymentBypassedGlobal) {
-                // Master button free kiya hua h
                 submitBtn.innerText = "Publish Property (FREE) 🚀";
-                submitBtn.style.backgroundColor = "#e67e22"; // Eye-catching Orange for general free bypass
+                submitBtn.style.backgroundColor = "#e67e22"; 
             } else if (userRole === 'employee' || userRole === 'admin') {
-                // Paid mode active h par is user ka role admin/employee h
                 submitBtn.innerText = "Free Publish (Direct Live) 🚀";
-                submitBtn.style.backgroundColor = "#28a745"; // Green
+                submitBtn.style.backgroundColor = "#28a745"; 
             } else {
-                // Normal paid user logic
                 submitBtn.innerText = "Pay ₹10 & Publish 💳";
-                submitBtn.style.backgroundColor = "#3498db"; // Normal Blue
+                submitBtn.style.backgroundColor = "#3498db"; 
             }
         });
 
@@ -172,7 +165,6 @@
             submitBtn.disabled = true;
 
             const brokerEmail = localStorage.getItem('brokerEmail');
-
             let finalLocation = document.getElementById('location').value;
             if (finalLocation === 'other') {
                 finalLocation = document.getElementById('customLocation').value.trim();
@@ -201,12 +193,18 @@
                 }
             }
 
-            // 🔄 NAYA: Bypass active hai YA role free listing wala hai, toh seedha upload karo, warna paid popup kholo!
+            // 🔄 Check for free bypass or role bypass
             if (isPaymentBypassedGlobal || userRole === 'employee' || userRole === 'admin') {
+                // Generate a unique dummy transaction ID for free listings
+                const freeTxnId = 'FREE_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                formData.append('transactionId', freeTxnId);
+                formData.append('amountPaid', 0);
+                formData.append('paymentStatus', 'Bypassed (Free)');
+
                 if (isPaymentBypassedGlobal) {
                     submitBtn.innerText = "Bypass Verified! Uploading... 🔓";
                 }
-                uploadPropertyData(formData, submitBtn, originalText);
+                uploadPropertyData(formData, submitBtn, originalText, freeTxnId, 'Property Listing (FREE Mode)', 0);
             } else {
                 startRazorpayPayment(formData, submitBtn, originalText);
             }
@@ -233,7 +231,10 @@
                     order_id: orderData.order.id,
                     handler: function (response) {
                         submitBtn.innerText = "Payment Successful! Uploading... 🚀";
-                        uploadPropertyData(formData, submitBtn, originalText);
+                        formData.append('transactionId', response.razorpay_payment_id);
+                        formData.append('amountPaid', 10);
+                        formData.append('paymentStatus', 'Paid');
+                        uploadPropertyData(formData, submitBtn, originalText, response.razorpay_payment_id, 'Property Listing Premium', 10);
                     },
                     prefill: {
                         name: localStorage.getItem('brokerName') || "User",
@@ -254,31 +255,26 @@
 
             } catch (error) {
                 alert("❌ Payment Server Se Connect Nahi Ho Paya.");
-                console.error(error);
                 resetButton(submitBtn, originalText);
             }
         }
 
-        async function uploadPropertyData(formData, submitBtn, originalText) {
+        async function uploadPropertyData(formData, submitBtn, originalText, txnId, serviceName, amt) {
             submitBtn.innerText = "Uploading Photos & Data... ⏳";
             try {
-                const response = await fetch('/api/add-property', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                const response = await fetch('/api/add-property', { method: 'POST', body: formData });
                 const data = await response.json();
 
                 if (data.success) {
-                    alert('✅ ' + data.message);
-                    window.location.href = 'dashboard.html'; 
+                    alert('✅ Property Uploaded Successfully!');
+                    // Redirect to receipt directly with current txn details
+                    window.location.href = `receipt.html?txn=${txnId}&service=${encodeURIComponent(serviceName)}&amount=${amt}`; 
                 } else {
                     alert('❌ ' + data.message);
                     resetButton(submitBtn, originalText);
                 }
             } catch (error) {
                 alert('❌ सर्वर से जुड़ने में समस्या आई।');
-                console.error(error);
                 resetButton(submitBtn, originalText);
             }
         }
@@ -289,5 +285,4 @@
         }
     </script>
 </body>
-
 </html>

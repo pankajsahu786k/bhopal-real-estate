@@ -62,7 +62,11 @@ const propertySchema = new mongoose.Schema({
     title: String, purpose: String, location: String, price: Number, desc: String,
     images: [{ type: String }], videoLink: { type: String, default: '' }, 
     brokerEmail: String, contactNumber: String, status: { type: String, default: 'pending' },
-    views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 } 
+    views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 },
+    // 🌟 NAYA: Invoice/Receipt Tracking Fields
+    transactionId: { type: String, default: 'FREE_BYPASS' },
+    amountPaid: { type: Number, default: 0 },
+    paymentStatus: { type: String, default: 'Free' }
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
