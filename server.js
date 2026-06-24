@@ -202,17 +202,24 @@ app.get('/api/my-verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-app.delete('/api/user/delete-verification/:id', async (req, res) => {
+// 🗑️ NAYA: User Only Delete Property API
+app.delete('/api/user/delete-property/:id', async (req, res) => {
     try {
-        const request = await Verification.findById(req.params.id);
-        if (request && request.documentUrl) {
-            try {
-                const publicId = request.documentUrl.split('/').slice(-2).join('/').split('.')[0];
-                await cloudinary.uploader.destroy(publicId);
-            } catch(e) { console.log("Cloudinary PDF delete error:", e); }
+        const property = await Property.findById(req.params.id);
+        if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
+
+        // Cloudinary se images delete karne ka logic
+        if (property.images && property.images.length > 0) {
+            for (const imgUrl of property.images) {
+                try {
+                    const publicId = imgUrl.split('/').slice(-2).join('/').split('.')[0];
+                    await cloudinary.uploader.destroy(publicId);
+                } catch(e) { console.log("Cloudinary image delete error:", e); }
+            }
         }
-        await Verification.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'Data permanently deleted!' });
+        
+        await Property.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'Property permanently deleted!' });
     } catch (error) { 
         res.status(500).json({ success: false, message: 'Server Error' }); 
     }

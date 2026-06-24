@@ -177,6 +177,7 @@
             document.getElementById('broker-name').innerText = savedName;
 
             try {
+                // UI Refresh ke liye query update
                 const response = await fetch(`/api/get-properties?email=${encodeURIComponent(brokerEmail)}`);
                 const properties = await response.json();
                 const tableBody = document.getElementById('propertyTableBody');
@@ -186,19 +187,30 @@
                     tableBody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color: #7f8c8d;">कोई प्रॉपर्टी नहीं मिली। '+ Nayi Property Jodein' पर क्लिक करके अपलोड करें।</td></tr>`;
                     return;
                 }
-properties.forEach(prop => {
+
+                properties.forEach(prop => {
                     const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
-                    const statusClass = prop.purpose === 'Rent' ? 'pending-status' : 'active-status';
-                    const statusText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
+                    
+                    // 🛡️ Live Status Badge Logic
+                    let statusHtml = '';
+                    let actionButtonsHtml = '';
+
+                    if (prop.status === 'pending') {
+                        statusHtml = `<span class="status pending-status" style="background:#f1c40f; color:#2c3e50; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:bold;">⏳ Verification Pending</span>`;
+                        actionButtonsHtml = `<span style="font-size:11px; color:#7f8c8d;">Waiting for Admin...</span>`;
+                    } else if (prop.status === 'approved') {
+                        statusHtml = `<span class="status active-status" style="background:#2ecc71; color:white; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:bold;">✅ Live / Active</span>`;
+                        actionButtonsHtml = `<button onclick="toggleUserPublish('${prop._id}', 'unpublish')" style="background:#e67e22; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">⏸️ Unpublish</button>`;
+                    } else if (prop.status === 'unpublished_by_user') {
+                        statusHtml = `<span class="status paused-status" style="background:#95a5a6; color:white; padding:4px 8px; border-radius:12px; font-size:11px; font-weight:bold;">⏸️ Paused (Hidden)</span>`;
+                        actionButtonsHtml = `<button onclick="toggleUserPublish('${prop._id}', 'publish')" style="background:#2ecc71; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:bold;">▶️ Publish Live</button>`;
+                    }
                     
                     let propertyImgSrc = 'https://placehold.co/80x50?text=No+Image';
                     if (prop.images && prop.images.length > 0 && prop.images[0].trim() !== '') {
                         propertyImgSrc = prop.images[0];
-                    } else if (prop.image) {
-                        propertyImgSrc = prop.image;
                     }
 
-                    // 🧾 Lifelong dynamic receipt values from Database 
                     const txn = prop.transactionId || 'FREE_BYPASS';
                     const amt = prop.amountPaid !== undefined ? prop.amountPaid : 0;
                     const srv = amt === 0 ? 'Property Listing (FREE Mode)' : 'Property Listing Premium';
@@ -210,76 +222,71 @@ properties.forEach(prop => {
                             <td>${prop.title}</td>
                             <td>${prop.location}</td>
                             <td>${priceText}</td>
-                            <td><span class="status ${statusClass}">${statusText}</span></td>
-                            <td style="font-weight:bold; color:#2980b9; text-align: center; font-size: 16px;">${prop.views || 0}</td>
-                            <td style="font-weight:bold; color:#27ae60; text-align: center; font-size: 16px;">${prop.clicks || 0}</td>
-                            
+                            <td>${statusHtml}</td>
+                            <td style="font-weight:bold; color:#2980b9; text-align: center;">${prop.views || 0}</td>
+                            <td style="font-weight:bold; color:#27ae60; text-align: center;">${prop.clicks || 0}</td>
                             <td style="text-align:center;">
                                 <a href="${receiptLink}" target="_blank" style="background: #9b59b6; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">🧾 View Receipt</a>
                             </td>
-                            
                             <td>
-                                <button class="delete-btn" onclick="deleteProperty('${prop._id}')" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Delete</button>
+                                <div style="display:flex; gap:5px; align-items:center;">
+                                    ${actionButtonsHtml}
+                                    <button class="delete-btn" onclick="deleteProperty('${prop._id}')" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">❌ Delete</button>
+                                </div>
                             </td>
                         </tr>`;
                 });
             } catch (error) {
-                console.error("डेटा लोड करने में समस्या:", error);
+                console.error("Error loading properties:", error);
             }
         }
 
+        // 🗑️ FIXED DELETE BUTTON LOGIC
         async function deleteProperty(id) {
             if (confirm("क्या आप वाकई इस प्रॉपर्टी को डिलीट करना चाहते हैं?")) {
-                await fetch(`/api/admin/delete-property/${id}`, { method: 'DELETE' });
-                loadProperties();
+                try {
+                    const response = await fetch(`/api/user/delete-property/${id}`, { method: 'DELETE' });
+                    const result = await response.json();
+                    if(result.success) {
+                        alert("✅ प्रॉपर्टी सफलतापूर्वक डिलीट कर दी गई है!");
+                        loadProperties(); // Reload table
+                    } else {
+                        alert("❌ डिलीट करने में समस्या आई।");
+                    }
+                } catch(e) { alert("Server Error"); }
             }
         }
 
-        async function openEditModal(id) {
-            const response = await fetch(`/api/get-property/${id}`);
-            const result = await response.json();
-            if(result.success) {
-                const prop = result.property;
-                document.getElementById('editPropId').value = prop._id;
-                document.getElementById('editTitle').value = prop.title;
-                document.getElementById('editPurpose').value = prop.purpose;
-                document.getElementById('editLocation').value = prop.location;
-                document.getElementById('editPrice').value = prop.price;
-                document.getElementById('editDesc').value = prop.desc;
-                document.getElementById('editVideoLink').value = prop.videoLink || ''; 
-                document.getElementById('editModal').style.display = 'flex';
+        // ⏸️▶️ USER DRIVEN PUBLISH / UNPUBLISH LOGIC
+        async function toggleUserPublish(id, action) {
+            const targetStatus = action === 'publish' ? 'approved' : 'unpublished_by_user';
+            const confirmationMsg = action === 'publish' ? "क्या आप इस प्रॉपर्टी को पब्लिक होमपेज पर दोबारा लाइव करना चाहते हैं?" : "क्या आप इस प्रॉपर्टी को होमपेज से छुपाना (Hide) चाहते हैं?";
+            
+            if (confirm(confirmationMsg)) {
+                try {
+                    // Hum admin ke existing status endpoint ka hi smart upyog kar rahe hain
+                    const endpoint = action === 'publish' ? `/api/admin/approve-property/${id}` : `/api/admin/unpublish-property/${id}`;
+                    
+                    // Frontend par 'unpublished_by_user' status handle karne ke liye custom fetch call
+                    let res;
+                    if(action === 'unpublish') {
+                        // Agar unpublish karna h, toh custom update bhejenge server toggle route par
+                        res = await fetch(`/api/update-property/${id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ status: 'unpublished_by_user' })
+                        });
+                    } else {
+                        res = await fetch(endpoint, { method: 'POST' });
+                    }
+
+                    const data = await res.json();
+                    if(data.success) {
+                        loadProperties();
+                    }
+                } catch(e) { alert("Action Failed"); }
             }
         }
-
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-        }
-
-        document.getElementById('editPropertyForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const id = document.getElementById('editPropId').value;
-            const formData = new FormData();
-            formData.append('title', document.getElementById('editTitle').value);
-            formData.append('purpose', document.getElementById('editPurpose').value);
-            formData.append('location', document.getElementById('editLocation').value);
-            formData.append('price', document.getElementById('editPrice').value);
-            formData.append('desc', document.getElementById('editDesc').value);
-            formData.append('videoLink', document.getElementById('editVideoLink').value); 
-
-            const imgInput = document.getElementById('editImages');
-            if (imgInput.files.length > 3) {
-                alert("आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
-                return;
-            }
-            if (imgInput.files.length > 0) {
-                for (let i = 0; i < imgInput.files.length; i++) {
-                    formData.append('propertyImages', imgInput.files[i]);
-                }
-            }
-            await fetch(`/api/update-property/${id}`, { method: 'POST', body: formData });
-            closeEditModal();
-            loadProperties();
-        });
 
         async function loadBrokerProfile() {
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -299,19 +306,6 @@ properties.forEach(prop => {
             } catch (error) { console.error('Error loading profile:', error); }
         }
 
-        document.getElementById('logoutBtn').onclick = function(e) {
-            if (localStorage.getItem('realAdmin') === 'yes') {
-                e.preventDefault();
-                localStorage.setItem('userRole', 'admin');
-                localStorage.removeItem('realAdmin');
-                localStorage.setItem('brokerName', 'Admin');
-                localStorage.setItem('brokerEmail', 'devilking786k@sahu.com'); 
-                window.location.href = 'admin-dashboard.html';
-            } else {
-                localStorage.clear();
-            }
-        };
-
         window.onload = function() {
             const role = localStorage.getItem('userRole');
             if (role === 'admin') {
@@ -320,13 +314,6 @@ properties.forEach(prop => {
             }
             loadBrokerProfile();
             loadProperties();
-
-            if (localStorage.getItem('realAdmin') === 'yes') {
-                const logoutBtn = document.getElementById('logoutBtn');
-                logoutBtn.innerHTML = "👑 Back to Admin";
-                logoutBtn.style.background = "#e67e22"; 
-                logoutBtn.href = "#";
-            }
         };
     </script>
 </body>
