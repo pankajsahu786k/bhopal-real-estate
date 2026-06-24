@@ -18,7 +18,7 @@
 
     <div class="form-container">
         <h2>नयी प्रॉपर्टी की जानकारी भरें</h2>
-        <p>कृपया भोपाल में स्थित अपनी प्रॉपर्टी का सही विवरण दें ताकि ग्राहक आपसे संपर्क कर सकें।</p>
+        <p>कृपया भोपाल में स्थित अपनी प्रॉपर्टी का सही विवरण दें ताकि ग्राहक आपसे संपर्क कर सकें.</p>
 
         <form id="propertyForm" onsubmit="handleFormSubmit(event)">
 
@@ -112,24 +112,42 @@
     </div>
 
     <script>
-        let userRole = 'user'; // Default role
+        let userRole = 'user'; 
+        let isPaymentBypassedGlobal = false; // Live payment configuration state
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
             userRole = localStorage.getItem('userRole') || 'user';
             
             if (!brokerEmail) {
                 alert('कृपया पहले लॉगिन करें!');
                 window.location.href = 'index.html'; 
+                return;
             }
 
-            // 🟢 Role ke hisaab se button set karein
+            // 🎛️ NAYA: Backend se payment master status check karega
+            try {
+                const res = await fetch('/api/payment-status');
+                const data = await res.json();
+                isPaymentBypassedGlobal = data.isPaymentBypassed;
+            } catch (e) {
+                console.error("Error fetching payment status:", e);
+            }
+
+            // 🟢 NAYA: Master Control Switch aur Role ke combination se dynamic text set karein
             const submitBtn = document.getElementById('submitBtn');
-            if (userRole === 'employee' || userRole === 'admin') {
+            if (isPaymentBypassedGlobal) {
+                // Master button free kiya hua h
+                submitBtn.innerText = "Publish Property (FREE) 🚀";
+                submitBtn.style.backgroundColor = "#e67e22"; // Eye-catching Orange for general free bypass
+            } else if (userRole === 'employee' || userRole === 'admin') {
+                // Paid mode active h par is user ka role admin/employee h
                 submitBtn.innerText = "Free Publish (Direct Live) 🚀";
-                submitBtn.style.backgroundColor = "#28a745"; // Green for employees
+                submitBtn.style.backgroundColor = "#28a745"; // Green
             } else {
+                // Normal paid user logic
                 submitBtn.innerText = "Pay ₹10 & Publish 💳";
+                submitBtn.style.backgroundColor = "#3498db"; // Normal Blue
             }
         });
 
@@ -150,7 +168,7 @@
             event.preventDefault(); 
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerText;
-            submitBtn.innerText = "Please Wait...";
+            submitBtn.innerText = "Please Wait... ⏳";
             submitBtn.disabled = true;
 
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -170,7 +188,6 @@
             formData.append('brokerEmail', brokerEmail);
             formData.append('videoLink', document.getElementById('videoLink').value);
 
-            // 📸 3 फोटो चेक लॉजिक
             const imgInput = document.getElementById('propertyImages');
             if (imgInput.files.length > 3) {
                 alert("❌ आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
@@ -184,17 +201,20 @@
                 }
             }
 
-            // 🔄 Employee/Admin hai toh direct upload karo, warna Payment lo
-            if (userRole === 'employee' || userRole === 'admin') {
+            // 🔄 NAYA: Bypass active hai YA role free listing wala hai, toh seedha upload karo, warna paid popup kholo!
+            if (isPaymentBypassedGlobal || userRole === 'employee' || userRole === 'admin') {
+                if (isPaymentBypassedGlobal) {
+                    submitBtn.innerText = "Bypass Verified! Uploading... 🔓";
+                }
                 uploadPropertyData(formData, submitBtn, originalText);
             } else {
                 startRazorpayPayment(formData, submitBtn, originalText);
             }
         }
 
-        // 💸 Razorpay Payment Function
         async function startRazorpayPayment(formData, submitBtn, originalText) {
             try {
+                submitBtn.innerText = "Initiating Payment... 💳";
                 const orderRes = await fetch('/api/create-order', { method: 'POST' });
                 const orderData = await orderRes.json();
 
@@ -205,7 +225,7 @@
                 }
 
                 const options = {
-                    key: 'rzp_test_T3oTzNzTDvWgUL', // 👈 आपकी Test Key
+                    key: 'rzp_test_T3oTzNzTDvWgUL', 
                     amount: orderData.order.amount,
                     currency: "INR",
                     name: "Bhopal Properties",
@@ -239,7 +259,6 @@
             }
         }
 
-        // ☁️ Property Upload Karne ka Main Function
         async function uploadPropertyData(formData, submitBtn, originalText) {
             submitBtn.innerText = "Uploading Photos & Data... ⏳";
             try {
