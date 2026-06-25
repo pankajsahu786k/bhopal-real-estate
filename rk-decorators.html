@@ -20,8 +20,9 @@
         }
         header .logo { font-size: 24px; font-weight: 800; color: #f59e0b; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         
+        nav optgroup { display: none; } /* Clean setup */
         nav ul { display: flex; list-style: none; align-items: center; gap: 10px; }
-        nav ul li a { font-weight: 600; font-size: 14px; transition: 0.3s; cursor: pointer; padding: 8px 16px; border-radius: 20px; color: #cbd5e1; }
+        nav ul li a { font-weight: 600; font-size: 14px; transition: 0.3s; cursor: pointer; padding: 8px 16px; border-radius: 20px; color: #cbd5e1; display: inline-block; }
         nav ul li a:hover { color: #f59e0b; background: rgba(255,255,255,0.05); }
         nav ul li a.active-menu { color: #1e1b4b !important; background: #f59e0b; font-weight: bold; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
         
@@ -120,14 +121,14 @@
                 <li><a id="menu-birthday" onclick="switchCategory('birthday')">Birthday</a></li>
                 <li><a id="menu-catering" onclick="switchCategory('catering')">Catering</a></li>
                 <li><a id="menu-stage" onclick="switchCategory('stage')">Stage Events</a></li>
-                <li><a href="admin.html" class="nav-login-btn" target="_blank">Admin Control</a></li>
+                <li><a href="services.html" class="nav-login-btn" style="background:#34495e !important; color:white !important;">🔙 Super App</a></li>
             </ul>
         </nav>
     </header>
 
     <section class="hero" id="heroBanner">
         <h1 id="viewHeroTitle">RK Decorators & Caterers</h1>
-        <p id="viewHeroDesc">Loading cloud content...</p>
+        <p id="viewHeroDesc">Hum aapke khaas dino ko banate hain aur bhi khaas...</p>
     </section>
 
     <section id="gallery-section" class="section-container">
@@ -143,7 +144,7 @@
             <div class="detail-info-text">
                 <h2 id="detailTitle">Package Title</h2>
                 <div class="card-location">📍 <span id="detailLocation">Bhopal, Madhya Pradesh</span></div>
-                <div class="detail-info-price" id="detailPrice">₹ 0 / Decoration</div>
+                <div class="detail-info-price" id="detailPrice">₹ 0 /-</div>
                 <div id="detailVideoContainer" style="margin-top: 20px; overflow: hidden; border-radius: 8px;"></div>
                 <p class="detail-info-desc" id="detailDesc">Package detailed description lines...</p>
             </div>
@@ -197,7 +198,6 @@
             return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : '';
         }
 
-        // Dynamic Titles & Badges Configuration Mapping
         const categoryTitles = {
             'wedding': '👑 Wedding Decorations',
             'birthday': '🎈 Birthday Themes',
@@ -338,16 +338,27 @@
             window.open(linkUrl, '_blank');
         };
 
+        // 🌟 SMART AUTO-TAB SWITCHER ENGINE
         function initWebsite() {
+            // Check url for cat parameters (e.g. rk-decorators.html?cat=birthday)
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetCat = urlParams.get('cat');
+
             db.collection("settings").doc("profile").get().then((doc) => {
                 if(doc.exists) {
                     const data = doc.data();
                     document.getElementById("viewLogoName").innerText = "✨ " + (data.logoName || "RK Decorators");
                     document.getElementById("viewHeroTitle").innerText = data.heroTitle || "RK Decorators & Caterers";
-                    document.getElementById("viewHeroDesc").innerText = data.heroDesc || "Hum aapke khaas dino ko banate hain...";
+                    document.getElementById("viewHeroDesc").innerText = data.heroDesc || "Hum aapke khaas dino ko banate hain aur bhi khaas...";
                 }
-            }).catch(e => console.log("Profile settings fetch bypass."));
-            switchCategory('wedding');
+            }).catch(e => console.log("Profile sync pass."));
+
+            // If valid query parameters found, switch to that specific tab instantly
+            if (targetCat && categoryTitles[targetCat]) {
+                switchCategory(targetCat);
+            } else {
+                switchCategory('wedding'); // Default fall-back
+            }
         }
         window.onload = initWebsite;
     </script>
