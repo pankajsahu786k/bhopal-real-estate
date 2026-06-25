@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RK Decorators - Admin Dashboard</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* 🎨 Sidebar Layout */
+        .sidebar { width: 260px; background-color: #1e1b4b; color: white; display: flex; flex-direction: column; flex-shrink: 0; border-right: 4px solid #f59e0b; }
+        .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #0f0e36; font-size: 18px; color: #f59e0b; font-weight: 800; }
+        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links a { display: block; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; font-weight: 600; }
+        .nav-links a:hover, .nav-links a.active { background-color: rgba(255,255,255,0.05); color: #f59e0b; border-left-color: #f59e0b; }
+
+        .main-content-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
+        .dash-header { background-color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .logout-btn { background-color: #ef4444; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+
+        .main-content { padding: 30px; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .content-header h2 { color: #1e1b4b; margin: 0; font-weight: 800; border-left: 5px solid #f59e0b; padding-left: 12px; }
+        
+        /* 📝 Form Style */
+        .form-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; margin-bottom: 40px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 13px; font-weight: 600; margin-bottom: 5px; color: #475569; }
+        .form-group input, .form-group select, .form-group textarea { padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #f59e0b; }
+        .save-btn { background: #10b981; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .save-btn:hover { background: #059669; }
+
+        /* 📊 Table Layout */
+        .item-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #e2e8f0; }
+        .item-table th { background: #1e1b4b; color: white; text-align: left; padding: 12px 15px; font-size: 14px; }
+        .item-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
+        .item-table tr:last-child td { border: none; }
+        .delete-btn { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .delete-btn:hover { background: #dc2626; }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 3px solid #f59e0b; }
+            .sidebar h2 { display: none; }
+            .nav-links { display: flex; }
+            .nav-links a { padding: 12px 15px; border-left: none; border-bottom: 4px solid transparent; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2>RK Admin Panel</h2>
+        <ul class="nav-links">
+            <li><a id="tab-wedding" onclick="switchTab('wedding')" class="active">👑 Wedding Decor</a></li>
+            <li><a id="tab-birthday" onclick="switchTab('birthday')">🎈 Birthday Themes</a></li>
+            <li><a id="tab-catering" onclick="switchTab('catering')">🍲 Catering Menu</a></li>
+            <li><a id="tab-stage" onclick="switchTab('stage')">🎭 Stage Events</a></li>
+        </ul>
+    </aside>
+
+    <div class="main-content-wrapper">
+        <header class="dash-header">
+            <div style="font-weight: bold; font-size: 18px; color: #1e1b4b;">RK Decorators Live Manager</div>
+            <button onclick="logoutAdmin()" class="logout-btn">Log Out</button>
+        </header>
+
+        <main class="main-content">
+            <div class="content-header">
+                <h2 id="currentCategoryTitle">Wedding Package Management</h2>
+            </div>
+
+            <div class="form-box">
+                <h3 style="margin-top: 0; margin-bottom: 15px; color: #1e1b4b;">Naya Package Jodein</h3>
+                <form id="addPackageForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Package Title / Name *</label>
+                            <input type="text" id="pkgTitle" required placeholder="e.g., Golden Royal Stage">
+                        </div>
+                        <div class="form-group">
+                            <label>Price (₹) *</label>
+                            <input type="number" id="pkgPrice" required placeholder="Price in ₹">
+                        </div>
+                        <div class="form-group">
+                            <label>Image URL 1 (Primary) *</label>
+                            <input type="url" id="pkgImg1" required placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                        <div class="form-group">
+                            <label>Image URL 2 (Optional)</label>
+                            <input type="url" id="pkgImg2" placeholder="https://...">
+                        </div>
+                        <div class="form-group">
+                            <label>YouTube Video URL (Optional)</label>
+                            <input type="url" id="pkgVideo" placeholder="https://youtube.com/...">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Description / Details *</label>
+                        <textarea id="pkgDesc" rows="3" required placeholder="Write details about the setup items..."></textarea>
+                    </div>
+                    <button type="submit" class="save-btn">+ Upload Live</button>
+                </form>
+            </div>
+
+            <h3 style="color: #1e1b4b; margin-bottom: 15px;">Live Packages List</h3>
+            <table class="item-table">
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Package Title</th>
+                        <th>Price</th>
+                        <th>Description</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="liveItemsTableBody">
+                    <tr><td colspan="5" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>
+                </tbody>
+            </table>
+        </main>
+    </div>
+
+    <script>
+        // 🔒 Real Firebase Configurations Sync
+        const firebaseConfig = {
+            apiKey: "AIzaSyDuieDYY9G3cWGBnrApK6LV75nn8j5j58g",
+            authDomain: "rk-baloon-decorators.firebaseapp.com",
+            projectId: "rk-baloon-decorators",
+            storageBucket: "rk-baloon-decorators.firebasestorage.app",
+            messagingSenderId: "138038223575",
+            appId: "1:138038223575:web:c0723a1a0d161ba08d4692",
+            measurementId: "G-R6CNR3CY05"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let activeCategoryTab = 'wedding';
+
+        const categoryLabels = {
+            'wedding': '👑 Wedding Package Management',
+            'birthday': '🎈 Birthday Theme Management',
+            'catering': '🍲 Catering Menu Management',
+            'stage': '🎭 Stage Events Management'
+        };
+
+        // 🌟 1. Switch Admin Panel Tabs Flow
+        function switchTab(categoryKey) {
+            activeCategoryTab = categoryKey;
+            
+            document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
+            const activeEl = document.getElementById(`tab-${categoryKey}`);
+            if (activeEl) activeEl.classList.add('active');
+
+            document.getElementById('currentCategoryTitle').innerText = categoryLabels[categoryKey];
+            loadLiveItems();
+        }
+
+        // 🌟 2. Fetch Live Packages from Firebase Collections
+        function loadLiveItems() {
+            const tableBody = document.getElementById('liveItemsTableBody');
+            tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>`;
+
+            db.collection(`${activeCategoryTab}_cards`).orderBy("id", "desc").get().then((querySnapshot) => {
+                tableBody.innerHTML = "";
+                if (querySnapshot.empty) {
+                    tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">Is category me abhi koi data live nahi h.</td></tr>`;
+                    return;
+                }
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const docId = doc.id; // Firebase system internal document ID
+                    const imgUrl = (data.images && data.images.length > 0) ? data.images[0] : 'https://placehold.co/60x40?text=No+Img';
+                    
+                    tableBody.innerHTML += `
+                        <tr>
+                            <td><img src="${imgUrl}" style="width:60px; height:40px; object-fit:cover; border-radius:4px;"></td>
+                            <td style="font-weight:bold; color:#1e1b4b;">${data.title}</td>
+                            <td style="font-weight:bold; color:#10b981;">₹ ${data.price || 'Call'}</td>
+                            <td style="color:#64748b; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${data.desc || ''}</td>
+                            <td>
+                                <button class="delete-btn" onclick="deleteLiveCard('${docId}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }).catch(e => { tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Firebase Connection Error.</td></tr>`; });
+        }
+
+        // 🌟 3. Add Package Submit Trigger
+        document.getElementById('addPackageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('pkgTitle').value;
+            const price = document.getElementById('pkgPrice').value;
+            const img1 = document.getElementById('pkgImg1').value;
+            const img2 = document.getElementById('pkgImg2').value;
+            const video = document.getElementById('pkgVideo').value;
+            const desc = document.getElementById('pkgDesc').value;
+
+            const imagesArr = [];
+            if(img1.trim() !== '') imagesArr.push(img1);
+            if(img2.trim() !== '') imagesArr.push(img2);
+
+            // Generates timestamp-based unique ID for sequence order sorting
+            const uniqueNumericalId = Date.now(); 
+
+            const newPackagePayload = {
+                id: uniqueNumericalId,
+                title,
+                price: parseInt(price),
+                desc,
+                images: imagesArr,
+                video: video || ''
+            };
+
+            try {
+                await db.collection(`${activeCategoryTab}_cards`).add(newPackagePayload);
+                alert("✅ सफ़लतापूर्वक लाइव अपलोड हो गया है!");
+                document.getElementById('addPackageForm').reset();
+                loadLiveItems(); // Refresh layout items list
+            } catch(error) {
+                alert("❌ Upload Failed: " + error.message);
+            }
+        });
+
+        // 🌟 4. Delete Package Action Route Control
+        function deleteLiveCard(firebaseDocId) {
+            if (confirm("क्या आप वाकई इस पैकेज को लाइव वेबसाइट से डिलीट करना चाहते हैं?")) {
+                db.collection(`${activeCategoryTab}_cards`).doc(firebaseDocId).delete().then(() => {
+                    alert("🗑️ पैकेज डिलीट कर दिया गया है!");
+                    loadLiveItems();
+                }).catch(e => alert("Delete action failed."));
+            }
+        }
+
+        function logoutAdmin() {
+            alert("Admin Logged Out.");
+            window.location.href = 'services.html'; // Returns back safely to Super App Context
+        }
+
+        // Initialize setup on load
+        window.onload = function() {
+            loadLiveItems();
+        }
+    </script>
+</body>
+</html>
