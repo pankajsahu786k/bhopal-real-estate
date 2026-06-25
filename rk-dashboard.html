@@ -88,14 +88,14 @@
                             <input type="number" id="pkgPrice" required placeholder="Price in ₹">
                         </div>
                         <div class="form-group">
-                            <label>Image URL 1 (Primary) *</label>
-                            <input type="url" id="pkgImg1" required placeholder="https://...">
+                            <label>Primary Image (Main Photo) *</label>
+                            <input type="file" id="pkgImg1" accept="image/*" required>
                         </div>
                     </div>
                     <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
                         <div class="form-group">
                             <label>Image URL 2 (Optional)</label>
-                            <input type="url" id="pkgImg2" placeholder="https://...">
+                            <input type="file" id="pkgImg2" accept="image/*">
                         </div>
                         <div class="form-group">
                             <label>YouTube Video URL (Optional)</label>
@@ -177,7 +177,7 @@
 
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
-                    const docId = doc.id; // Firebase system internal document ID
+                    const docId = doc.id; 
                     const imgUrl = (data.images && data.images.length > 0) ? data.images[0] : 'https://placehold.co/60x40?text=No+Img';
                     
                     tableBody.innerHTML += `
@@ -195,39 +195,63 @@
             }).catch(e => { tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Firebase Connection Error.</td></tr>`; });
         }
 
-        // 🌟 3. Add Package Submit Trigger
+        // 🌟 3. Add Package Submit Trigger (Upgraded with Cloudinary Server uploads)
         document.getElementById('addPackageForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = e.target.querySelector('.save-btn');
+            btn.innerText = "Uploading Images to Cloud... ⏳";
+            btn.disabled = true;
+
             const title = document.getElementById('pkgTitle').value;
             const price = document.getElementById('pkgPrice').value;
-            const img1 = document.getElementById('pkgImg1').value;
-            const img2 = document.getElementById('pkgImg2').value;
             const video = document.getElementById('pkgVideo').value;
             const desc = document.getElementById('pkgDesc').value;
 
+            const imgFile1 = document.getElementById('pkgImg1').files[0];
+            const imgFile2 = document.getElementById('pkgImg2').files[0];
+
             const imagesArr = [];
-            if(img1.trim() !== '') imagesArr.push(img1);
-            if(img2.trim() !== '') imagesArr.push(img2);
-
-            // Generates timestamp-based unique ID for sequence order sorting
-            const uniqueNumericalId = Date.now(); 
-
-            const newPackagePayload = {
-                id: uniqueNumericalId,
-                title,
-                price: parseInt(price),
-                desc,
-                images: imagesArr,
-                video: video || ''
-            };
 
             try {
+                // A. Primary Image Upload to Cloudinary via Native Server
+                if (imgFile1) {
+                    const formData1 = new FormData();
+                    formData1.append('rkImage', imgFile1);
+                    const res1 = await fetch('/api/rk-upload-image', { method: 'POST', body: formData1 });
+                    const data1 = await res1.json();
+                    if (data1.success) imagesArr.push(data1.url);
+                }
+
+                // B. Secondary Image Upload to Cloudinary via Native Server (Optional)
+                if (imgFile2) {
+                    const formData2 = new FormData();
+                    formData2.append('rkImage', imgFile2);
+                    const res2 = await fetch('/api/rk-upload-image', { method: 'POST', body: formData2 });
+                    const data2 = await res2.json();
+                    if (data2.success) imagesArr.push(data2.url);
+                }
+
+                // C. Firebase Payload Constructor
+                const uniqueNumericalId = Date.now(); 
+
+                const newPackagePayload = {
+                    id: uniqueNumericalId,
+                    title,
+                    price: parseInt(price),
+                    desc,
+                    images: imagesArr,
+                    video: video || '' // YouTube link direct injection
+                };
+
                 await db.collection(`${activeCategoryTab}_cards`).add(newPackagePayload);
-                alert("✅ सफ़लतापूर्वक लाइव अपलोड हो गया है!");
+                alert("✅ सफ़लतापूर्वक लाइव सर्वर और क्लाउड पर अपलोड हो गया है!");
                 document.getElementById('addPackageForm').reset();
-                loadLiveItems(); // Refresh layout items list
+                loadLiveItems(); 
             } catch(error) {
                 alert("❌ Upload Failed: " + error.message);
+            } finally {
+                btn.innerText = "+ Upload Live";
+                btn.disabled = false;
             }
         });
 
@@ -243,10 +267,9 @@
 
         function logoutAdmin() {
             alert("Admin Logged Out.");
-            window.location.href = 'services.html'; // Returns back safely to Super App Context
+            window.location.href = 'services.html'; 
         }
 
-        // Initialize setup on load
         window.onload = function() {
             loadLiveItems();
         }
