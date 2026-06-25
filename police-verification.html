@@ -102,117 +102,168 @@
     </div>
 
     <script>
-        document.getElementById('verificationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            btn.innerText = "Checking Payment Status... ⏳";
-            btn.disabled = true;
+    let isPaymentBypassedGlobal = false;
 
+    // 🌟 1. Page load होते ही लाइव पेमेंट स्टेटस चेक करेगा और बटन का नाम बदलेगा
+    document.addEventListener('DOMContentLoaded', async () => {
+        const userEmail = localStorage.getItem('brokerEmail');
+        if (!userEmail) {
+            alert('कृपया पहले लॉगिन करें!');
+            window.location.href = 'login.html'; 
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/payment-status');
+            const data = await res.json();
+            isPaymentBypassedGlobal = data.isPaymentBypassed;
+        } catch (e) {
+            console.error("Error fetching payment status:", e);
+        }
+
+        const btn = document.getElementById('submitBtn');
+        if (isPaymentBypassedGlobal) {
+            btn.innerText = "Submit Verification Request (FREE) 🚀";
+            btn.style.backgroundColor = "#e67e22"; // Orange color for Free Mode
+        } else {
+            btn.innerText = "Pay ₹10 & Submit Request 💳";
+            btn.style.backgroundColor = "#3498db"; // Blue color for Paid Mode
+        }
+    });
+
+    // 🌟 2. Form Submit होने पर काम करने वाला मेन फंक्शन
+    document.getElementById('verificationForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('submitBtn');
+        const originalText = btn.innerText;
+        btn.innerText = "Please Wait... ⏳";
+        btn.disabled = true;
+
+        const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
+
+        // फ़ॉर्म का सारा डेटा इकट्ठा करें
+        const formData = new FormData();
+        formData.append('userEmail', userEmail);
+        formData.append('ownerName', document.getElementById('ownerName').value);
+        formData.append('ownerPhone', document.getElementById('ownerPhone').value);
+        formData.append('propertyAddress', document.getElementById('propertyAddress').value);
+        formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
+        formData.append('tenantName', document.getElementById('tenantName').value);
+        formData.append('tenantFatherName', document.getElementById('tenantFatherName').value);
+        formData.append('tenantDOB', document.getElementById('tenantDOB').value);
+        formData.append('tenantPhone', document.getElementById('tenantPhone').value);
+        formData.append('aadharNumber', document.getElementById('aadharNumber').value);
+        formData.append('familyMembers', document.getElementById('familyMembers').value);
+        formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
+        formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
+        
+        const photoInput = document.getElementById('tenantPhoto');
+        if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
+
+        // 🔓 CONDITION A: अगर मास्टर कंट्रोल स्विच FREE MODE (Bypass) पर है
+        if (isPaymentBypassedGlobal) {
+            const freeTxnId = 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+            btn.innerText = "Bypass Verified! Uploading... 🔓";
+            
+            // डेटाबेस में वेरिफिकेशन डेटा और साथ ही यूनिवर्सल रसीद जनरेट करवाएंगे
+            submitDataWithUniversalReceipt(formData, btn, originalText, freeTxnId, 'Tenant Police Verification (FREE)', 0, 'Bypassed (Free)');
+        } 
+        // 💳 CONDITION B: अगर Paid Mode एक्टिव है (Razorpay पॉपअप खुलेगा)
+        else {
             try {
-                // 🎛️ STEP 1: Sabse pehle backend se check karega ki Payment Enabled hai ya Bypassed (Free)
-                const resStatus = await fetch('/api/payment-status');
-                const paymentData = await resStatus.json();
-
-                // Form ka saara data akatha karo
-                const formData = new FormData();
-                const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
-                formData.append('userEmail', userEmail);
-                formData.append('ownerName', document.getElementById('ownerName').value);
-                formData.append('ownerPhone', document.getElementById('ownerPhone').value);
-                formData.append('propertyAddress', document.getElementById('propertyAddress').value);
-                formData.append('propertyDistrict', document.getElementById('propertyDistrict').value);
-                formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
-                formData.append('tenantName', document.getElementById('tenantName').value);
-                formData.append('tenantFatherName', document.getElementById('tenantFatherName').value);
-                formData.append('tenantDOB', document.getElementById('tenantDOB').value);
-                formData.append('tenantPhone', document.getElementById('tenantPhone').value);
-                formData.append('aadharNumber', document.getElementById('aadharNumber').value);
-                formData.append('familyMembers', document.getElementById('familyMembers').value);
-                formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
-                formData.append('permanentDistrict', document.getElementById('permanentDistrict').value);
-                formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
+                btn.innerText = "Initiating Payment... 💳";
+                const orderRes = await fetch('/api/create-order', { method: 'POST' });
+                const orderData = await orderRes.json();
                 
-                const photoInput = document.getElementById('tenantPhoto');
-                if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
-
-                // 🔓 CONDITION A: Agar Admin ne FREE MODE (Bypass) active kiya hai
-                if (paymentData.isPaymentBypassed) {
-                    btn.innerText = "Uploading Data... ⏳";
-                    
-                    // Seedha data save karo, bina Razorpay dikhaye
-                    const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
-                    const result = await saveRes.json();
-                    
-                    if (result.success) {
-                        alert("🔓 फ्री सर्विस एक्टिव है! आपकी रिक्वेस्ट बिना पेमेंट के सबमिट हो गई है।");
-                        redirectToWhatsApp(result.agentPhone, document.getElementById('tenantName').value, document.getElementById('tenantPhone').value);
-                    } else {
-                        alert("❌ Form submit karne me dikkat aayi.");
-                        resetBtn(btn);
-                    }
-                } 
-                // 💳 CONDITION B: Agar Paid Mode active hai (Razorpay open hoga)
-                else {
-                    btn.innerText = "Initiating Payment... 💳";
-                    
-                    // 1. Backend se Razorpay ka order create karwayenge
-                    const orderRes = await fetch('/api/create-order', { method: 'POST' });
-                    const orderData = await orderRes.json();
-                    
-                    if(!orderData.success) {
-                        alert("❌ Payment Order create nahi ho paya.");
-                        resetBtn(btn);
-                        return;
-                    }
-
-                    // 2. Razorpay ka checkout window settings
-                    const options = {
-                        "key": "rzp_test_T3oTzNzTDvWgUL", // Aapki test key
-                        "amount": orderData.order.amount,
-                        "currency": "INR",
-                        "name": "Bhopal Properties",
-                        "description": "Tenant Police Verification Charges",
-                        "order_id": orderData.order.id,
-                        "handler": async function (response) {
-                            // Ye function tab chalega jab payment SUCCESSFUL ho jayegi
-                            btn.innerText = "Saving Data after Payment... ⏳";
-                            
-                            // Form data ke sath payment details bhi bhej sakte ho agar chaho toh
-                            const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
-                            const result = await saveRes.json();
-                            
-                            if (result.success) {
-                                alert("💳 पेमेंट सफल! आपकी वेरिफिकेशन रिक्वेस्ट सबमिट हो गई है।");
-                                redirectToWhatsApp(result.agentPhone, document.getElementById('tenantName').value, document.getElementById('tenantPhone').value);
-                            }
-                        },
-                        "theme": { "color": "#e74c3c" }
-                    };
-                    
-                    const rzp1 = new Razorpay(options);
-                    rzp1.open();
-                    resetBtn(btn); // Payment window khulne par button wapas normal kar do
+                if(!orderData.success) {
+                    alert("❌ Payment System Error! Order create nahi hua.");
+                    resetBtn(btn, originalText);
+                    return;
                 }
+
+                const options = {
+                    "key": "rzp_test_T3oTzNzTDvWgUL", 
+                    "amount": orderData.order.amount,
+                    "currency": "INR",
+                    "name": "Bhopal Properties",
+                    "description": "Tenant Police Verification Charges",
+                    "order_id": orderData.order.id,
+                    "handler": async function (response) {
+                        btn.innerText = "Payment Successful! Saving... 🚀";
+                        
+                        // पेमेंट सफल होने पर डेटाबेस में सेव करेंगे
+                        submitDataWithUniversalReceipt(formData, btn, originalText, response.razorpay_payment_id, 'Tenant Police Verification Premium', 10, 'Paid');
+                    },
+                    "prefill": {
+                        "name": localStorage.getItem('brokerName') || "User",
+                        "email": userEmail,
+                        "contact": document.getElementById('tenantPhone').value
+                    },
+                    "theme": { "color": "#e74c3c" },
+                    "modal": {
+                        ondismiss: function() {
+                            alert("❌ Payment Cancelled.");
+                            resetBtn(btn, originalText);
+                        }
+                    }
+                };
+                
+                const rzp = new Razorpay(options);
+                rzp.open();
+                btn.innerText = "Waiting for Payment Completion... 💳";
+                btn.disabled = false;
 
             } catch (error) {
                 console.error(error);
-                alert("❌ Server Error!");
-                resetBtn(btn);
+                alert("❌ Payment Server Se Connect Nahi Ho Paya.");
+                resetBtn(btn, originalText);
             }
-        });
-
-        // 🛠️ Helper Functions taaki code saaf dikhe
-        function resetBtn(btn) {
-            btn.innerText = "Submit Verification Request 🚀";
-            btn.disabled = false;
         }
+    });
 
-        function redirectToWhatsApp(agentPhone, tenantName, tenantPhone) {
-            const agentNumber = agentPhone || "919575611622";
-            const waMessage = `🔔 *New MP Police Verification Lead!*\n\n*Tenant:* ${tenantName}\n*Phone:* ${tenantPhone}\n\nSir, naya verification aaya hai. Agent Panel check karein!`;
-            window.open(`https://wa.me/${agentNumber}?text=${encodeURIComponent(waMessage)}`, '_blank');
-            window.location.href = 'services.html';
+    // ☁️ 3. वेरिफिकेशन डेटा सबमिट करने और यूनिवर्सल रसीद ऑटो-जनरेट करने का कम्बाइंड फंक्शन
+    async function submitDataWithUniversalReceipt(formData, btn, originalText, txnId, serviceName, amt, payStatus) {
+        try {
+            // A. पहले वेरिफिकेशन का फॉर्म डेटा सबमिट करें
+            const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
+            const result = await saveRes.json();
+            
+            if (result.success) {
+                // B. वेरिफिकेशन सफल होने पर, तुरंत यूनिवर्सल रसीद कलेक्शन में डेटा सिंक करें
+                const receiptData = {
+                    userEmail: localStorage.getItem('brokerEmail'),
+                    serviceName: serviceName,
+                    transactionId: txnId,
+                    amountPaid: amt,
+                    paymentStatus: payStatus
+                };
+
+                await fetch('/api/save-receipt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(receiptData)
+                });
+
+                alert("✅ वेरिफिकेशन रिक्वेस्ट और इनवॉइस सफलतापूर्वक जनरेट हो गए हैं!");
+                
+                // C. यूजर को रसीद का प्रिंटआउट दिखाने के लिए भेजें
+                window.location.href = `receipt.html?txn=${txnId}&service=${encodeURIComponent(serviceName)}&amount=${amt}`;
+                
+            } else {
+                alert('❌ डेटा सेव करने में सर्वर एरर आया: ' + result.message);
+                resetBtn(btn, originalText);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('❌ सर्वर से जुड़ने में समस्या आई।');
+            resetBtn(btn, originalText);
         }
-    </script>
+    }
+
+    function resetBtn(btn, text) {
+        btn.innerText = text;
+        btn.disabled = false;
+    }
+</script>
 </body>
 </html>
