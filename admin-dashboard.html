@@ -120,7 +120,6 @@
 
         let currentBypassStatus = false;
 
-        // 🌟 Payment mode check karne ka system
         async function checkCurrentPaymentStatus() {
             try {
                 const res = await fetch('/api/payment-status');
@@ -138,7 +137,6 @@
             } catch (e) { console.error(e); }
         }
 
-        // 🌟 Toggle button logic
         async function togglePaymentMode() {
             if(!confirm("क्या आप सच में पूरी वेबसाइट का पेमेंट मोड बदलना चाहते हैं?")) return;
             
@@ -183,6 +181,7 @@
                                         <option value="notary" ${user.role === 'notary' ? 'selected' : ''}>Notary (Agreement)</option>
                                         <option value="loan_agent" ${user.role === 'loan_agent' ? 'selected' : ''}>Loan Agent</option>
                                         <option value="transporter" ${user.role === 'transporter' ? 'selected' : ''}>Transporter</option>
+                                        <option value="rk_decorator" ${user.role === 'rk_decorator' ? 'selected' : ''}>RK Decorator Owner</option>
                                     </select>
                                     <button onclick="changeUserRole('${user._id}')" style="background: #f39c12; color: white; border: none; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px; margin-right: 5px;">Update Role</button>
                                 `;
@@ -262,6 +261,9 @@
                     window.location.href = 'loan-dashboard.html';
                 } else if (userRole === 'transporter') {
                     window.location.href = 'transporter-dashboard.html';
+                } else if (userRole === 'rk_decorator') {
+                    // 🌟 REDIRECT ROUTING OVERRIDE SECURE FOR RK OWNER
+                    window.location.href = 'rk-dashboard.html';
                 } else {
                     window.location.href = 'dashboard.html';
                 }
@@ -332,7 +334,6 @@
             }
         }
 
-        // Both functions called properly
         checkCurrentPaymentStatus();
         loadAdminData();
     </script>
