@@ -308,12 +308,27 @@
 
         window.onload = function() {
             const role = localStorage.getItem('userRole');
+            
+            // 🛡️ Security Check: Agar direct admin is page par aane ki koshish kare toh use dashboard par bhejein
             if (role === 'admin') {
                 window.location.href = 'admin-dashboard.html';
                 return;
             }
+            
             loadBrokerProfile();
             loadProperties();
+            loadUniversalReceipts(); // Universal receipts load karne ke liye call
+
+            // 👑 NAYA/RESTORED: Admin Power ko wapas activate karne ka logic
+            if (localStorage.getItem('realAdmin') === 'yes') {
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.innerHTML = "👑 Back to Admin";
+                    logoutBtn.style.background = "#e67e22"; // Premium Orange color for admin return button
+                    logoutBtn.style.color = "white";
+                    logoutBtn.href = "#"; // Prevent natural link navigation
+                }
+            }
         };
     </script>
 </body>
