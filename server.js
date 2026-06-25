@@ -353,6 +353,19 @@ app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (r
         res.json({ success: true, message: 'Updated Successfully' });
     } catch (err) { res.status(500).json({ success: false }); }
 });
+// 🎈 RK Baloon Dashboard ke liye Image Upload Route
+app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+        const uploadedUrl = req.file.path || req.file.url;
+        return res.json({ success: true, url: uploadedUrl });
+    } catch (error) {
+        console.error("Cloudinary upload error:", error);
+        return res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
 
 app.get('/api/get-properties', async(req, res) => {
     try {

@@ -151,7 +151,6 @@
             'stage': '🎭 Stage Events Management'
         };
 
-        // 🌟 1. Switch Admin Panel Tabs Flow
         function switchTab(categoryKey) {
             activeCategoryTab = categoryKey;
             
@@ -163,7 +162,6 @@
             loadLiveItems();
         }
 
-        // 🌟 2. Fetch Live Packages from Firebase Collections
         function loadLiveItems() {
             const tableBody = document.getElementById('liveItemsTableBody');
             tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>`;
@@ -195,7 +193,26 @@
             }).catch(e => { tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Firebase Connection Error.</td></tr>`; });
         }
 
-        // 🌟 3. Add Package Submit Trigger (Upgraded with Cloudinary Server uploads)
+        // 🌟 Helper Function: Backend JSON Response Wrapper Check
+        async function uploadImageToServer(fileData) {
+            const formData = new FormData();
+            formData.append('rkImage', fileData);
+            
+            const targetEndpoint = `${window.location.origin}/api/rk-upload-image`;
+            const res = await fetch(targetEndpoint, { method: 'POST', body: formData });
+            
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                const jsonResult = await res.json();
+                if (jsonResult.success) return jsonResult.url;
+                throw new Error(jsonResult.message || "Upload failed on server context.");
+            } else {
+                const htmlTextError = await res.text();
+                console.error("Critical Backend Route Missing Response:", htmlTextError);
+                throw new Error("Server returned HTML instead of JSON. Ensure 'server.js' changes are fully deployed and restarted on Render!");
+            }
+        }
+
         document.getElementById('addPackageForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('.save-btn');
@@ -213,25 +230,18 @@
             const imagesArr = [];
 
             try {
-                // A. Primary Image Upload to Cloudinary via Native Server
+                // A. Primary Cloudinary stream upload wrapper handler call
                 if (imgFile1) {
-                    const formData1 = new FormData();
-                    formData1.append('rkImage', imgFile1);
-                    const res1 = await fetch('/api/rk-upload-image', { method: 'POST', body: formData1 });
-                    const data1 = await res1.json();
-                    if (data1.success) imagesArr.push(data1.url);
+                    const url1 = await uploadImageToServer(imgFile1);
+                    if (url1) imagesArr.push(url1);
                 }
 
-                // B. Secondary Image Upload to Cloudinary via Native Server (Optional)
+                // B. Secondary Cloudinary stream upload wrapper handler call (Optional)
                 if (imgFile2) {
-                    const formData2 = new FormData();
-                    formData2.append('rkImage', imgFile2);
-                    const res2 = await fetch('/api/rk-upload-image', { method: 'POST', body: formData2 });
-                    const data2 = await res2.json();
-                    if (data2.success) imagesArr.push(data2.url);
+                    const url2 = await uploadImageToServer(imgFile2);
+                    if (url2) imagesArr.push(url2);
                 }
 
-                // C. Firebase Payload Constructor
                 const uniqueNumericalId = Date.now(); 
 
                 const newPackagePayload = {
@@ -240,7 +250,7 @@
                     price: parseInt(price),
                     desc,
                     images: imagesArr,
-                    video: video || '' // YouTube link direct injection
+                    video: video || '' 
                 };
 
                 await db.collection(`${activeCategoryTab}_cards`).add(newPackagePayload);
@@ -248,14 +258,13 @@
                 document.getElementById('addPackageForm').reset();
                 loadLiveItems(); 
             } catch(error) {
-                alert("❌ Upload Failed: " + error.message);
+                alert("❌ " + error.message);
             } finally {
                 btn.innerText = "+ Upload Live";
                 btn.disabled = false;
             }
         });
 
-        // 🌟 4. Delete Package Action Route Control
         function deleteLiveCard(firebaseDocId) {
             if (confirm("क्या आप वाकई इस पैकेज को लाइव वेबसाइट से डिलीट करना चाहते हैं?")) {
                 db.collection(`${activeCategoryTab}_cards`).doc(firebaseDocId).delete().then(() => {
