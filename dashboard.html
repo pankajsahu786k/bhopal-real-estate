@@ -100,10 +100,32 @@
                         <th>Status</th> 
                         <th>Views 👁️</th> 
                         <th>Leads 📞</th> 
-                        <th>Receipt 🧾</th> <th>Action</th>
+                        <th>Receipt 🧾</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="propertyTableBody">
+                </tbody>
+            </table>
+
+            <div class="content-header" style="margin-top: 50px;">
+                <h2>🧾 Aapki Sabhi Services Ki Receipts</h2>
+                <p style="font-size: 13px; color:#7f8c8d; margin:0;">यहाँ आपकी भोपाल प्रॉपर्टीज पर ली गई सभी सर्विसेज़ की डिजिटल रसीदें हमेशा सुरक्षित रहेंगी।</p>
+            </div>
+
+            <table class="property-table" style="margin-top: 15px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Service Name / Type</th>
+                        <th>Transaction ID</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptsTableBody">
+                    <tr><td colspan="6" style="text-align:center; color:#7f8c8d;">Receipts loading... ⏳</td></tr>
                 </tbody>
             </table>
         </main>
@@ -138,31 +160,6 @@
         </a>
     </nav>
 
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeEditModal()">&times;</span>
-            <h3 style="margin-top: 0; margin-bottom: 20px; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">Property की जानकारी सुधारें</h3>
-            <form id="editPropertyForm">
-                <input type="hidden" id="editPropId">
-                <div class="form-group"><label>Property का नाम / Title</label><input type="text" id="editTitle" required></div>
-                <div class="form-group"><label>प्रकार (Purpose)</label><select id="editPurpose" required><option value="Rent">किराये के लिए</option><option value="Sell">बेचने के लिए</option></select></div>
-                <div class="form-group"><label>लोकेशन (Location)</label><input type="text" id="editLocation" required></div>
-                <div class="form-group"><label>कीमत (Price in ₹)</label><input type="number" id="editPrice" required></div>
-                <div class="form-group"><label>विवरण / Description</label><textarea id="editDesc" rows="3" required></textarea></div>
-                <div class="form-group"><label>YouTube वीडियो लिंक (Optional)</label><input type="url" id="editVideoLink" placeholder="जैसे: https://youtu.be/..."></div>
-                <div class="form-group">
-                    <label>नई फोटो बदलें (अधिकतम 3)</label>
-                    <input type="file" id="editImages" accept="image/*" multiple>
-                    <p style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">* अगर आप नई फोटो डालेंगे, तो पुरानी हट जाएगी।</p>
-                </div>
-                <div class="modal-buttons">
-                    <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
-                    <button type="submit" class="save-btn">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <script>
         async function loadProperties() {
             const savedName = localStorage.getItem('brokerName');
@@ -177,7 +174,6 @@
             document.getElementById('broker-name').innerText = savedName;
 
             try {
-                // UI Refresh ke liye query update
                 const response = await fetch(`/api/get-properties?email=${encodeURIComponent(brokerEmail)}`);
                 const properties = await response.json();
                 const tableBody = document.getElementById('propertyTableBody');
@@ -191,7 +187,6 @@
                 properties.forEach(prop => {
                     const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / Month` : `₹ ${prop.price}`;
                     
-                    // 🛡️ Live Status Badge Logic
                     let statusHtml = '';
                     let actionButtonsHtml = '';
 
@@ -241,7 +236,6 @@
             }
         }
 
-        // 🗑️ FIXED DELETE BUTTON LOGIC
         async function deleteProperty(id) {
             if (confirm("क्या आप वाकई इस प्रॉपर्टी को डिलीट करना चाहते हैं?")) {
                 try {
@@ -249,7 +243,7 @@
                     const result = await response.json();
                     if(result.success) {
                         alert("✅ प्रॉपर्टी सफलतापूर्वक डिलीट कर दी गई है!");
-                        loadProperties(); // Reload table
+                        loadProperties(); 
                     } else {
                         alert("❌ डिलीट करने में समस्या आई।");
                     }
@@ -257,20 +251,15 @@
             }
         }
 
-        // ⏸️▶️ USER DRIVEN PUBLISH / UNPUBLISH LOGIC
         async function toggleUserPublish(id, action) {
             const targetStatus = action === 'publish' ? 'approved' : 'unpublished_by_user';
             const confirmationMsg = action === 'publish' ? "क्या आप इस प्रॉपर्टी को पब्लिक होमपेज पर दोबारा लाइव करना चाहते हैं?" : "क्या आप इस प्रॉपर्टी को होमपेज से छुपाना (Hide) चाहते हैं?";
             
             if (confirm(confirmationMsg)) {
                 try {
-                    // Hum admin ke existing status endpoint ka hi smart upyog kar rahe hain
                     const endpoint = action === 'publish' ? `/api/admin/approve-property/${id}` : `/api/admin/unpublish-property/${id}`;
-                    
-                    // Frontend par 'unpublished_by_user' status handle karne ke liye custom fetch call
                     let res;
                     if(action === 'unpublish') {
-                        // Agar unpublish karna h, toh custom update bhejenge server toggle route par
                         res = await fetch(`/api/update-property/${id}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -285,6 +274,45 @@
                         loadProperties();
                     }
                 } catch(e) { alert("Action Failed"); }
+            }
+        }
+
+        async function loadUniversalReceipts() {
+            const brokerEmail = localStorage.getItem('brokerEmail');
+            if (!brokerEmail) return;
+
+            try {
+                const res = await fetch(`/api/my-receipts?email=${encodeURIComponent(brokerEmail)}`);
+                const data = await res.json();
+                const receiptsTable = document.getElementById('receiptsTableBody');
+                receiptsTable.innerHTML = '';
+
+                if (!data.success || data.receipts.length === 0) {
+                    receiptsTable.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 15px; color: #7f8c8d;">Abhi tak koi receipt nahi mili h.</td></tr>`;
+                    return;
+                }
+
+                data.receipts.forEach(rec => {
+                    const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+                    const formattedDate = new Date(rec.createdAt).toLocaleDateString('en-IN', dateOpts);
+                    
+                    const receiptLink = `receipt.html?txn=${rec.transactionId}&service=${encodeURIComponent(rec.serviceName)}&amount=${rec.amountPaid}`;
+                    const badgeColor = rec.amountPaid === 0 ? '#e67e22' : '#2ecc71';
+
+                    receiptsTable.innerHTML += `
+                        <tr>
+                            <td>${formattedDate}</td>
+                            <td style="font-weight: bold; color: #2c3e50;">${rec.serviceName}</td>
+                            <td style="font-family: monospace; color: #2980b9;">${rec.transactionId}</td>
+                            <td style="font-weight: bold; color: #27ae60;">₹${rec.amountPaid}.00</td>
+                            <td><span style="background:${badgeColor}; color:white; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">${rec.paymentStatus}</span></td>
+                            <td>
+                                <a href="${receiptLink}" target="_blank" style="background: #9b59b6; color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">🖨️ View / Print</a>
+                            </td>
+                        </tr>`;
+                });
+            } catch (e) {
+                console.error("Error loading universal receipts:", e);
             }
         }
 
@@ -306,27 +334,49 @@
             } catch (error) { console.error('Error loading profile:', error); }
         }
 
+        // 👑 RESTORED & FIXED: Admin Power Toggle and Return Handle Click Action
+        document.getElementById('logoutBtn').onclick = function(e) {
+            if (localStorage.getItem('realAdmin') === 'yes') {
+                e.preventDefault(); 
+                
+                // Session parameters reset to Admin context
+                localStorage.setItem('userRole', 'admin');
+                localStorage.removeItem('realAdmin');
+                localStorage.setItem('brokerName', 'Admin');
+                localStorage.setItem('brokerEmail', 'devilking786k@sahu.com'); 
+                
+                window.location.href = 'admin-dashboard.html';
+            } else {
+                localStorage.clear();
+            }
+        };
+
         window.onload = function() {
             const role = localStorage.getItem('userRole');
-            
-            // 🛡️ Security Check: Agar direct admin is page par aane ki koshish kare toh use dashboard par bhejein
-            if (role === 'admin') {
+            const isRealAdmin = localStorage.getItem('realAdmin') === 'yes';
+
+            // 🛡️ Security Check: Normal flow restricts direct Admin routing without simulation token
+            if (role === 'admin' && !isRealAdmin) {
                 window.location.href = 'admin-dashboard.html';
                 return;
             }
-            
+
             loadBrokerProfile();
             loadProperties();
-            loadUniversalReceipts(); // Universal receipts load karne ke liye call
+            loadUniversalReceipts();
 
-            // 👑 NAYA/RESTORED: Admin Power ko wapas activate karne ka logic
-            if (localStorage.getItem('realAdmin') === 'yes') {
+            // 👑 LIVE BUTTON FORCE INJECTION
+            if (isRealAdmin) {
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) {
                     logoutBtn.innerHTML = "👑 Back to Admin";
-                    logoutBtn.style.background = "#e67e22"; // Premium Orange color for admin return button
+                    logoutBtn.style.backgroundColor = "#e67e22"; 
                     logoutBtn.style.color = "white";
-                    logoutBtn.href = "#"; // Prevent natural link navigation
+                    logoutBtn.style.fontWeight = "bold";
+                    logoutBtn.style.padding = "10px 15px";
+                    logoutBtn.style.borderRadius = "4px";
+                    logoutBtn.style.textDecoration = "none";
+                    logoutBtn.href = "javascript:void(0);"; 
                 }
             }
         };
