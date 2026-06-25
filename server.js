@@ -63,7 +63,6 @@ const propertySchema = new mongoose.Schema({
     images: [{ type: String }], videoLink: { type: String, default: '' }, 
     brokerEmail: String, contactNumber: String, status: { type: String, default: 'pending' },
     views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 },
-    // 🌟 NAYA: Invoice/Receipt Tracking Fields
     transactionId: { type: String, default: 'FREE_BYPASS' },
     amountPaid: { type: Number, default: 0 },
     paymentStatus: { type: String, default: 'Free' }
@@ -91,26 +90,26 @@ const verificationSchema = new mongoose.Schema({
     ownerName: String,
     ownerPhone: String,
     tenantPhoto: String,    
+    // 🌟 NAYA: Aadhar Card Photo Tracking Fields
+    aadharFrontPhoto: { type: String, default: '' },
+    aadharBackPhoto: { type: String, default: '' },
     familyMembers: Number,  
     status: { type: String, default: 'Pending' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
 
-// 🌟 NAYA: SUPER APP SERVICES TRACKER
 const serviceAnalyticsSchema = new mongoose.Schema({
     serviceName: { type: String, unique: true },
     clicks: { type: Number, default: 0 }
 });
 const ServiceAnalytics = mongoose.model('ServiceAnalytics', serviceAnalyticsSchema);
 
-// 🎛️ NAYA: PAYMENT BYPASS CONFIGURATION
 const configSchema = new mongoose.Schema({
     key: { type: String, unique: true },
     value: Boolean
 });
 const Config = mongoose.model('Config', configSchema);
 
-// 🧾 NAYA: UNIVERSAL AUTOMATED RECEIPT SCHEMA (Har service ke liye)
 const universalReceiptSchema = new mongoose.Schema({
     userEmail: { type: String, required: true },
     serviceName: { type: String, required: true }, 
@@ -203,11 +202,24 @@ app.post('/api/admin/toggle-payment', async (req, res) => {
     }
 });
 
-// -- USER APIs --
-app.post('/api/submit-verification', upload.single('tenantPhoto'), async (req, res) => {
+// -- USER APIs (Multi-File Field Handler for Tenant Verification) --
+app.post('/api/submit-verification', upload.fields([
+    { name: 'tenantPhoto', maxCount: 1 },
+    { name: 'aadharFront', maxCount: 1 },
+    { name: 'aadharBack', maxCount: 1 }
+]), async (req, res) => {
     try {
-        const photoUrl = req.file ? (req.file.path || req.file.url) : 'https://placehold.co/150x150?text=No+Photo';
-        const verificationData = { ...req.body, tenantPhoto: photoUrl };
+        const tenantPhotoUrl = req.files && req.files['tenantPhoto'] ? req.files['tenantPhoto'][0].path : 'https://placehold.co/150x150?text=No+Photo';
+        const aadharFrontUrl = req.files && req.files['aadharFront'] ? req.files['aadharFront'][0].path : '';
+        const aadharBackUrl = req.files && req.files['aadharBack'] ? req.files['aadharBack'][0].path : '';
+
+        const verificationData = { 
+            ...req.body, 
+            tenantPhoto: tenantPhotoUrl,
+            aadharFrontPhoto: aadharFrontUrl,
+            aadharBackPhoto: aadharBackUrl
+        };
+
         const newRequest = new Verification(verificationData);
         await newRequest.save();
 
@@ -358,14 +370,17 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// RAZORPAY
+// RAZORPAY SETUP
 const razorpay = new Razorpay({ key_id: 'rzp_test_T3oTzNzTDvWgUL', key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2' });
 app.post('/api/create-order', async (req, res) => {
     try {
-        const order = await razorpay.orders.create({ amount: 1000, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) });
+        // Dynamic amount checker configuration if passed from frontend
+        const orderAmount = req.body && req.body.customAmount ? req.body.customAmount : 1000; 
+        const order = await razorpay.orders.create({ amount: orderAmount, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) });
         res.json({ success: true, order });
     } catch (error) { res.status(500).json({ success: false }); }
 });
+
 app.post('/api/verify-payment', (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;

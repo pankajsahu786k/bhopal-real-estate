@@ -19,13 +19,14 @@
         .section-title { color: #2980b9; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px; font-size: 16px; }
         @media (max-width: 600px) { .form-row { flex-direction: column; gap: 0; } }
     </style>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 
     <div class="form-container">
         <a href="services.html" class="back-btn">← Back to Services</a>
         <h2>👮 MP Police Tenant Verification</h2>
-        <p class="subtitle">सिटिज़न पोर्टल के अनुसार सभी सही जानकारी भरें</p>
+        <p class="subtitle">सिटिज़न पोर्टल के अनुसार सभी सही जानकारी भरें</p>
 
         <form id="verificationForm">
             <h4 class="section-title">मालिक सूचना (Owner Details)</h4>
@@ -86,7 +87,17 @@
                 <label>किरायेदार की पासपोर्ट फोटो (Passport Photo) *</label>
                 <input type="file" id="tenantPhoto" accept="image/*" required>
             </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="aadharFront">किरायेदार का आधार कार्ड (Front Photo) *</label>
+                <input type="file" id="aadharFront" accept="image/*" required>
+            </div>
 
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="aadharBack">किरायेदार का आधार कार्ड (Back Photo) *</label>
+                <input type="file" id="aadharBack" accept="image/*" required>
+            </div>
+            
             <h4 class="section-title">स्थायी पता (Permanent Address)</h4>
             <div class="form-group">
                 <label>किरायेदार का स्थायी पता (Permanent Address) *</label>
@@ -97,7 +108,7 @@
                 <input type="text" id="permanentPoliceStation" required placeholder="स्थायी थाने का नाम">
             </div>
 
-            <button type="submit" id="submitBtn" class="submit-btn">Submit Verification Request 🚀</button>
+            <button type="submit" id="submitBtn" class="submit-btn">Loading Status... ⏳</button>
         </form>
     </div>
 
@@ -124,10 +135,10 @@
         const btn = document.getElementById('submitBtn');
         if (isPaymentBypassedGlobal) {
             btn.innerText = "Submit Verification Request (FREE) 🚀";
-            btn.style.backgroundColor = "#e67e22"; // Orange color for Free Mode
+            btn.style.backgroundColor = "#e67e22"; 
         } else {
-            btn.innerText = "Pay ₹10 & Submit Request 💳";
-            btn.style.backgroundColor = "#3498db"; // Blue color for Paid Mode
+            btn.innerText = "Pay ₹110 & Submit Request 💳";
+            btn.style.backgroundColor = "#3498db"; 
         }
     });
 
@@ -157,22 +168,33 @@
         formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
         formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
         
+        // Multiple Photos Injection
         const photoInput = document.getElementById('tenantPhoto');
         if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
+
+        const frontInput = document.getElementById('aadharFront');
+        if (frontInput.files.length > 0) formData.append('aadharFront', frontInput.files[0]);
+
+        const backInput = document.getElementById('aadharBack');
+        if (backInput.files.length > 0) formData.append('aadharBack', backInput.files[0]);
 
         // 🔓 CONDITION A: अगर मास्टर कंट्रोल स्विच FREE MODE (Bypass) पर है
         if (isPaymentBypassedGlobal) {
             const freeTxnId = 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
             btn.innerText = "Bypass Verified! Uploading... 🔓";
-            
-            // डेटाबेस में वेरिफिकेशन डेटा और साथ ही यूनिवर्सल रसीद जनरेट करवाएंगे
             submitDataWithUniversalReceipt(formData, btn, originalText, freeTxnId, 'Tenant Police Verification (FREE)', 0, 'Bypassed (Free)');
         } 
-        // 💳 CONDITION B: अगर Paid Mode एक्टिव है (Razorpay पॉपअप खुलेगा)
+        // 💳 CONDITION B: अगर Paid Mode एक्टिव है (Razorpay पॉपअप खुलेगा - ₹110)
         else {
             try {
                 btn.innerText = "Initiating Payment... 💳";
-                const orderRes = await fetch('/api/create-order', { method: 'POST' });
+                
+                // ₹110 के लिए custom amount ऑब्जेक्ट भेजेंगे (11000 पैसे)
+                const orderRes = await fetch('/api/create-order', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customAmount: 11000 })
+                });
                 const orderData = await orderRes.json();
                 
                 if(!orderData.success) {
@@ -183,16 +205,14 @@
 
                 const options = {
                     "key": "rzp_test_T3oTzNzTDvWgUL", 
-                    "amount": orderData.order.amount,
+                    "amount": 11000, // Fixed ₹110 in check-out window (11000 paise)
                     "currency": "INR",
                     "name": "Bhopal Properties",
                     "description": "Tenant Police Verification Charges",
                     "order_id": orderData.order.id,
                     "handler": async function (response) {
                         btn.innerText = "Payment Successful! Saving... 🚀";
-                        
-                        // पेमेंट सफल होने पर डेटाबेस में सेव करेंगे
-                        submitDataWithUniversalReceipt(formData, btn, originalText, response.razorpay_payment_id, 'Tenant Police Verification Premium', 10, 'Paid');
+                        submitDataWithUniversalReceipt(formData, btn, originalText, response.razorpay_payment_id, 'Tenant Police Verification Premium', 110, 'Paid');
                     },
                     "prefill": {
                         "name": localStorage.getItem('brokerName') || "User",
@@ -221,15 +241,13 @@
         }
     });
 
-    // ☁️ 3. वेरिफिकेशन डेटा सबमिट करने और यूनिवर्सल रसीद ऑटो-जनरेट करने का कम्बाइंड फंक्शन
+    // ☁️ 3. डेटा सबमिट करने और यूनिवर्सल रसीद जनरेट करने का फ़ंक्शन
     async function submitDataWithUniversalReceipt(formData, btn, originalText, txnId, serviceName, amt, payStatus) {
         try {
-            // A. पहले वेरिफिकेशन का फॉर्म डेटा सबमिट करें
             const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
             const result = await saveRes.json();
             
             if (result.success) {
-                // B. वेरिफिकेशन सफल होने पर, तुरंत यूनिवर्सल रसीद कलेक्शन में डेटा सिंक करें
                 const receiptData = {
                     userEmail: localStorage.getItem('brokerEmail'),
                     serviceName: serviceName,
@@ -245,8 +263,6 @@
                 });
 
                 alert("✅ वेरिफिकेशन रिक्वेस्ट और इनवॉइस सफलतापूर्वक जनरेट हो गए हैं!");
-                
-                // C. यूजर को रसीद का प्रिंटआउट दिखाने के लिए भेजें
                 window.location.href = `receipt.html?txn=${txnId}&service=${encodeURIComponent(serviceName)}&amount=${amt}`;
                 
             } else {
