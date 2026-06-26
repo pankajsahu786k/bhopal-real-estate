@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RK Decorators - Admin Dashboard</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <style>
         body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
@@ -14,7 +12,7 @@
         .sidebar { width: 260px; background-color: #1e1b4b; color: white; display: flex; flex-direction: column; flex-shrink: 0; border-right: 4px solid #f59e0b; }
         .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #0f0e36; font-size: 18px; color: #f59e0b; font-weight: 800; }
         .nav-links { list-style: none; padding: 0; margin: 0; }
-        .nav-links a { display: block; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; font-weight: 600; }
+        .nav-links a { display: block; padding: 15px 20px; color: #cbd5e1; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; font-weight: 600; cursor: pointer; }
         .nav-links a:hover, .nav-links a.active { background-color: rgba(255,255,255,0.05); color: #f59e0b; border-left-color: #f59e0b; }
 
         .main-content-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
@@ -129,19 +127,6 @@
     </div>
 
     <script>
-        // 🔒 Real Firebase Configurations Sync
-        const firebaseConfig = {
-            apiKey: "AIzaSyDuieDYY9G3cWGBnrApK6LV75nn8j5j58g",
-            authDomain: "rk-baloon-decorators.firebaseapp.com",
-            projectId: "rk-baloon-decorators",
-            storageBucket: "rk-baloon-decorators.firebasestorage.app",
-            messagingSenderId: "138038223575",
-            appId: "1:138038223575:web:c0723a1a0d161ba08d4692",
-            measurementId: "G-R6CNR3CY05"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         let activeCategoryTab = 'wedding';
 
         const categoryLabels = {
@@ -162,20 +147,23 @@
             loadLiveItems();
         }
 
-        function loadLiveItems() {
+        // 🌟 FETCH LOGIC REPLACED FROM FIREBASE TO YOUR NATIVE BACKEND
+        async function loadLiveItems() {
             const tableBody = document.getElementById('liveItemsTableBody');
             tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>`;
 
-            db.collection(`${activeCategoryTab}_cards`).orderBy("id", "desc").get().then((querySnapshot) => {
+            try {
+                const res = await fetch(`${window.location.origin}/api/rk-get-packages/${activeCategoryTab}`);
+                const result = await res.json();
+
                 tableBody.innerHTML = "";
-                if (querySnapshot.empty) {
+                if (!result.success || !result.data || result.data.length === 0) {
                     tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">Is category me abhi koi data live nahi h.</td></tr>`;
                     return;
                 }
 
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const docId = doc.id; 
+                result.data.forEach((data) => {
+                    const docId = data._id; // Native DB system primary key
                     const imgUrl = (data.images && data.images.length > 0) ? data.images[0] : 'https://placehold.co/60x40?text=No+Img';
                     
                     tableBody.innerHTML += `
@@ -190,10 +178,11 @@
                         </tr>
                     `;
                 });
-            }).catch(e => { tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Firebase Connection Error.</td></tr>`; });
+            } catch (e) { 
+                tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Server Connection Error.</td></tr>`; 
+            }
         }
 
-        // 🌟 Helper Function: Backend JSON Response Wrapper Check
         async function uploadImageToServer(fileData) {
             const formData = new FormData();
             formData.append('rkImage', fileData);
@@ -208,11 +197,11 @@
                 throw new Error(jsonResult.message || "Upload failed on server context.");
             } else {
                 const htmlTextError = await res.text();
-                console.error("Critical Backend Route Missing Response:", htmlTextError);
-                throw new Error("Server returned HTML instead of JSON. Ensure 'server.js' changes are fully deployed and restarted on Render!");
+                throw new Error("Server returned HTML instead of JSON. Ensure deployment is restarted!");
             }
         }
 
+        // 🌟 SUBMIT LOGIC REPLACED FROM FIREBASE TO YOUR NATIVE BACKEND
         document.getElementById('addPackageForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('.save-btn');
@@ -230,13 +219,11 @@
             const imagesArr = [];
 
             try {
-                // A. Primary Cloudinary stream upload wrapper handler call
                 if (imgFile1) {
                     const url1 = await uploadImageToServer(imgFile1);
                     if (url1) imagesArr.push(url1);
                 }
 
-                // B. Secondary Cloudinary stream upload wrapper handler call (Optional)
                 if (imgFile2) {
                     const url2 = await uploadImageToServer(imgFile2);
                     if (url2) imagesArr.push(url2);
@@ -246,31 +233,58 @@
 
                 const newPackagePayload = {
                     id: uniqueNumericalId,
-                    title,
+                    title: title.trim(),
                     price: parseInt(price),
-                    desc,
+                    desc: desc.trim(),
                     images: imagesArr,
                     video: video || '' 
                 };
 
-                await db.collection(`${activeCategoryTab}_cards`).add(newPackagePayload);
-                alert("✅ सफ़लतापूर्वक लाइव सर्वर और क्लाउड पर अपलोड हो गया है!");
-                document.getElementById('addPackageForm').reset();
-                loadLiveItems(); 
+                btn.innerText = "Syncing with Live Server... 🌐";
+                
+                const response = await fetch(`${window.location.origin}/api/rk-add-package`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category: activeCategoryTab,
+                        packageData: newPackagePayload
+                    })
+                });
+                
+                const finalResult = await response.json();
+                
+                if (finalResult.success) {
+                    alert("✅ सफ़लतापूर्वक आपके लाइव सर्वर और क्लाउड पर अपलोड हो गया है!");
+                    document.getElementById('addPackageForm').reset();
+                    loadLiveItems(); 
+                } else {
+                    throw new Error(finalResult.message || "Upload failed on backend database.");
+                }
             } catch(error) {
-                alert("❌ " + error.message);
+                alert("❌ Upload Process Blocked: " + error.message);
             } finally {
                 btn.innerText = "+ Upload Live";
                 btn.disabled = false;
             }
         });
 
-        function deleteLiveCard(firebaseDocId) {
+        // 🌟 DELETE LOGIC REPLACED FROM FIREBASE TO YOUR NATIVE BACKEND
+        async function deleteLiveCard(nativeDbId) {
             if (confirm("क्या आप वाकई इस पैकेज को लाइव वेबसाइट से डिलीट करना चाहते हैं?")) {
-                db.collection(`${activeCategoryTab}_cards`).doc(firebaseDocId).delete().then(() => {
-                    alert("🗑️ पैकेज डिलीट कर दिया गया है!");
-                    loadLiveItems();
-                }).catch(e => alert("Delete action failed."));
+                try {
+                    const response = await fetch(`${window.location.origin}/api/rk-delete-package/${activeCategoryTab}/${nativeDbId}`, {
+                        method: 'DELETE'
+                    });
+                    const finalResult = await response.json();
+                    if(finalResult.success) {
+                        alert("🗑️ पैकेज डिलीट कर दिया गया है!");
+                        loadLiveItems();
+                    } else {
+                        alert("❌ Delete Action Failed.");
+                    }
+                } catch(e) {
+                    alert("Delete action connection error.");
+                }
             }
         }
 

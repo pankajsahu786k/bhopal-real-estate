@@ -353,6 +353,7 @@ app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (r
         res.json({ success: true, message: 'Updated Successfully' });
     } catch (err) { res.status(500).json({ success: false }); }
 });
+
 // 🎈 RK Baloon Dashboard ke liye Image Upload Route
 app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
     try {
@@ -364,6 +365,45 @@ app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
     } catch (error) {
         console.error("Cloudinary upload error:", error);
         return res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// 🎈 NAYA ROUTE: RK Baloon Packages को आपके अपने डेटाबेस में सेव करने के लिए
+app.post('/api/rk-add-package', async (req, res) => {
+    try {
+        const { category, packageData } = req.body;
+        
+        // आपके डेटाबेस में सीधे dynamic collection (wedding, birthday, etc.) में सेव होगा
+        await mongoose.connection.db.collection(`${category}_cards`).insertOne(packageData);
+        
+        res.json({ success: true, message: 'Package uploaded successfully to local db!' });
+    } catch (error) {
+        console.error("DB Save Error:", error);
+        res.status(500).json({ success: false, message: 'Database Save Failed' });
+    }
+});
+
+// 🎈 NAYA ROUTE: Live Website (rk-decorators.html) पर डेटा दिखाने के लिए Fetch राउट
+app.get('/api/rk-get-packages/:category', async (req, res) => {
+    try {
+        const { category } = req.params;
+        const items = await mongoose.connection.db.collection(`${category}_cards`).find({}).sort({ id: -1 }).toArray();
+        res.json({ success: true, data: items });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Fetch Failed' });
+    }
+});
+
+// 🎈 NAYA ROUTE: RK Baloon Packages ko native database se permanently delete karne ke liye
+app.delete('/api/rk-delete-package/:category/:id', async (req, res) => {
+    try {
+        const { category, id } = req.params;
+        const { ObjectId } = require('mongodb');
+        await mongoose.connection.db.collection(`${category}_cards`).deleteOne({ _id: new ObjectId(id) });
+        res.json({ success: true, message: 'Package deleted successfully from local db!' });
+    } catch (error) {
+        console.error("DB Delete Error:", error);
+        res.status(500).json({ success: false, message: 'Delete Operation Failed' });
     }
 });
 
@@ -387,7 +427,6 @@ app.get('/api/get-profile', async(req, res) => {
 const razorpay = new Razorpay({ key_id: 'rzp_test_T3oTzNzTDvWgUL', key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2' });
 app.post('/api/create-order', async (req, res) => {
     try {
-        // Dynamic amount checker configuration if passed from frontend
         const orderAmount = req.body && req.body.customAmount ? req.body.customAmount : 1000; 
         const order = await razorpay.orders.create({ amount: orderAmount, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) });
         res.json({ success: true, order });
@@ -495,7 +534,7 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
                 } catch(e) { console.log("Cloudinary image delete error:", e); }
             }
         }
-        await property.findByIdAndDelete(req.params.id);
+        await Property.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Property and photos deleted permanently!' });
     } catch (error) { res.status(500).json({ success: false }); }
 });
