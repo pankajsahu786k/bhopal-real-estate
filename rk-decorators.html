@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RK Decorators & Caterers | Premium Event Solutions</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -175,19 +173,6 @@
     <footer><p>&copy; 2026 RK Decorators & Caterers. All Rights Reserved. | Designed for Bhopal Properties</p></footer>
 
     <script>
-        // Real Cloud Database Configurations
-        const firebaseConfig = {
-            apiKey: "AIzaSyDuieDYY9G3cWGBnrApK6LV75nn8j5j58g",
-            authDomain: "rk-baloon-decorators.firebaseapp.com",
-            projectId: "rk-baloon-decorators",
-            storageBucket: "rk-baloon-decorators.firebasestorage.app",
-            messagingSenderId: "138038223575",
-            appId: "1:138038223575:web:c0723a1a0d161ba08d4692",
-            measurementId: "G-R6CNR3CY05"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
         let currentActiveCategory = 'wedding';
         let activeSelectedCardData = null;
 
@@ -218,7 +203,8 @@
             document.getElementById("gallery-section").style.display = "block";
         }
 
-        function switchCategory(categoryKey) {
+        // 🌟 FETCH PIPELINE MAPPED TO LIVE LOCAL API ENGINE
+        async function switchCategory(categoryKey) {
             currentActiveCategory = categoryKey;
             showGalleryView();
 
@@ -228,17 +214,20 @@
 
             document.getElementById("dynamicSectionTitle").innerText = categoryTitles[categoryKey];
             const container = document.getElementById("dynamicCardsContainer");
-            container.innerHTML = "<p style='color:#64748b; grid-column:1/-1; font-weight:600; padding:20px;'>Cloud Storage Se Data Load Ho Raha Hai... ⏳</p>";
+            container.innerHTML = "<p style='color:#64748b; grid-column:1/-1; font-weight:600; padding:20px;'>Live Server Se Data Load Ho Raha Hai... ⏳</p>";
 
-            db.collection(`${categoryKey}_cards`).orderBy("id", "desc").get().then((querySnapshot) => {
+            try {
+                // Fetch dynamic structural data payload directly from node backend
+                const response = await fetch(`${window.location.origin}/api/rk-get-packages/${categoryKey}`);
+                const result = await response.json();
+
                 container.innerHTML = "";
-                if(querySnapshot.empty) {
+                if(!result.success || !result.data || result.data.length === 0) {
                     container.innerHTML = `<p style="color:#94a3b8; grid-column: 1/-1; padding:30px;">Is category me abhi koi package live nahi hai.</p>`;
                     return;
                 }
 
-                querySnapshot.forEach((doc) => {
-                    const card = doc.data();
+                result.data.forEach((card) => {
                     const firstImg = (card.images && card.images.length > 0) ? card.images[0] : 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=400';
                     const displayPrice = card.price ? `₹ ${card.price}` : '₹ Contact Us';
 
@@ -260,9 +249,9 @@
                     `;
                     container.appendChild(cardDiv);
                 });
-            }).catch(err => {
-                container.innerHTML = `<p style="color:red; grid-column: 1/-1;">Error connecting to Firebase.</p>`;
-            });
+            } catch (err) {
+                container.innerHTML = `<p style="color:red; grid-column: 1/-1;">Error connecting to live server backend cluster.</p>`;
+            }
         }
 
         function openDetailsView(cardData) {
@@ -338,26 +327,14 @@
             window.open(linkUrl, '_blank');
         };
 
-        // 🌟 SMART AUTO-TAB SWITCHER ENGINE
         function initWebsite() {
-            // Check url for cat parameters (e.g. rk-decorators.html?cat=birthday)
             const urlParams = new URLSearchParams(window.location.search);
             const targetCat = urlParams.get('cat');
 
-            db.collection("settings").doc("profile").get().then((doc) => {
-                if(doc.exists) {
-                    const data = doc.data();
-                    document.getElementById("viewLogoName").innerText = "✨ " + (data.logoName || "RK Decorators");
-                    document.getElementById("viewHeroTitle").innerText = data.heroTitle || "RK Decorators & Caterers";
-                    document.getElementById("viewHeroDesc").innerText = data.heroDesc || "Hum aapke khaas dino ko banate hain aur bhi khaas...";
-                }
-            }).catch(e => console.log("Profile sync pass."));
-
-            // If valid query parameters found, switch to that specific tab instantly
             if (targetCat && categoryTitles[targetCat]) {
                 switchCategory(targetCat);
             } else {
-                switchCategory('wedding'); // Default fall-back
+                switchCategory('wedding'); 
             }
         }
         window.onload = initWebsite;
