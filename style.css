@@ -49,3 +49,212 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+/* 🎨 Premium Light & Gold Header Matrix Styling Only */
+    .super-app-header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        border-bottom: 2px solid #f59e0b;
+        box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08);
+        padding: 12px 30px;
+    }
+    .header-container {
+        max-width: 1300px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .brand-logo {
+        font-size: 22px;
+        font-weight: 800;
+        color: #1e1b4b;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .brand-logo .sparkle { color: #f59e0b; }
+    .brand-logo .app-tag {
+        font-size: 11px;
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 700;
+        margin-left: 6px;
+        text-transform: uppercase;
+    }
+    .nav-matrix-links {
+        display: flex;
+        list-style: none;
+        gap: 8px;
+        align-items: center;
+        margin: 0;
+        padding: 0;
+    }
+    .matrix-link {
+        font-size: 13px;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        padding: 10px 18px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .matrix-link:hover {
+        color: #1e1b4b;
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.05);
+        transform: translateY(-1px);
+    }
+    .matrix-link.active {
+        color: #fff !important;
+        background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important;
+        border-color: #1e1b4b !important;
+    }
+    .instant-access-badge {
+        font-size: 12px;
+        font-weight: 700;
+        color: #065f46;
+        background: #d1fae5;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid #a7f3d0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: #10b981;
+        border-radius: 50%;
+        display: inline-block;
+        animation: networkPulse 1.8s infinite ease-in-out;
+    }
+    @keyframes networkPulse {
+        0% { transform: scale(0.8); opacity: 0.5; }
+        50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(16,185,129,0.6); }
+        100% { transform: scale(0.8); opacity: 0.5; }
+    }
+    @media (max-width: 992px) {
+        .header-container { flex-direction: column; gap: 10px; text-align: center; }
+        .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+    }
+    /* 👑 Premium Light & Gold Header Matrix Styling Only */
+.super-app-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 2px solid #f59e0b;
+    box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08);
+    padding: 12px 30px;
+}
+.header-container {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.brand-logo {
+    font-size: 22px;
+    font-weight: 800;
+    color: #1e1b4b;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
+.brand-logo span.logo-main span { color: #27ae60; }
+.brand-logo .sparkle { color: #f59e0b; }
+.brand-logo .app-tag {
+    font-size: 11px;
+    background: #e0e7ff;
+    color: #4338ca;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 700;
+    margin-left: 6px;
+    text-transform: uppercase;
+}
+.nav-matrix-links {
+    display: flex;
+    list-style: none;
+    gap: 8px;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+.matrix-link {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.matrix-link:hover {
+    color: #1e1b4b;
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+    transform: translateY(-1px);
+}
+.matrix-link.active {
+    color: #fff !important;
+    background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important;
+    border-color: #1e1b4b !important;
+}
+.instant-access-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #065f46;
+    background: #d1fae5;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #a7f3d0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+    animation: networkPulse 1.8s infinite ease-in-out;
+}
+@keyframes networkPulse {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(16,185,129,0.6); }
+    100% { transform: scale(0.8); opacity: 0.5; }
+}
+.broker-login-nav-btn {
+    background: #2c3e50 !important;
+    color: white !important;
+    border-color: #2c3e50 !important;
+}
+.broker-login-nav-btn:hover {
+    background: #1a252f !important;
+}
+
+@media (max-width: 992px) {
+    .header-container { flex-direction: column; gap: 12px; text-align: center; }
+    .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+}
