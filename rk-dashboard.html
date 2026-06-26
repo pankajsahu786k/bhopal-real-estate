@@ -38,7 +38,11 @@
         .item-table th { background: #1e1b4b; color: white; text-align: left; padding: 12px 15px; font-size: 14px; }
         .item-table td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
         .item-table tr:last-child td { border: none; }
-        .delete-btn { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        
+        .action-btn-pill { color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; margin-right: 5px; }
+        .btn-edit { background: #3b82f6; }
+        .btn-status-toggle { background: #f59e0b; }
+        .delete-btn { background: #ef4444; }
         .delete-btn:hover { background: #dc2626; }
 
         @media (max-width: 768px) {
@@ -74,8 +78,10 @@
             </div>
 
             <div class="form-box">
-                <h3 style="margin-top: 0; margin-bottom: 15px; color: #1e1b4b;">Naya Package Jodein</h3>
+                <h3 id="formActionTitle" style="margin-top: 0; margin-bottom: 15px; color: #1e1b4b;">Naya Package Jodein</h3>
                 <form id="addPackageForm">
+                    <input type="hidden" id="editItemId" value="">
+
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Package Title / Name *</label>
@@ -86,25 +92,49 @@
                             <input type="number" id="pkgPrice" required placeholder="Price in ₹">
                         </div>
                         <div class="form-group">
-                            <label>Primary Image (Main Photo) *</label>
-                            <input type="file" id="pkgImg1" accept="image/*" required>
-                        </div>
-                    </div>
-                    <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
-                        <div class="form-group">
-                            <label>Image URL 2 (Optional)</label>
-                            <input type="file" id="pkgImg2" accept="image/*">
-                        </div>
-                        <div class="form-group">
-                            <label>YouTube Video URL (Optional)</label>
+                            <label>YouTube Video URL (Optional - Will Autoplay)</label>
                             <input type="url" id="pkgVideo" placeholder="https://youtube.com/...">
                         </div>
                     </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
+
+                    <h4 style="color: #475569; margin: 15px 0 10px 0; font-size: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px;">Upload Photos (Max 5 Photos)</h4>
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="form-group">
+                            <label>Primary Photo *</label>
+                            <input type="file" id="pkgImg1" accept="image/*">
+                            <small id="previewLabel1" style="color:#10b981; margin-top:2px; font-size:11px;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Photo 2 (Optional)</label>
+                            <input type="file" id="pkgImg2" accept="image/*">
+                            <small id="previewLabel2" style="color:#10b981; margin-top:2px; font-size:11px;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Photo 3 (Optional)</label>
+                            <input type="file" id="pkgImg3" accept="image/*">
+                            <small id="previewLabel3" style="color:#10b981; margin-top:2px; font-size:11px;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Photo 4 (Optional)</label>
+                            <input type="file" id="pkgImg4" accept="image/*">
+                            <small id="previewLabel4" style="color:#10b981; margin-top:2px; font-size:11px;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label>Photo 5 (Optional)</label>
+                            <input type="file" id="pkgImg5" accept="image/*">
+                            <small id="previewLabel5" style="color:#10b981; margin-top:2px; font-size:11px;"></small>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 15px; margin-bottom: 15px;">
                         <label>Description / Details *</label>
                         <textarea id="pkgDesc" rows="3" required placeholder="Write details about the setup items..."></textarea>
                     </div>
-                    <button type="submit" class="save-btn">+ Upload Live</button>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" class="save-btn" id="submitFormBtn">+ Upload Live</button>
+                        <button type="button" id="cancelEditBtn" style="display:none; background:#64748b; color:white; border:none; padding:12px 25px; border-radius:6px; cursor:pointer; font-weight:bold;" onclick="resetFormState()">Cancel Edit</button>
+                    </div>
                 </form>
             </div>
 
@@ -115,12 +145,13 @@
                         <th>Image</th>
                         <th>Package Title</th>
                         <th>Price</th>
+                        <th>Status</th>
                         <th>Description</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody id="liveItemsTableBody">
-                    <tr><td colspan="5" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>
+                    <tr><td colspan="6" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>
                 </tbody>
             </table>
         </main>
@@ -128,6 +159,7 @@
 
     <script>
         let activeCategoryTab = 'wedding';
+        let cachedItemsArray = []; 
 
         const categoryLabels = {
             'wedding': '👑 Wedding Package Management',
@@ -138,6 +170,7 @@
 
         function switchTab(categoryKey) {
             activeCategoryTab = categoryKey;
+            resetFormState();
             
             document.querySelectorAll('.nav-links a').forEach(el => el.classList.remove('active'));
             const activeEl = document.getElementById(`tab-${categoryKey}`);
@@ -147,10 +180,9 @@
             loadLiveItems();
         }
 
-        // 🌟 FETCH LOGIC REPLACED FROM FIREBASE TO YOUR NATIVE BACKEND
         async function loadLiveItems() {
             const tableBody = document.getElementById('liveItemsTableBody');
-            tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b;">Loading active cards... ⏳</td></tr>`;
 
             try {
                 const res = await fetch(`${window.location.origin}/api/rk-get-packages/${activeCategoryTab}`);
@@ -158,54 +190,94 @@
 
                 tableBody.innerHTML = "";
                 if (!result.success || !result.data || result.data.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">Is category me abhi koi data live nahi h.</td></tr>`;
+                    cachedItemsArray = [];
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 20px;">Is category me abhi koi data live nahi h.</td></tr>`;
                     return;
                 }
 
+                cachedItemsArray = result.data; 
+
                 result.data.forEach((data) => {
-                    const docId = data._id; // Native DB system primary key
+                    const docId = data._id; 
                     const imgUrl = (data.images && data.images.length > 0) ? data.images[0] : 'https://placehold.co/60x40?text=No+Img';
+                    const liveStatus = data.status !== undefined ? data.status : 'published';
+                    const statusBadgeColor = liveStatus === 'published' ? '#10b981' : '#ef4444';
                     
                     tableBody.innerHTML += `
                         <tr>
                             <td><img src="${imgUrl}" style="width:60px; height:40px; object-fit:cover; border-radius:4px;"></td>
                             <td style="font-weight:bold; color:#1e1b4b;">${data.title}</td>
                             <td style="font-weight:bold; color:#10b981;">₹ ${data.price || 'Call'}</td>
-                            <td style="color:#64748b; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${data.desc || ''}</td>
+                            <td><span style="background:${statusBadgeColor}; color:white; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold; text-transform:uppercase;">${liveStatus}</span></td>
+                            <td style="color:#64748b; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${data.desc || ''}</td>
                             <td>
-                                <button class="delete-btn" onclick="deleteLiveCard('${docId}')">Delete</button>
+                                <button class="action-btn-pill btn-edit" onclick="triggerEditMode('${docId}')">Edit</button>
+                                <button class="action-btn-pill btn-status-toggle" onclick="togglePublishStatus('${docId}', '${liveStatus}')">Status</button>
+                                <button class="action-btn-pill delete-btn" onclick="deleteLiveCard('${docId}')">Delete</button>
                             </td>
                         </tr>
                     `;
                 });
             } catch (e) { 
-                tableBody.innerHTML = `<tr><td colspan="5" style="color:red; text-align:center;">Server Connection Error.</td></tr>`; 
+                tableBody.innerHTML = `<tr><td colspan="6" style="color:red; text-align:center;">Server Connection Error.</td></tr>`; 
             }
         }
 
         async function uploadImageToServer(fileData) {
             const formData = new FormData();
             formData.append('rkImage', fileData);
-            
-            const targetEndpoint = `${window.location.origin}/api/rk-upload-image`;
-            const res = await fetch(targetEndpoint, { method: 'POST', body: formData });
-            
-            const contentType = res.headers.get("content-type");
-            if (contentType && contentType.indexOf("application/json") !== -1) {
-                const jsonResult = await res.json();
-                if (jsonResult.success) return jsonResult.url;
-                throw new Error(jsonResult.message || "Upload failed on server context.");
-            } else {
-                const htmlTextError = await res.text();
-                throw new Error("Server returned HTML instead of JSON. Ensure deployment is restarted!");
+            const res = await fetch(`${window.location.origin}/api/rk-upload-image`, { method: 'POST', body: formData });
+            const jsonResult = await res.json();
+            if (jsonResult.success) return jsonResult.url;
+            throw new Error(jsonResult.message || "Upload failed.");
+        }
+
+        // 🌟 TRIGGER ACTION: POPULATE EDIT MODE STATE
+        function triggerEditMode(itemId) {
+            const matchItem = cachedItemsArray.find(item => item._id === itemId);
+            if (!matchItem) return;
+
+            window.scrollTo(0,0);
+            document.getElementById('editItemId').value = itemId;
+            document.getElementById('pkgTitle').value = matchItem.title;
+            document.getElementById('pkgPrice').value = matchItem.price;
+            document.getElementById('pkgVideo').value = matchItem.video || '';
+            document.getElementById('pkgDesc').value = matchItem.desc;
+
+            document.getElementById('formActionTitle').innerText = "📝 Package Code Update / Edit";
+            document.getElementById('submitFormBtn').innerText = "Save Changes Live";
+            document.getElementById('cancelEditBtn').style.display = "inline-block";
+            document.getElementById('pkgImg1').required = false; // Optional in edit mode
+
+            // Reset file inputs labels
+            for(let i=1; i<=5; i++){
+                const textLabel = document.getElementById(`previewLabel${i}`);
+                if(matchItem.images && matchItem.images[i-1]){
+                    textLabel.innerText = "✓ Photo loaded";
+                } else {
+                    textLabel.innerText = "";
+                }
             }
         }
 
-        // 🌟 SUBMIT LOGIC REPLACED FROM FIREBASE TO YOUR NATIVE BACKEND
+        function resetFormState() {
+            document.getElementById('addPackageForm').reset();
+            document.getElementById('editItemId').value = "";
+            document.getElementById('formActionTitle').innerText = "Naya Package Jodein";
+            document.getElementById('submitFormBtn').innerText = "+ Upload Live";
+            document.getElementById('cancelEditBtn').style.display = "none";
+            for(let i=1; i<=5; i++){
+                document.getElementById(`previewLabel${i}`).innerText = "";
+            }
+        }
+
+        // 🌟 ACTION SUBMIT ENGINE WITH 5 FILES STREAM LOGIC MATRIX Mapping
         document.getElementById('addPackageForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = e.target.querySelector('.save-btn');
-            btn.innerText = "Uploading Images to Cloud... ⏳";
+            const btn = document.getElementById('submitFormBtn');
+            const editId = document.getElementById('editItemId').value;
+            
+            btn.innerText = "Processing Cloud Uploads... ⏳";
             btn.disabled = true;
 
             const title = document.getElementById('pkgTitle').value;
@@ -213,78 +285,101 @@
             const video = document.getElementById('pkgVideo').value;
             const desc = document.getElementById('pkgDesc').value;
 
-            const imgFile1 = document.getElementById('pkgImg1').files[0];
-            const imgFile2 = document.getElementById('pkgImg2').files[0];
-
             const imagesArr = [];
+            const isEditMode = editId !== "";
 
             try {
-                if (imgFile1) {
-                    const url1 = await uploadImageToServer(imgFile1);
-                    if (url1) imagesArr.push(url1);
+                // 🔄 ITERATE & UPLOAD ALL 5 MULTI FILE FIELDS PIPELINE BUFFER STREAM
+                for (let i = 1; i <= 5; i++) {
+                    const fileInput = document.getElementById(`pkgImg${i}`);
+                    if (fileInput.files && fileInput.files[0]) {
+                        btn.innerText = `Uploading Photo ${i} to Cloud... ⏳`;
+                        const clUrl = await uploadImageToServer(fileInput.files[0]);
+                        if (clUrl) imagesArr.push(clUrl);
+                    } else if (isEditMode) {
+                        // Edit Mode Retain Old Existing Photo Reference Index logic check
+                        const currentMatch = cachedItemsArray.find(item => item._id === editId);
+                        if (currentMatch && currentMatch.images && currentMatch.images[i-1]) {
+                            imagesArr.push(currentMatch.images[i-1]);
+                        }
+                    }
                 }
 
-                if (imgFile2) {
-                    const url2 = await uploadImageToServer(imgFile2);
-                    if (url2) imagesArr.push(url2);
+                if (imagesArr.length === 0 && !isEditMode) {
+                    throw new Error("Kam se kam Primary Image upload karna compulsory h.");
                 }
 
-                const uniqueNumericalId = Date.now(); 
-
-                const newPackagePayload = {
-                    id: uniqueNumericalId,
+                const targetPayload = {
                     title: title.trim(),
                     price: parseInt(price),
                     desc: desc.trim(),
                     images: imagesArr,
-                    video: video || '' 
+                    video: video.trim() || ''
                 };
 
-                btn.innerText = "Syncing with Live Server... 🌐";
+                btn.innerText = "Saving to Server Cluster... 🌐";
                 
-                const response = await fetch(`${window.location.origin}/api/rk-add-package`, {
-                    method: 'POST',
+                let fetchUrl = `${window.location.origin}/api/rk-add-package`;
+                let fetchMethod = 'POST';
+                let httpBody = { category: activeCategoryTab, packageData: targetPayload };
+
+                // If edit token detected override deployment metadata block
+                if (isEditMode) {
+                    fetchUrl = `${window.location.origin}/api/rk-edit-package`;
+                    fetchMethod = 'PUT';
+                    httpBody = { category: activeCategoryTab, id: editId, updateData: targetPayload };
+                }
+
+                const response = await fetch(fetchUrl, {
+                    method: fetchMethod,
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        category: activeCategoryTab,
-                        packageData: newPackagePayload
-                    })
+                    body: JSON.stringify(httpBody)
                 });
                 
                 const finalResult = await response.json();
-                
                 if (finalResult.success) {
-                    alert("✅ सफ़लतापूर्वक आपके लाइव सर्वर और क्लाउड पर अपलोड हो गया है!");
-                    document.getElementById('addPackageForm').reset();
+                    alert("✅ डेटाबेस और क्लाउड पर डेटा सफ़लतापूर्वक अपडेट हो गया है!");
+                    resetFormState();
                     loadLiveItems(); 
                 } else {
-                    throw new Error(finalResult.message || "Upload failed on backend database.");
+                    throw new Error(finalResult.message);
                 }
             } catch(error) {
                 alert("❌ Upload Process Blocked: " + error.message);
             } finally {
-                btn.innerText = "+ Upload Live";
                 btn.disabled = false;
+                btn.innerText = isEditMode ? "Save Changes Live" : "+ Upload Live";
             }
         });
 
-        // 🌟 DELETE LOGIC REPLACED FROM FIREBASE TO YOUR NATIVE BACKEND
+        // 🌟 STATUS CONTROL ENGINE: PUBLISH / UNPUBLISH TOGGLE ROUTE MODULE
+        async function togglePublishStatus(itemId, currentStatus) {
+            const nextStatus = currentStatus === 'published' ? 'unpublished' : 'published';
+            try {
+                const response = await fetch(`${window.location.origin}/api/rk-toggle-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: activeCategoryTab, id: itemId, status: nextStatus })
+                });
+                const resData = await response.json();
+                if (resData.success) {
+                    loadLiveItems();
+                } else {
+                    alert("Status change failed.");
+                }
+            } catch(e) { alert("Status route handling server error."); }
+        }
+
         async function deleteLiveCard(nativeDbId) {
             if (confirm("क्या आप वाकई इस पैकेज को लाइव वेबसाइट से डिलीट करना चाहते हैं?")) {
                 try {
-                    const response = await fetch(`${window.location.origin}/api/rk-delete-package/${activeCategoryTab}/${nativeDbId}`, {
-                        method: 'DELETE'
-                    });
+                    const response = await fetch(`${window.location.origin}/api/rk-delete-package/${activeCategoryTab}/${nativeDbId}`, { method: 'DELETE' });
                     const finalResult = await response.json();
                     if(finalResult.success) {
                         alert("🗑️ पैकेज डिलीट कर दिया गया है!");
                         loadLiveItems();
-                    } else {
-                        alert("❌ Delete Action Failed.");
-                    }
-                } catch(e) {
-                    alert("Delete action connection error.");
-                }
+                    } else { alert("❌ Delete Action Failed."); }
+                } catch(e) { alert("Delete action connection error."); }
             }
         }
 
@@ -293,9 +388,7 @@
             window.location.href = 'services.html'; 
         }
 
-        window.onload = function() {
-            loadLiveItems();
-        }
+        window.onload = function() { loadLiveItems(); }
     </script>
 </body>
 </html>

@@ -90,7 +90,6 @@ const verificationSchema = new mongoose.Schema({
     ownerName: String,
     ownerPhone: String,
     tenantPhoto: String,    
-    // 🌟 NAYA: Aadhar Card Photo Tracking Fields
     aadharFrontPhoto: { type: String, default: '' },
     aadharBackPhoto: { type: String, default: '' },
     familyMembers: Number,  
@@ -368,14 +367,12 @@ app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: RK Baloon Packages को आपके अपने डेटाबेस में सेव करने के लिए
+// 🎈 NAYA ROUTE: RK Baloon Packages को आपके अपने डेटाबेस में सेव करने के लिए (Default 'published')
 app.post('/api/rk-add-package', async (req, res) => {
     try {
         const { category, packageData } = req.body;
-        
-        // आपके डेटाबेस में सीधे dynamic collection (wedding, birthday, etc.) में सेव होगा
+        packageData.status = 'published'; 
         await mongoose.connection.db.collection(`${category}_cards`).insertOne(packageData);
-        
         res.json({ success: true, message: 'Package uploaded successfully to local db!' });
     } catch (error) {
         console.error("DB Save Error:", error);
@@ -383,7 +380,7 @@ app.post('/api/rk-add-package', async (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: Live Website (rk-decorators.html) पर डेटा दिखाने के लिए Fetch राउट
+// 🎈 NAYA ROUTE: Live Website पर डेटा दिखाने के लिए Fetch राउट
 app.get('/api/rk-get-packages/:category', async (req, res) => {
     try {
         const { category } = req.params;
@@ -391,6 +388,38 @@ app.get('/api/rk-get-packages/:category', async (req, res) => {
         res.json({ success: true, data: items });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Fetch Failed' });
+    }
+});
+
+// 🎈 NAYA ROUTE: RK Baloon Packages ko Edit / Update karne ka controller route
+app.put('/api/rk-edit-package', async (req, res) => {
+    try {
+        const { category, id, updateData } = req.body;
+        const { ObjectId } = require('mongodb');
+        await mongoose.connection.db.collection(`${category}_cards`).updateOne(
+            { _id: new ObjectId(id) },
+            { $set: updateData }
+        );
+        res.json({ success: true, message: 'Package updated successfully!' });
+    } catch (error) {
+        console.error("DB Update Error:", error);
+        res.status(500).json({ success: false, message: 'Edit Process Failed' });
+    }
+});
+
+// 🎈 NAYA ROUTE: Publish / Unpublish Status Update mapping handler controller
+app.post('/api/rk-toggle-status', async (req, res) => {
+    try {
+        const { category, id, status } = req.body;
+        const { ObjectId } = require('mongodb');
+        await mongoose.connection.db.collection(`${category}_cards`).updateOne(
+            { _id: new ObjectId(id) },
+            { $set: { status: status } }
+        );
+        res.json({ success: true, message: 'Status switched successfully!' });
+    } catch (error) {
+        console.error("Status Toggle Error:", error);
+        res.status(500).json({ success: false });
     }
 });
 
