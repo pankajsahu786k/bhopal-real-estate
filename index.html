@@ -4,20 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bhopal Properties - Buy, Sell & Rent Real Estate</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* 🎨 Global Styles */
         body { font-family: 'Poppins', sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
         a { text-decoration: none; }
         
-        /* 🔝 Header Navbar */
-        header { background: #fff; padding: 15px 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 100; }
-        .logo { font-size: 24px; font-weight: 700; color: #2c3e50; }
-        .logo span { color: #27ae60; }
-        .nav-links a { color: #2c3e50; margin: 0 15px; font-weight: 500; transition: 0.3s; }
-        .nav-links a:hover { color: #27ae60; }
-        .login-btn { background: #2c3e50; color: white !important; padding: 8px 20px; border-radius: 5px; font-weight: 600; }
-        .login-btn:hover { background: #1a252f; }
+        /* 👑 Premium Light & Gold Header Matrix Styling */
+        .super-app-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 2px solid #f59e0b;
+            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08);
+            padding: 12px 30px;
+        }
+        .header-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .brand-logo {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1e1b4b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
+        .brand-logo span.logo-main span { color: #27ae60; }
+        .brand-logo .sparkle { color: #f59e0b; }
+        .brand-logo .app-tag {
+            font-size: 11px;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+            margin-left: 6px;
+            text-transform: uppercase;
+        }
+        .nav-matrix-links {
+            display: flex;
+            list-style: none;
+            gap: 8px;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+        }
+        .matrix-link {
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .matrix-link:hover {
+            color: #1e1b4b;
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+            transform: translateY(-1px);
+        }
+        .matrix-link.active {
+            color: #fff !important;
+            background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important;
+            border-color: #1e1b4b !important;
+        }
+        .instant-access-badge {
+            font-size: 12px;
+            font-weight: 700;
+            color: #065f46;
+            background: #d1fae5;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: networkPulse 1.8s infinite ease-in-out;
+        }
+        @keyframes networkPulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(16,185,129,0.6); }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+        .broker-login-nav-btn {
+            background: #2c3e50 !important;
+            color: white !important;
+            border-color: #2c3e50 !important;
+        }
+        .broker-login-nav-btn:hover {
+            background: #1a252f !important;
+        }
 
         /* 🌆 Hero Section (Search Area) */
         .hero { background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover; padding: 100px 20px; text-align: center; color: white; }
@@ -52,8 +149,9 @@
         .footer-bottom { font-size: 14px; color: #7f8c8d; border-top: 1px solid #34495e; padding-top: 20px; margin-top: 20px; }
 
         /* 📱 Mobile Responsive */
-        @media (max-width: 768px) {
-            header { padding: 15px 20px; flex-direction: column; gap: 15px; }
+        @media (max-width: 992px) {
+            .header-container { flex-direction: column; gap: 12px; text-align: center; }
+            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
             .hero h1 { font-size: 32px; }
             .search-box { flex-direction: column; }
         }
@@ -61,12 +159,29 @@
 </head>
 <body>
 
-    <header>
-        <a href="index.html" class="logo">Bhopal <span>Properties</span></a>
-        <div class="nav-links">
-            <a href="index.html">Home</a>
-            <a href="#properties">Properties</a>
-            <a href="login.html" class="login-btn">Broker Login</a> 
+    <header class="super-app-header">
+        <div class="header-container">
+            <div class="brand-logo" onclick="window.location.href='index.html'">
+                <span class="sparkle">✨</span> 
+                <span class="logo-main">Bhopal <span>Properties</span></span> 
+                <span class="app-tag">Super App</span>
+            </div>
+            
+            <nav class="navigation-hub">
+                <ul class="nav-matrix-links">
+                    <li><a href="index.html" class="matrix-link active">Home</a></li>
+                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
+                    <li><a href="services.html?service=tenant" class="matrix-link">Tenant Verification</a></li>
+                    <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
+                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
+                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
+                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
+                </ul>
+            </nav>
+            
+            <div class="instant-access-badge">
+                <span class="pulse-dot"></span> Open Access (No Login Required)
+            </div>
         </div>
     </header>
 
@@ -92,11 +207,10 @@
         </div>
     </div>
 
-    <h2 class="section-title" id="properties">लेटेस्ट प्रॉपर्टीज़</h2>
-    <div id="loading" style="text-align: center; font-size: 18px; margin-bottom: 50px;">प्रॉपर्टीज़ लोड हो रही हैं... ⏳</div>
+    <h2 class="section-title" id="properties">लेटेस्ट प्रॉपर्टीज़</h2>
+    <div id="loading" style="text-align: center; font-size: 18px; margin-bottom: 50px;">प्रॉपर्टीज़ लोड हो रही हैं... ⏳</div>
     
-    <div class="properties-container" id="propertyList">
-        </div>
+    <div class="properties-container" id="propertyList"></div>
 
     <footer>
         <div class="footer-links">
@@ -125,7 +239,7 @@
                 displayProperties(allProperties);
             } catch (error) {
                 console.error("Error fetching properties:", error);
-                document.getElementById('loading').innerText = "❌ प्रॉपर्टीज़ लोड करने में समस्या आई।";
+                document.getElementById('loading').innerText = "❌ प्रॉपर्टीज़ लोड करने में समस्या आई।";
             }
         });
 
@@ -135,7 +249,7 @@
             container.innerHTML = ''; // Pehle ka data hatao
 
             if (propertiesToShow.length === 0) {
-                container.innerHTML = '<p style="text-align:center; grid-column: 1 / -1; font-size: 18px; color: #e74c3c;">इस सर्च से जुड़ी कोई प्रॉपर्टी नहीं मिली।</p>';
+                container.innerHTML = '<p style="text-align:center; grid-column: 1 / -1; font-size: 18px; color: #e74c3c;">इस सर्च से जुड़ी कोई प्रॉपर्टी नहीं मिली।</p>';
                 return;
             }
 
@@ -174,7 +288,6 @@
 
             const filteredData = allProperties.filter(prop => {
                 const matchPurpose = purposeFilter === 'All' || prop.purpose === purposeFilter;
-                // Agar Location 'All' hai ya fir property ki location me search wali location ka naam match ho
                 const matchLocation = locationFilter === 'All' || prop.location.toLowerCase().includes(locationFilter.toLowerCase());
                 
                 return matchPurpose && matchLocation;
@@ -182,7 +295,6 @@
 
             displayProperties(filteredData);
             
-            // Search button dabane ke baad page ko thoda niche scroll karna
             document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
         }
     </script>
