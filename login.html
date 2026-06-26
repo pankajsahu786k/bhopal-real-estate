@@ -12,19 +12,17 @@
         .logo { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 20px; }
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 14px; }
-        .input-group input { width: 100%; padding: 15px; border: 2px solid transparent; border-radius: 12px; font-size: 15px; background: #f1f2f6; outline: none; }
-        .input-group input:focus { border-color: #27ae60; background: white; }
-        .login-btn { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .login-btn:hover { background: #219150; }
-        .bottom-link { margin-top: 20px; font-size: 14px; color: #576574; }
-        .bottom-link a { color: #27ae60; font-weight: 700; text-decoration: none; }
-        #errorMsg { background: #ffeaa7; color: #d63031; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: none; font-size: 14px; }
+        .input-group input { width: 100%; padding: 15px; border: 2px solid transparent; border-radius: 12px; outline: none; font-size: 14px; }
+        .form-group input:focus { border-color: #f59e0b; }
+        .save-btn { background: #10b981; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
+        .logout-btn:hover { background-color: #c0392b; }
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="logo">Bhopal <span>Properties</span> 🏠</div>
-        <div id="errorMsg"></div>
+        <div id="errorMsg" style="background: #ffeaa7; color: #d63031; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: none; font-size: 14px;"></div>
         <form id="loginForm">
             <div class="input-group">
                 <label>Email Address</label>
@@ -34,10 +32,10 @@
                 <label>Password</label>
                 <input type="password" id="password" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="login-btn" id="loginBtn">Log In 🚀</button>
+            <button type="submit" class="logout-btn" id="loginBtn" style="background-color: #27ae60;">Log In 🚀</button>
         </form>
-        <div class="bottom-link">
-            Don't have an account? <a href="signup.html">Sign Up here</a>
+        <div class="bottom-link" style="margin-top: 20px; font-size: 14px; color: #576574;">
+            Don't have an account? <a href="signup.html" style="color: #2980b9; text-decoration: none; font-weight: bold;">Sign Up here</a>
         </div>
     </div>
 
@@ -49,38 +47,43 @@
             btn.innerText = "Verifying...";
             
             try {
+                // 1. Purane kisi bhi stale cache ko pehle clean karein
+                localStorage.clear();
+
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        email: document.getElementById('email').value, 
+                        email: document.getElementById('email').value.trim(), 
                         password: document.getElementById('password').value 
                     })
                 });
                 const data = await res.json();
                 
-                // लॉगिन सक्सेस होने के बाद का लॉजिक:
                 if (data.success) {
+                    // 2. Clear token injection
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
                     localStorage.setItem('userRole', data.role);
 
-                    // 🚀 रोल के हिसाब से एकदम सही डैशबोर्ड पर भेजें
-                    if (data.role === 'admin') {
-                        window.location.href = 'admin-dashboard.html';
-                    } else if (data.role === 'police_agent') {
-                        window.location.href = 'police-dashboard.html'; // पुलिस वेरिफिकेशन एजेंट
-                    } else if (data.role === 'notary') {
-                        window.location.href = 'notary-dashboard.html'; // रेंट एग्रीमेंट एजेंट
-                    } else if (data.role === 'loan_agent') {
-                        window.location.href = 'loan-dashboard.html'; // होम लोन एजेंट
-                    } else if (data.role === 'transporter') {
-                        window.location.href = 'transporter-dashboard.html'; // पैकर्स & मूवर्स एजेंट
-                    } else if (data.role === 'rk_decorator') {
-                        // 🌟 SAFELY INTEGRATED: RK Decorator Owner direct native redirection route
-                        window.location.href = 'rk-dashboard.html';
+                    const cleanRole = data.role ? data.role.trim() : '';
+
+                    // 3. Routing Engine Execution
+                    if (cleanRole === 'admin') {
+                        window.location.replace('admin-dashboard.html');
+                    } else if (cleanRole === 'police_agent') {
+                        window.location.replace('police-dashboard.html');
+                    } else if (cleanRole === 'notary') {
+                        window.location.replace('notary-dashboard.html');
+                    } else if (cleanRole === 'loan_agent') {
+                        window.location.replace('loan-dashboard.html');
+                    } else if (cleanRole === 'transporter') {
+                        window.location.replace('transporter-dashboard.html');
+                    } else if (cleanRole === 'rk_decorator') {
+                        // 👑 Force hard routing directly to rk-dashboard
+                        window.location.replace('rk-dashboard.html');
                     } else {
-                        window.location.href = 'dashboard.html'; // नार्मल ब्रोकर / यूज़र
+                        window.location.replace('dashboard.html');
                     }
                 } else {
                     errorMsg.innerText = "❌ " + data.message;
