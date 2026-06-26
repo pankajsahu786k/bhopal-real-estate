@@ -9,125 +9,114 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
         html { scroll-behavior: smooth; }
-        body { color: #1e1b4b; background-color: #0f1123; padding-bottom: 60px; overflow-x: hidden; }
+        body { color: #2c3e50; line-height: 1.6; background-color: #f4f7f6; padding-bottom: 60px; overflow-x: hidden; }
         a { text-decoration: none; color: inherit; }
 
-        /* 👑 Premium Glassmorphism Navbar Styling */
+        /* 👑 Premium Navbar Styling */
         header {
-            background: rgba(15, 17, 35, 0.75);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            color: #fff; padding: 15px 40px; position: sticky; top: 0; z-index: 1000;
-            display: flex; justify-content: space-between; align-items: center; 
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: #1e1b4b; color: #fff; padding: 15px 40px; position: sticky; top: 0; z-index: 1000;
+            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        header .logo { font-size: 26px; font-weight: 800; color: #f59e0b; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; gap: 8px; text-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+        header .logo { font-size: 24px; font-weight: 800; color: #f59e0b; letter-spacing: 1px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
         
         nav optgroup { display: none; } 
-        nav ul { display: flex; list-style: none; align-items: center; gap: 12px; }
-        nav ul li a { font-weight: 600; font-size: 14px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; padding: 10px 20px; border-radius: 30px; color: #94a3b8; display: inline-block; border: 1px solid transparent; }
-        nav ul li a:hover { color: #f59e0b; background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2); }
-        nav ul li a.active-menu { color: #0f1123 !important; background: linear-gradient(135deg, #f59e0b, #d97706); font-weight: 700; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4); border: none; }
+        nav ul { display: flex; list-style: none; align-items: center; gap: 10px; }
+        nav ul li a { font-weight: 600; font-size: 14px; transition: 0.3s; cursor: pointer; padding: 8px 16px; border-radius: 20px; color: #cbd5e1; display: inline-block; }
+        nav ul li a:hover { color: #f59e0b; background: rgba(255,255,255,0.05); }
+        nav ul li a.active-menu { color: #1e1b4b !important; background: #f59e0b; font-weight: bold; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4); }
         
-        .nav-login-btn { background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: white !important; padding: 10px 24px; border-radius: 30px; font-weight: 700; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3); transition: 0.3s; border: none !important; }
-        .nav-login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5); }
+        .nav-login-btn { background: #ef4444 !important; color: white !important; padding: 8px 20px; border-radius: 20px; font-weight: bold; transition: 0.3s; }
+        .nav-login-btn:hover { background: #doc2626 !important; transform: scale(1.05); }
 
-        /* 🚀 Immersive Cinematic Hero Banner */
+        /* 🚀 Modern Cinematic Video Hero Banner */
         .hero {
-            background: linear-gradient(rgba(15, 17, 35, 0.4), rgba(15, 17, 35, 0.95)), url('https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=1200&q=80') no-repeat center center/cover;
-            color: white; text-align: center; padding: 120px 20px; position: relative;
+            position: relative; width: 100%; height: 420px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; padding: 20px; overflow: hidden; border-bottom: 5px solid #f59e0b;
         }
-        .hero::after { content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 100px; background: linear-gradient(to top, #0f1123, transparent); }
-        /* 🚀 Hero Title Text Gradient Component Update */
-        .hero h1 span { 
-            background: linear-gradient(to right, #f59e0b, #fbbf24); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            background-clip: text; /* 🌟 VS Code की वार्निंग हटाने के लिए यह लाइन जोड़ दी */
+        .hero video {
+            position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; z-index: 1; transform: translate(-50%, -50%); object-fit: cover;
         }
-        .hero h1 span { background: linear-gradient(to right, #f59e0b, #fbbf24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .hero p { font-size: 20px; margin-bottom: 0; max-width: 700px; margin-left: auto; margin-right: auto; color: #94a3b8; font-weight: 500; }
+        .hero-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(30, 27, 75, 0.75), rgba(15, 23, 42, 0.85)); z-index: 2;
+        }
+        .hero h1 { position: relative; z-index: 3; font-size: 42px; margin-bottom: 15px; color: #f59e0b; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+        .hero p { position: relative; z-index: 3; font-size: 18px; margin-bottom: 0; max-width: 655px; margin-left: auto; margin-right: auto; opacity: 0.9; font-weight: 500; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
 
-        /* 🏢 Premium Cards Container & Layout */
-        .section-container { padding: 60px 40px; max-width: 1240px; margin: 0 auto; }
-        .section-container h2 { font-size: 32px; color: #fff; margin-bottom: 40px; font-weight: 800; text-align: left; display: flex; align-items: center; gap: 12px; }
-        .section-container h2::before { content: ''; width: 6px; height: 35px; background: linear-gradient(#f59e0b, #d97706); display: inline-block; border-radius: 4px; }
-        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
+        /* 🏢 Dynamic Gallery Grid Setup */
+        .section-container { padding: 40px; max-width: 1200px; margin: 0 auto; }
+        .section-container h2 { font-size: 28px; color: #1e1b4b; margin-bottom: 30px; text-transform: uppercase; font-weight: 800; text-align: left; border-left: 5px solid #f59e0b; padding-left: 15px; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
         
-        /* 💳 Luxury Neomorphic Card UI */
-        .item-card { background: #1e2238; border-radius: 20px; overflow: hidden; text-align: left; cursor: pointer; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; position: relative; border: 1px solid rgba(255,255,255,0.05); }
-        .item-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); }
+        /* 💳 Card UI Premium Layout */
+        .item-card { background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); overflow: hidden; text-align: left; cursor: pointer; transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; position: relative; border: 1px solid #e2e8f0; }
+        .item-card:hover { transform: translateY(-6px); box-shadow: 0 12px 24px rgba(0,0,0,0.12); border-color: #f59e0b; }
         
-        .card-img-box { width: 100%; height: 230px; background: #15172c; position: relative; overflow: hidden; }
-        .card-img-box img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .item-card:hover .card-img-box img { transform: scale(1.1); }
+        .card-img-box { width: 100%; height: 210px; background: #e2e8f0; position: relative; overflow: hidden; }
+        .card-img-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
+        .item-card:hover .card-img-box img { transform: scale(1.08); }
         
-        .badge-tag { position: absolute; top: 15px; right: 15px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f1123; padding: 6px 16px; border-radius: 30px; font-size: 11px; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-transform: uppercase; z-index: 2; }
+        .badge-tag { position: absolute; top: 12px; right: 12px; background: #f59e0b; color: #1e1b4b; padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); text-transform: uppercase; }
         
-        .card-body { padding: 25px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(to bottom, #1e2238, #15172c); }
-        .card-body h3 { color: #fff; font-size: 22px; margin-bottom: 8px; text-transform: capitalize; font-weight: 700; letter-spacing: 0.5px; }
-        .card-location { font-size: 13px; color: #64748b; margin-bottom: 15px; display: flex; align-items: center; gap: 6px; font-weight: 500; }
-        .card-price { font-size: 26px; font-weight: 800; color: #10b981; margin-bottom: 12px; text-shadow: 0 0 10px rgba(16, 185, 129, 0.2); }
-        .card-desc { color: #94a3b8; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2; overflow: hidden; line-height: 1.6; }
+        .card-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .card-body h3 { color: #1e1b4b; font-size: 20px; margin-bottom: 8px; text-transform: capitalize; font-weight: 700; }
+        .card-location { font-size: 13px; color: #64748b; margin-bottom: 12px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+        .card-price { font-size: 22px; font-weight: 800; color: #10b981; margin-bottom: 10px; }
+        .card-desc { color: #64748b; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-clamp: 2; overflow: hidden; }
 
-        /* 🎭 ISOLATED PRESENTATION DETAIL VIEW LAYOUT */
-        .detail-view-container { display: none; max-width: 1240px; margin: 40px auto; padding: 0 20px; grid-template-columns: 7fr 4fr; gap: 40px; }
+        /* 🎭 DETAIL VIEW PANEL LAYOUT */
+        .detail-view-container { display: none; max-width: 1200px; margin: 30px auto; padding: 0 20px; grid-template-columns: 7fr 4fr; gap: 30px; }
         
-        /* Left Luxury Presentation Deck */
-        .detail-main-media { background: #1e2238; padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 15px 35px rgba(0,0,0,0.3); }
-        .big-preview-img { width: 100%; height: 460px; object-fit: cover; border-radius: 16px; background: #15172c; box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        /* Left Panel Content */
+        .detail-main-media { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+        .big-preview-img { width: 100%; height: 420px; object-fit: cover; border-radius: 8px; background: #cbd5e1; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
         
-        .thumb-slider { display: flex; gap: 12px; margin-top: 20px; overflow-x: auto; padding-bottom: 8px; }
-        .thumb-slider::-webkit-scrollbar { height: 4px; }
-        .thumb-slider::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-        .thumb-slider img { width: 95px; height: 70px; object-fit: cover; border-radius: 10px; cursor: pointer; border: 2px solid transparent; transition: 0.3s; flex-shrink: 0; }
+        .thumb-slider { display: flex; gap: 10px; margin-top: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .thumb-slider img { width: 85px; height: 65px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: 0.2s; flex-shrink: 0; }
         .thumb-slider img:hover { transform: scale(1.05); }
-        .thumb-slider img.active-thumb { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245,158,11,0.4); }
+        .thumb-slider img.active-thumb { border-color: #f59e0b; box-shadow: 0 2px 6px rgba(245,158,11,0.3); }
         
-        .detail-info-text { margin-top: 30px; }
-        .detail-info-text h2 { color: #fff; font-size: 34px; font-weight: 800; margin-bottom: 10px; letter-spacing: 0.5px; }
-        .detail-info-price { font-size: 28px; font-weight: 800; color: #10b981; margin: 15px 0; background: rgba(16, 185, 129, 0.1); display: inline-block; padding: 6px 20px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.2); }
-        .detail-info-desc { color: #cbd5e1; font-size: 16px; margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 25px; text-align: justify; line-height: 1.8; }
+        .detail-info-text { margin-top: 25px; }
+        .detail-info-text h2 { color: #1e1b4b; font-size: 30px; font-weight: 800; margin-bottom: 8px; }
+        .detail-info-price { font-size: 26px; font-weight: 800; color: #10b981; margin: 12px 0; background: #eafaf1; display: inline-block; padding: 4px 15px; border-radius: 6px; }
+        .detail-info-desc { color: #475569; font-size: 15px; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: justify; line-height: 1.7; }
 
-        /* Right High-Conversion Booking Core Deck */
-        .booking-sidebar-panel { background: linear-gradient(135deg, #1e2238, #15172c); padding: 30px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.4); height: fit-content; position: sticky; top: 110px; border: 1px solid rgba(255,255,255,0.05); }
-        .booking-sidebar-panel h3 { color: #fff; margin-bottom: 25px; font-size: 20px; font-weight: 700; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 15px; }
+        /* Right Panel Booking Form Control */
+        .booking-sidebar-panel { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); height: fit-content; position: sticky; top: 90px; border-top: 4px solid #10b981; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+        .booking-sidebar-panel h3 { color: #1e1b4b; margin-bottom: 20px; font-size: 18px; font-weight: 700; text-align: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; }
         
-        .form-group { margin-bottom: 20px; text-align: left; }
-        .form-group label { display: block; font-size: 13px; margin-bottom: 8px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .form-group input { width: 100%; padding: 14px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; font-size: 14px; outline: none; transition: 0.3s; background: rgba(15, 17, 35, 0.5); color: #fff; }
-        .form-group input:focus { border-color: #10b981; background: rgba(15, 17, 35, 0.8); box-shadow: 0 0 15px rgba(16,185,129,0.2); }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; font-size: 13px; margin-bottom: 6px; color: #475569; font-weight: 600; }
+        .form-group input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f8fafc; }
+        .form-group input:focus { border-color: #10b981; background: white; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
         
-        .action-btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s; }
-        .btn-whatsapp { background: linear-gradient(135deg, #25d366, #1ebd58); color: white; box-shadow: 0 6px 20px rgba(37,211,102,0.3); }
-        .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37,211,102,0.5); }
-        .btn-call { background: linear-gradient(135deg, #334155, #1e293b); color: #f1f5f9; border: 1px solid rgba(255,255,255,0.08); }
-        .btn-call:hover { transform: translateY(-2px); background: linear-gradient(135deg, #475569, #334155); }
+        .action-btn { width: 100%; padding: 14px; border: none; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.3s; }
+        .btn-whatsapp { background: #25d366; color: white; box-shadow: 0 4px 10px rgba(37,211,102,0.2); }
+        .btn-whatsapp:hover { background: #1ebd58; transform: translateY(-2px); }
+        .btn-call { background: #0f172a; color: white; }
+        .btn-call:hover { background: #1e293b; transform: translateY(-2px); }
 
         /* ✨ Advanced Skeleton Shimmer Loader UI */
-        .skeleton-card { background: #1e2238; border-radius: 20px; height: 380px; overflow: hidden; position: relative; }
-        .skeleton-shimmer { width: 100%; height: 100%; background: linear-gradient(90deg, #1e2238 25%, #2a2f4c 50%, #1e2238 75%); background-size: 200% 100%; animation: loadingShimmer 1.5s infinite; }
+        .skeleton-card { background: #fff; border-radius: 12px; height: 350px; overflow: hidden; position: relative; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .skeleton-shimmer { width: 100%; height: 100%; background: linear-gradient(90deg, #f4f7f6 25%, #e2e8f0 50%, #f4f7f6 75%); background-size: 200% 100%; animation: loadingShimmer 1.5s infinite; }
         @keyframes loadingShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* 🗺️ Footer Container */
-        footer { background: #0b0c16; color: #64748b; text-align: center; padding: 25px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 14px; font-weight: 500; }
+        /* 🗺️ Footer Section */
+        footer { background: #0f172a; color: #94a3b8; text-align: center; padding: 20px; border-top: 4px solid #f59e0b; font-size: 13px; font-weight: 500; }
         
-        /* 📱 LUXURY RESPONSIVE INTERFACE ENGINE */
+        /* 📱 RESPONSIVE MEDIA UI QUERIES */
         @media (max-width: 768px) {
-            header { padding: 15px 20px; flex-direction: column; gap: 15px; }
-            nav ul { flex-wrap: wrap; justify-content: center; gap: 6px; }
-            nav ul li a { padding: 8px 14px; font-size: 13px; }
-            .hero { padding: 80px 15px; }
-            .hero h1 { font-size: 34px; }
-            .hero p { font-size: 15px; }
-            .section-container { padding: 40px 20px; }
-            .section-container h2 { font-size: 24px; margin-bottom: 25px; }
-            .gallery-grid { gap: 20px; }
-            .detail-view-container { grid-template-columns: 1fr; margin: 20px auto; padding: 0 15px; gap: 25px; }
-            .big-preview-img { height: 280px; }
-            .detail-main-media { padding: 20px; }
-            .detail-info-text h2 { font-size: 26px; }
+            header { padding: 15px; flex-direction: column; gap: 12px; }
+            nav ul { flex-wrap: wrap; justify-content: center; gap: 5px; }
+            nav ul li a { padding: 6px 12px; font-size: 12px; }
+            .hero { height: 300px; padding: 50px 15px; }
+            .hero h1 { font-size: 28px; }
+            .hero p { font-size: 14px; }
+            .section-container { padding: 20px 15px; }
+            .section-container h2 { font-size: 22px; margin-bottom: 20px; }
+            .gallery-grid { gap: 15px; }
+            .detail-view-container { grid-template-columns: 1fr; margin: 15px auto; padding: 0 10px; }
+            .big-preview-img { height: 260px; }
+            .detail-main-media { padding: 15px; }
+            .detail-info-text h2 { font-size: 22px; }
         }
     </style>
 </head>
@@ -147,7 +136,11 @@
     </header>
 
     <section class="hero" id="heroBanner">
-        <h1 id="viewHeroTitle">RK <span>Decorators</span> & Caterers</h1>
+        <video autoplay muted loop playsinline id="heroVideo">
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-decorations-at-a-wedding-reception-34448-large.mp4" type="video/mp4">
+        </video>
+        <div class="hero-overlay"></div>
+        <h1 id="viewHeroTitle">RK Decorators & Caterers</h1>
         <p id="viewHeroDesc">Hum aapke khaas dino ko banate hain aur bhi khaas...</p>
     </section>
 
@@ -165,7 +158,7 @@
                 <h2 id="detailTitle">Package Title</h2>
                 <div class="card-location">📍 <span id="detailLocation">Bhopal, Madhya Pradesh</span></div>
                 <div class="detail-info-price" id="detailPrice">₹ 0 /-</div>
-                <div id="detailVideoContainer" style="margin-top: 25px; overflow: hidden; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);"></div>
+                <div id="detailVideoContainer" style="margin-top: 20px; overflow: hidden; border-radius: 8px;"></div>
                 <p class="detail-info-desc" id="detailDesc">Package detailed description lines...</p>
             </div>
         </div>
@@ -225,7 +218,6 @@
             document.getElementById("gallery-section").style.display = "block";
         }
 
-        // 🌟 FETCH PIPELINE SAFELY CONNECTED TO NATIVE CLUSTER API
         async function switchCategory(categoryKey) {
             currentActiveCategory = categoryKey;
             showGalleryView();
@@ -237,7 +229,6 @@
             document.getElementById("dynamicSectionTitle").innerText = categoryTitles[categoryKey];
             const container = document.getElementById("dynamicCardsContainer");
             
-            // Render beautiful custom skeleton loading layout states
             container.innerHTML = `
                 <div class="skeleton-card"><div class="skeleton-shimmer"></div></div>
                 <div class="skeleton-card"><div class="skeleton-shimmer"></div></div>
@@ -321,7 +312,7 @@
             if(cardData.video) {
                 let embed = getEmbedUrl(cardData.video);
                 if(embed) {
-                    videoContainer.innerHTML = `<iframe style="width:100%; height:360px; border:none;" src="${embed}" allowfullscreen></iframe>`;
+                    videoContainer.innerHTML = `<iframe style="width:100%; height:320px; border:none;" src="${embed}" allowfullscreen></iframe>`;
                 }
             }
         }
