@@ -10,102 +10,80 @@
         body { font-family: 'Poppins', sans-serif; margin: 0; background-color: #f4f7f6; color: #333; }
         a { text-decoration: none; }
         
-        /* 👑 Premium Light & Gold Header Matrix Styling */
+        /* 👑 Fixed Non-Breaking Single-Line Premium Header Matrix */
         .super-app-header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
+            background: #ffffff;
             position: sticky;
             top: 0;
             z-index: 1000;
             border-bottom: 2px solid #f59e0b;
-            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08);
-            padding: 12px 30px;
+            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.06);
+            padding: 10px 30px;
         }
         .header-container {
-            max-width: 1300px;
+            max-width: 1400px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: nowrap; /* किसी भी हाल में कंपोनेंट्स को नीचे टूटने नहीं देगा */
         }
         .brand-logo {
-            font-size: 22px;
+            font-size: 20px;
             font-weight: 800;
             color: #1e1b4b;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         }
         .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
         .brand-logo span.logo-main span { color: #27ae60; }
         .brand-logo .sparkle { color: #f59e0b; }
         .brand-logo .app-tag {
-            font-size: 11px;
+            font-size: 10px;
             background: #e0e7ff;
             color: #4338ca;
-            padding: 2px 8px;
-            border-radius: 12px;
+            padding: 2px 6px;
+            border-radius: 10px;
             font-weight: 700;
-            margin-left: 6px;
             text-transform: uppercase;
+        }
+        .navigation-hub {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
         }
         .nav-matrix-links {
             display: flex;
             list-style: none;
-            gap: 8px;
+            gap: 6px;
             align-items: center;
             margin: 0;
             padding: 0;
         }
         .matrix-link {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: #475569;
             text-transform: uppercase;
-            padding: 10px 18px;
-            border-radius: 8px;
+            padding: 8px 14px;
+            border-radius: 6px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
-            transition: all 0.3s ease;
-            cursor: pointer;
+            transition: 0.2s ease;
+            white-space: nowrap;
         }
         .matrix-link:hover {
             color: #1e1b4b;
             border-color: #f59e0b;
             background: rgba(245, 158, 11, 0.05);
-            transform: translateY(-1px);
         }
         .matrix-link.active {
             color: #fff !important;
             background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important;
             border-color: #1e1b4b !important;
-        }
-        .instant-access-badge {
-            font-size: 12px;
-            font-weight: 700;
-            color: #065f46;
-            background: #d1fae5;
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid #a7f3d0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-            display: inline-block;
-            animation: networkPulse 1.8s infinite ease-in-out;
-        }
-        @keyframes networkPulse {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(16,185,129,0.6); }
-            100% { transform: scale(0.8); opacity: 0.5; }
         }
         .broker-login-nav-btn {
             background: #2c3e50 !important;
@@ -114,6 +92,33 @@
         }
         .broker-login-nav-btn:hover {
             background: #1a252f !important;
+        }
+        .instant-access-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #065f46;
+            background: #d1fae5;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: networkPulse 1.8s infinite ease-in-out;
+        }
+        @keyframes networkPulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
         }
 
         /* 🌆 Hero Section (Search Area) */
@@ -141,20 +146,23 @@
         .view-btn { display: block; text-align: center; background: #3498db; color: white; padding: 10px; border-radius: 5px; font-weight: bold; margin-top: auto; transition: 0.3s; }
         .view-btn:hover { background: #2980b9; }
 
+        /* 📱 Responsive Screen Matrix Overrides */
+        @media (max-width: 1150px) {
+            .header-container { flex-direction: column; gap: 10px; }
+            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+            .instant-access-badge { margin-left: 0; }
+        }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 32px; }
+            .search-box { flex-direction: column; }
+        }
+        
         /* 📜 Footer (Razorpay Compliance) */
         footer { background: #2c3e50; color: white; padding: 40px 20px 20px; text-align: center; margin-top: 50px; }
         .footer-links { margin-bottom: 20px; }
         .footer-links a { color: #bdc3c7; margin: 0 15px; font-size: 14px; transition: 0.3s; }
         .footer-links a:hover { color: white; }
         .footer-bottom { font-size: 14px; color: #7f8c8d; border-top: 1px solid #34495e; padding-top: 20px; margin-top: 20px; }
-
-        /* 📱 Mobile Responsive */
-        @media (max-width: 992px) {
-            .header-container { flex-direction: column; gap: 12px; text-align: center; }
-            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
-            .hero h1 { font-size: 32px; }
-            .search-box { flex-direction: column; }
-        }
     </style>
 </head>
 <body>
@@ -226,12 +234,10 @@
     </footer>
 
     <script>
-        let allProperties = []; // Global array to store all fetched data
+        let allProperties = [];
 
-        // 🚀 Page load hote hi properties lana
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Backend API call (Jo sirf 'approved' properties layegi)
                 const response = await fetch('/api/get-properties');
                 allProperties = await response.json();
                 
@@ -243,10 +249,9 @@
             }
         });
 
-        // 🎨 UI me properties dikhane ka function
         function displayProperties(propertiesToShow) {
             const container = document.getElementById('propertyList');
-            container.innerHTML = ''; // Pehle ka data hatao
+            container.innerHTML = '';
 
             if (propertiesToShow.length === 0) {
                 container.innerHTML = '<p style="text-align:center; grid-column: 1 / -1; font-size: 18px; color: #e74c3c;">इस सर्च से जुड़ी कोई प्रॉपर्टी नहीं मिली।</p>';
@@ -254,7 +259,6 @@
             }
 
             propertiesToShow.forEach(prop => {
-                // Image check
                 let propImage = 'https://placehold.co/800x450?text=No+Image';
                 if (prop.images && prop.images.length > 0 && prop.images[0].trim() !== '') {
                     propImage = prop.images[0];
@@ -281,7 +285,6 @@
             });
         }
 
-        // 🔍 Search aur Filter Logic
         function filterProperties() {
             const purposeFilter = document.getElementById('searchPurpose').value;
             const locationFilter = document.getElementById('searchLocation').value;
@@ -294,7 +297,6 @@
             });
 
             displayProperties(filteredData);
-            
             document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
         }
     </script>
