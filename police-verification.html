@@ -3,23 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Police Verification Form - Bhopal Properties</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .form-container { max-width: 650px; margin: 20px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #e74c3c; }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-        p.subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
-        .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
-        .form-group { flex: 1; margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; font-size: 13px; }
-        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-        .submit-btn { background: #e74c3c; color: white; border: none; padding: 12px; width: 100%; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-        .submit-btn:hover { background: #c0392b; }
-        .back-btn { display: inline-block; margin-bottom: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
-        .section-title { color: #2980b9; border-bottom: 2px solid #eee; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px; font-size: 16px; }
-        @media (max-width: 600px) { .form-row { flex-direction: column; gap: 0; } }
-    </style>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <title>Police Verification | Bhopal Properties</title>
+    
+    <script>
+        (function() {
+            const isUserLoggedIn = localStorage.getItem('brokerName') || localStorage.getItem('username'); 
+            if (!isUserLoggedIn) {
+                alert("🚨 सुरक्षा ब्लॉक: टिनेंट पुलिस वेरिफिकेशन सबमिट करने के लिए पहले लॉगिन करना अनिवार्य है!");
+                window.location.replace('login.html');
+            }
+        })();
+    </script>
 </head>
 <body>
 

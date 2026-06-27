@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Rent Agreement Generator | Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <script>
-        // 🔒 SECURITY CHECK: Redirect to login if user is not authenticated
-        if (!localStorage.getItem('brokerName')) {
-            alert("कृपया इन प्रीमियम सेवाओं का उपयोग करने के लिए पहले लॉगिन करें।");
-            window.location.href = 'login.html';
-        }
+        (function() {
+            const isUserLoggedIn = localStorage.getItem('brokerName') || localStorage.getItem('username'); 
+            if (!isUserLoggedIn) {
+                alert("🚨 सुरक्षा ब्लॉक: रेंट एग्रीमेंट जनरेटर का उपयोग करने के लिए पहले लॉगिन करना अनिवार्य है!");
+                window.location.replace('login.html'); // .replace से बैक बटन भी काम नहीं करेगा
+            }
+        })();
     </script>
-    <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; min-height: 100vh; }
         a { text-decoration: none; }
