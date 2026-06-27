@@ -11,35 +11,135 @@
             const isUserLoggedIn = localStorage.getItem('brokerName') || localStorage.getItem('username'); 
             if (!isUserLoggedIn) {
                 alert("🚨 सुरक्षा ब्लॉक: रेंट एग्रीमेंट जनरेटर का उपयोग करने के लिए पहले लॉगिन करना अनिवार्य है!");
-                window.location.replace('login.html'); // .replace से बैक बटन भी काम नहीं करेगा
+                window.location.replace('login.html');
             }
         })();
     </script>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; min-height: 100vh; }
-        a { text-decoration: none; }
 
-        /* Header Styling */
-        .super-app-header { background: #ffffff; position: sticky; top: 0; z-index: 1000; border-bottom: 2px solid #f59e0b; box-shadow: 0 4px 20px rgba(30, 27, 75, 0.06); padding: 10px 30px; width: 100%; }
-        .header-container { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-        .brand-logo { font-size: 20px; font-weight: 800; color: #1e1b4b; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    <style>
+        /* 🎨 Global Styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; margin: 0; background-color: #f4f7f6; color: #333; padding-bottom: 5px; }
+        a { text-decoration: none; }
+        
+        /* 👑 Premium Light & Gold Header Matrix Styling */
+        .super-app-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 2px solid #f59e0b;
+            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08);
+            padding: 12px 30px;
+            width: 100%;
+        }
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .brand-logo {
+            font-size: 22px;
+            font-weight: 800;
+            color: #1e1b4b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
         .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
         .brand-logo span.logo-main span { color: #27ae60; }
         .brand-logo .sparkle { color: #f59e0b; }
-        .brand-logo .app-tag { font-size: 10px; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 10px; font-weight: 700; text-transform: uppercase; }
-        .navigation-hub { flex-grow: 1; display: flex; justify-content: center; }
-        .nav-matrix-links { display: flex; list-style: none; gap: 6px; align-items: center; }
-        .matrix-link { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; padding: 8px 14px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; transition: 0.2s ease; }
-        .matrix-link:hover { color: #1e1b4b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
-        .matrix-link.active { color: #fff !important; background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important; border-color: #1e1b4b !important; }
-        
-        .user-badge { font-size: 11px; font-weight: 700; color: #1e1b4b; background: #f1f5f9; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; display: flex; align-items: center; gap: 6px; }
-        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; }
+        .brand-logo .app-tag {
+            font-size: 11px;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .navigation-hub {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+        }
+        .nav-matrix-links {
+            display: flex;
+            list-style: none;
+            gap: 6px;
+            align-items: center;
+            margin: 0;
+            padding: 0;
+        }
+        .matrix-link {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            transition: 0.2s ease;
+            white-space: nowrap;
+        }
+        .matrix-link:hover {
+            color: #1e1b4b;
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+        .matrix-link.active {
+            color: #fff !important;
+            background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important;
+            border-color: #1e1b4b !important;
+        }
+        .broker-login-nav-btn {
+            background: #2c3e50 !important;
+            color: white !important;
+            border-color: #2c3e50 !important;
+        }
+        .broker-login-nav-btn:hover {
+            background: #1a252f !important;
+        }
+        .instant-access-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #065f46;
+            background: #d1fae5;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            margin-left: 8px;
+        }
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            animation: networkPulse 1.8s infinite ease-in-out;
+        }
+        @keyframes networkPulse {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
 
-        /* Layout Grid */
+        /* 🏢 Layout Wrapper */
         .agreement-wrapper { max-width: 1350px; width: 100%; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 5fr 6fr; gap: 25px; flex-grow: 1; }
         
-        /* Form Card */
+        /* 📝 Form Card Styling */
         .form-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-top: 4px solid #f59e0b; height: fit-content; }
         .form-card h2 { color: #1e1b4b; font-size: 20px; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
         .section-divider { font-size: 13px; font-weight: 700; color: #f59e0b; margin: 15px 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -53,7 +153,7 @@
         .gen-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .gen-btn:hover { background: #219653; }
 
-        /* Preview Card */
+        /* 📄 Preview Card */
         .preview-card { background: white; padding: 45px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; min-height: 650px; display: flex; flex-direction: column; }
         .stamp-bypass-box { border: 2px dashed #94a3b8; padding: 25px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 30px; border-radius: 6px; background: #f8fafc; }
         .preview-header { text-align: center; border-bottom: 2px double #111; padding-bottom: 12px; margin-bottom: 25px; }
@@ -67,6 +167,7 @@
         
         .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 20px; align-self: flex-end; display: none; }
 
+        /* 🖨️ Print Matrix */
         @media print {
             body { background: white; color: black; }
             .form-card, .super-app-header, .print-btn { display: none !important; }
@@ -74,25 +175,33 @@
             .preview-card { border: none; box-shadow: none; padding: 0; }
             .stamp-bypass-box { height: 180px; border: none; background: transparent; }
         }
-        @media (max-width: 1150px) { .agreement-wrapper { grid-template-columns: 1fr; } }
-    </style>
-</head>
+        @media (max-width: 1150px) {
+            .header-container { flex-direction: column; gap: 10px; }
+            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+            .agreement-wrapper { grid-template-columns: 1fr; }
+        }
+    </style> </head>
 <body>
 
     <header class="super-app-header">
         <div class="header-container">
-            <div class="brand-logo" onclick="window.location.href='dashboard.html'">
+            <div class="brand-logo" onclick="window.location.href='index.html'">
                 <span class="sparkle">✨</span> 
                 <span class="logo-main">Bhopal <span>Properties</span></span> 
                 <span class="app-tag">Super App</span>
             </div>
             <nav class="navigation-hub">
                 <ul class="nav-matrix-links">
-                    <li><a href="dashboard.html" class="matrix-link">My Properties</a></li>
-                    <li><a href="services.html" class="matrix-link active">Super Services</a></li>
+                    <li><a href="index.html" class="matrix-link">Home</a></li>
+                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
+                    <li><a href="services.html?service=tenant" class="matrix-link">Tenant Verification</a></li>
+                    <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
+                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
+                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
+                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
                 </ul>
             </nav>
-            <div class="user-badge">
+            <div class="instant-access-badge">
                 <span class="pulse-dot"></span> <span id="headerUserName">Broker Account</span>
             </div>
         </div>
@@ -182,7 +291,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const name = localStorage.getItem('brokerName') || 'Broker';
+            const name = localStorage.getItem('brokerName') || localStorage.getItem('username') || 'Broker';
             document.getElementById('headerUserName').innerText = name;
         });
 
