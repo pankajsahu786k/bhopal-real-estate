@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Rent Agreement Generator | Bhopal Properties</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* 🎨 Global Layout Configuration */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; min-height: 100vh; }
+        a { text-decoration: none; }
+
+        /* 👑 Premium Navigation Header Styling */
+        .super-app-header {
+            background: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 2px solid #f59e0b;
+            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.06);
+            padding: 10px 30px;
+            width: 100%;
+        }
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .brand-logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: #1e1b4b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
+        .brand-logo span.logo-main span { color: #27ae60; }
+        .brand-logo .sparkle { color: #f59e0b; }
+        .brand-logo .app-tag {
+            font-size: 10px;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .navigation-hub { flex-grow: 1; display: flex; justify-content: center; }
+        .nav-matrix-links { display: flex; list-style: none; gap: 6px; align-items: center; margin: 0; padding: 0; }
+        .matrix-link {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            transition: 0.2s ease;
+            white-space: nowrap;
+        }
+        .matrix-link:hover { color: #1e1b4b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+        .matrix-link.active { color: #fff !important; background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important; border-color: #1e1b4b !important; }
+        .broker-login-nav-btn { background: #2c3e50 !important; color: white !important; border-color: #2c3e50 !important; }
+        .broker-login-nav-btn:hover { background: #1a252f !important; }
+        
+        .instant-access-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #065f46;
+            background: #d1fae5;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; animation: networkPulse 1.8s infinite ease-in-out; }
+        @keyframes networkPulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
+
+        /* 🏢 Dynamic Split Layout Container */
+        .agreement-wrapper { max-width: 1350px; width: 100%; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 5fr 6fr; gap: 25px; flex-grow: 1; }
+        
+        /* 📝 Form Input Field Set */
+        .form-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-top: 4px solid #f59e0b; height: fit-content; }
+        .form-card h2 { color: #1e1b4b; font-size: 20px; font-weight: 800; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: 1 / -1; }
+        .form-group label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+        .form-group input, .form-group textarea { padding: 11px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #f8fafc; }
+        .form-group input:focus, .form-group textarea:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
+        
+        .gen-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .gen-btn:hover { background: #219653; transform: translateY(-1px); }
+
+        /* 📄 Stamp & Legal Preview Container Box */
+        .preview-card { background: white; padding: 45px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; min-height: 650px; display: flex; flex-direction: column; }
+        .stamp-bypass-box { border: 2px dashed #94a3b8; padding: 25px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 30px; border-radius: 6px; background: #f8fafc; }
+        .preview-header { text-align: center; border-bottom: 2px double #111; padding-bottom: 12px; margin-bottom: 25px; }
+        .preview-header h3 { margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #111; }
+        .legal-text { font-size: 14px; line-height: 1.8; text-align: justify; color: #111; flex-grow: 1; }
+        .legal-text p { margin-bottom: 15px; }
+        
+        .signatures-section { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
+        .sig-block { text-align: center; width: 45%; font-size: 12px; font-weight: 700; color: #111; }
+        .sig-line { margin-bottom: 45px; border-bottom: 1px solid #111; width: 100%; }
+        
+        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 20px; align-self: flex-end; display: none; transition: 0.2s; }
+        .print-btn:hover { background: #2e2a72; }
+
+        /* 🖨️ Professional Printing Drivers Configuration Layout */
+        @media print {
+            body { background: white; color: black; }
+            .form-card, .super-app-header, .print-btn { display: none !important; }
+            .agreement-wrapper { grid-template-columns: 1fr; margin: 0; padding: 0; }
+            .preview-card { border: none; box-shadow: none; padding: 0; }
+            .stamp-bypass-box { height: 180px; border: none; background: transparent; }
+        }
+        @media (max-width: 1150px) {
+            .header-container { flex-direction: column; gap: 10px; }
+            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+            .agreement-wrapper { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="super-app-header">
+        <div class="header-container">
+            <div class="brand-logo" onclick="window.location.href='index.html'">
+                <span class="sparkle">✨</span> 
+                <span class="logo-main">Bhopal <span>Properties</span></span> 
+                <span class="app-tag">Super App</span>
+            </div>
+            
+            <nav class="navigation-hub">
+                <ul class="nav-matrix-links">
+                    <li><a href="index.html" class="matrix-link">Home</a></li>
+                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
+                    <li><a href="services.html?service=tenant" class="matrix-link">Tenant Verification</a></li>
+                    <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
+                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
+                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
+                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
+                </ul>
+            </nav>
+            
+            <div class="instant-access-badge">
+                <span class="pulse-dot"></span> Open Access (No Login Required)
+            </div>
+        </div>
+    </header>
+
+    <div class="agreement-wrapper">
+        <div class="form-card">
+            <h2>Rent Agreement Generator</h2>
+            <form id="agreementForm" onsubmit="generateAgreementDraft(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>मकान मालिक का नाम (Landlord) *</label>
+                        <input type="text" id="ownerName" required placeholder="Owner Name">
+                    </div>
+                    <div class="form-group">
+                        <label>किरायेदार का नाम (Tenant) *</label>
+                        <input type="text" id="tenantName" required placeholder="Tenant Name">
+                    </div>
+                </div>
+                
+                <div class="form-group full-width" style="margin-bottom: 15px;">
+                    <label>प्रॉपर्टी का पूरा पता (Property Address) *</label>
+                    <textarea id="propAddress" rows="2" required placeholder="e.g., House No. 45, Sector C, Shahpura, Bhopal, MP"></textarea>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>महीने का किराया (Monthly Rent ₹) *</label>
+                        <input type="number" id="monthlyRent" required placeholder="Amount in ₹">
+                    </div>
+                    <div class="form-group">
+                        <label>सिक्योरिटी डिपॉजिट (Advance ₹) *</label>
+                        <input type="number" id="securityDeposit" required placeholder="Advance Amount ₹">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>एग्रीमेंट की अवधि (Months) *</label>
+                        <input type="number" id="durationMonths" value="11" required>
+                    </div>
+                    <div class="form-group">
+                        <label>शुरू होने की तारीख (Start Date) *</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="gen-btn">✨ ड्राफ्ट तैयार करें (Generate Draft)</button>
+            </form>
+        </div>
+
+        <div class="preview-card" id="agreementPreviewBlock">
+            <div class="stamp-bypass-box" id="stampBox">
+                Affix Stamp Paper Here <br><span style="font-size:11px; font-weight:normal; color:#64748b;">(Leave blank if printing directly on Stamp Paper)</span>
+            </div>
+            <div class="preview-header">
+                <h3>Rent Agreement</h3>
+            </div>
+            <div class="legal-text" id="legalTextContent">
+                <p style="text-align: center; color: #94a3b8; font-style: italic; margin-top: 60px;">फॉर्म भरकर "ड्राफ्ट तैयार करें" बटन पर क्लिक करें। कानूनी रेंट एग्रीमेंट का लाइव प्रीव्यू यहाँ दिखाई देगा।</p>
+            </div>
+            <div class="signatures-section" id="sigSection" style="display: none;">
+                <div class="sig-block"><div class="sig-line"></div>LANDLORD SIGNATURE</div>
+                <div class="sig-block"><div class="sig-line"></div>TENANT SIGNATURE</div>
+            </div>
+            <button class="print-btn" id="printActionBtn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        </div>
+    </div>
+
+    <script>
+        function generateAgreementDraft(e) {
+            e.preventDefault();
+            
+            const owner = document.getElementById('ownerName').value;
+            const tenant = document.getElementById('tenantName').value;
+            const address = document.getElementById('propAddress').value;
+            const rent = document.getElementById('monthlyRent').value;
+            const advance = document.getElementById('securityDeposit').value;
+            const months = document.getElementById('durationMonths').value;
+            
+            const rawDate = document.getElementById('startDate').value;
+            if(!rawDate) return;
+            const sDate = new Date(rawDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            const legalTemplateHtml = `
+                <p>This Rent Agreement is made and executed on this <strong>${sDate}</strong> at <strong>Bhopal, Madhya Pradesh</strong>.</p>
+                
+                <p><strong>BETWEEN:</strong><br>
+                <strong>${owner}</strong>, hereinafter called the <strong>"LANDLORD"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the FIRST PART.</p>
+                
+                <p><strong>AND:</strong><br>
+                <strong>${tenant}</strong>, hereinafter called the <strong>"TENANT"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the SECOND PART.</p>
+                
+                <p>WHEREAS the Landlord is the absolute owner of the premises situated at <strong>${address}</strong>, and has agreed to let out the said property to the Tenant for a fixed period of <strong>${months} Months</strong> commencing from ${sDate}.</p>
+                
+                <p><strong>NOW THIS AGREEMENT WITNESSETH AS UNDER:</strong><br>
+                1. That the Tenant shall pay a fixed monthly rent of <strong>₹ ${rent}/- (Rupees ${numberToWords(rent)} Only)</strong> per month. The rent shall be payable by the 5th of every English calendar month.<br>
+                2. That the Tenant has paid an interest-free security deposit of <strong>₹ ${advance}/-</strong> to the Landlord, which shall be refunded at the time of vacating the premises.<br>
+                3. That the Tenant shall use the premises for residential purposes only and shall pay utility charges like electricity and water separately as per usage.<br>
+                4. That the Tenant shall not make any structural alterations or sub-let the property to any third party without the prior written consent of the Landlord.</p>
+            `;
+
+            document.getElementById('legalTextContent').innerHTML = legalTemplateHtml;
+            document.getElementById('sigSection').style.display = 'flex';
+            document.getElementById('printActionBtn').style.display = 'block';
+            
+            document.getElementById('agreementPreviewBlock').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function numberToWords(num) {
+            const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+            const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+            if ((num = num.toString()).length > 9) return 'overflow';
+            let n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+            if (!n) return ''; let str = '';
+            str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+            str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+            str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+            str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+            str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+            return str.trim();
+        }
+    </script>
+</body>
+</html>
