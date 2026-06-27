@@ -25,7 +25,7 @@
 
         /* Category Section */
         .category-section { margin-bottom: 40px; }
-        .category-title { font-size: 18px; color: #34495e; border-bottom: 2px solid #e74c3c; padding-bottom: 5px; display: inline-block; margin-bottom: 20px; font-weight: bold; }
+        .category-title { font-size: 18px; color: #34495e; border-bottom: 2px solid #f59e0b; padding-bottom: 5px; display: inline-block; margin-bottom: 20px; font-weight: bold; }
         
         /* App Grid */
         .app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
@@ -35,7 +35,7 @@
         .service-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); border-color: #3498db; }
         .service-icon { font-size: 40px; margin-bottom: 15px; display: inline-block; padding: 15px; border-radius: 50%; background: #f4f7f6; }
         .service-card h3 { color: #2c3e50; margin: 0 0 10px 0; font-size: 16px; font-weight: bold; }
-        .service-card p { color: #7f8c8d; font-size: 12px; margin-bottom: 20px; line-height: 1.4; }
+        .service-card p { color: #7f8c8d; font-size: 12px; margin-bottom: 20px; line-height: 1.4; height: 50px; overflow: hidden; }
         
         .book-btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; width: 100%; transition: 0.3s; }
         .service-card:hover .book-btn { background: #2980b9; }
@@ -77,12 +77,6 @@
             <div class="category-section">
                 <div class="category-title">🏠 Real Estate & Relocation</div>
                 <div class="app-grid">
-                    <div class="service-card" onclick="trackAndGo('Police Verification', 'link', 'police-verification.html')">
-                        <div class="service-icon" style="background:#e8f4f8;">👮</div>
-                        <h3>Police Verification</h3>
-                        <p>किरायेदारों का ऑनलाइन पुलिस वेरिफिकेशन बिना किसी परेशानी के करवाएं।</p>
-                        <button class="book-btn">Get Verified</button>
-                    </div>
                     <div class="service-card" onclick="trackAndGo('Home Rental', 'link', 'dashboard.html')">
                         <div class="service-icon" style="background:#f9ebea;">🔑</div>
                         <h3>Home Rental Services</h3>
@@ -100,6 +94,24 @@
                         <h3>Packers & Transporters</h3>
                         <p>सामान की सुरक्षित शिफ्टिंग के लिए भरोसेमंद पैकर्स एंड मूवर्स।</p>
                         <button class="book-btn" style="background: #f39c12;">Book Transport</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-section">
+                <div class="category-title">⚖️ Legal Documents & Verification</div>
+                <div class="app-grid">
+                    <div class="service-card" onclick="trackAndGo('Police Verification', 'link', 'police-verification.html')">
+                        <div class="service-icon" style="background:#e8f4f8;">👮</div>
+                        <h3>Police Verification</h3>
+                        <p>किरायेदारों का ऑनलाइन पुलिस वेरिफिकेशन बिना किसी परेशानी के करवाएं।</p>
+                        <button class="book-btn" style="background: #3498db;">Get Verified</button>
+                    </div>
+                    <div class="service-card" onclick="trackAndGo('Rent Agreement', 'link', 'rent-agreement.html')">
+                        <div class="service-icon" style="background:#fcf3cf;">📄</div>
+                        <h3>Rent Agreement Generator</h3>
+                        <p>स्टाम्प पेपर ड्राफ्ट के साथ 5 मिनट में ऑनलाइन रेंट एग्रीमेंट तैयार करें और डाउनलोड करें।</p>
+                        <button class="book-btn" style="background: #111;">Generate Agreement</button>
                     </div>
                 </div>
             </div>
@@ -134,7 +146,7 @@
                     <div class="service-card" onclick="trackAndGo('Stage Events', 'link', 'rk-decorators.html')">
                         <div class="service-icon" style="background:#eae6f8;">🎭</div>
                         <h3>Stage & Mega Events</h3>
-                        <p>सांस्कृतिक कार्यक्रम, लाइव शो और कॉलेज फेस्टिवल्स के लिए ग्रैंड स्टेज और लाइट सेटअप।</p>
+                        <p>सांस्कृतिक कार्यक्रम, लाइव शो और कॉलेज फेस्टिवल्स के लिए ग्रैंड स्टेज।</p>
                         <button class="book-btn" style="background: #6c5ce7;">Book Stage</button>
                     </div>
                 </div>
@@ -177,6 +189,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             const name = localStorage.getItem('brokerName') || 'User';
             document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
+            
+            // Auto URL Check Matrix to handle Direct Non-Login Deep-Linking Bypass Hub
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetService = urlParams.get('service');
+            if (targetService) {
+                if(targetService === 'property') window.location.href = 'dashboard.html';
+                if(targetService === 'tenant') window.location.href = 'police-verification.html';
+                if(targetService === 'transporter') {
+                    const message = `Hello Bhopal Properties! 👋\nमुझे *Packers & Transporter* के बारे में जानकारी चाहिए।`;
+                    window.open(`https://wa.me/919993352339?text=${encodeURIComponent(message)}`, '_blank');
+                }
+            }
         });
 
         function logout() {
