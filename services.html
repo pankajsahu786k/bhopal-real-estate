@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Super Services - Bhopal Properties</title>
+    <script>
+        // 🔒 SECURITY CHECK: Redirect to login if user is not authenticated
+        if (!localStorage.getItem('brokerName')) {
+            alert("कृपया इस डैशबोर्ड और सेवाओं का उपयोग करने के लिए पहले लॉगिन करें।");
+            window.location.href = 'login.html';
+        }
+    </script>
     <style>
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; display: flex; height: 100vh; }
         
@@ -99,7 +106,7 @@
             </div>
 
             <div class="category-section">
-                <div class="category-title">⚖️ Legal Documents & Verification</div>
+                <div class="category-title">⚖️ Legal Documents & Verification (Login Required)</div>
                 <div class="app-grid">
                     <div class="service-card" onclick="trackAndGo('Police Verification', 'link', 'police-verification.html')">
                         <div class="service-icon" style="background:#e8f4f8;">👮</div>
@@ -137,48 +144,6 @@
                         <p>हर तरह की पार्टी के लिए स्वादिष्ट खाना और बेहतरीन कैटरिंग सर्विस।</p>
                         <button class="book-btn" style="background: #1abc9c;">See Menu</button>
                     </div>
-                    <div class="service-card" onclick="trackAndGo('Festival Items', 'link', 'rk-decorators.html')">
-                        <div class="service-icon" style="background:#fcf3cf;">🪔</div>
-                        <h3>Festival Items</h3>
-                        <p>त्यौहारों के लिए पूजा सामग्री और सजावट का सारा सामान।</p>
-                        <button class="book-btn" style="background: #f1c40f; color:#2c3e50;">Order Now</button>
-                    </div>
-                    <div class="service-card" onclick="trackAndGo('Stage Events', 'link', 'rk-decorators.html')">
-                        <div class="service-icon" style="background:#eae6f8;">🎭</div>
-                        <h3>Stage & Mega Events</h3>
-                        <p>सांस्कृतिक कार्यक्रम, लाइव शो और कॉलेज फेस्टिवल्स के लिए ग्रैंड स्टेज।</p>
-                        <button class="book-btn" style="background: #6c5ce7;">Book Stage</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="category-section">
-                <div class="category-title">🛠️ Daily Needs & Travel</div>
-                <div class="app-grid">
-                    <div class="service-card" onclick="trackAndGo('Electrician', 'whatsapp')">
-                        <div class="service-icon" style="background:#f4f6f6;">⚡</div>
-                        <h3>Expert Electrician</h3>
-                        <p>घर की वायरिंग, AC और कूलर रिपेयरिंग के लिए अनुभवी इलेक्ट्रीशियन।</p>
-                        <button class="book-btn" style="background: #7f8c8d;">Call Expert</button>
-                    </div>
-                    <div class="service-card" onclick="trackAndGo('Carpenter', 'whatsapp')">
-                        <div class="service-icon" style="background:#fdedec;">🪚</div>
-                        <h3>Carpenter Work</h3>
-                        <p>फर्नीचर बनाने या मरम्मत के लिए सबसे बढ़िया कारपेंटर (बढ़ई)।</p>
-                        <button class="book-btn" style="background: #d35400;">Book Carpenter</button>
-                    </div>
-                    <div class="service-card" onclick="trackAndGo('Maid Services', 'whatsapp')">
-                        <div class="service-icon" style="background:#eaf2f8;">🧹</div>
-                        <h3>Maid / Cleaning Services</h3>
-                        <p>घर की सफाई, बर्तन और खाना बनाने के लिए वेरीफाइड मेड।</p>
-                        <button class="book-btn" style="background: #2980b9;">Find Maid</button>
-                    </div>
-                    <div class="service-card" onclick="trackAndGo('Car Rental', 'whatsapp')">
-                        <div class="service-icon" style="background:#ebf5fb;">🚗</div>
-                        <h3>Car Rental & Taxi</h3>
-                        <p>लोकल या बाहर घूमने के लिए AC कैब और कार रेंटल सर्विस।</p>
-                        <button class="book-btn" style="background: #34495e;">Rent a Car</button>
-                    </div>
                 </div>
             </div>
 
@@ -189,18 +154,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const name = localStorage.getItem('brokerName') || 'User';
             document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
-            
-            // Auto URL Check Matrix to handle Direct Non-Login Deep-Linking Bypass Hub
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetService = urlParams.get('service');
-            if (targetService) {
-                if(targetService === 'property') window.location.href = 'dashboard.html';
-                if(targetService === 'tenant') window.location.href = 'police-verification.html';
-                if(targetService === 'transporter') {
-                    const message = `Hello Bhopal Properties! 👋\nमुझे *Packers & Transporter* के बारे में जानकारी चाहिए।`;
-                    window.open(`https://wa.me/919993352339?text=${encodeURIComponent(message)}`, '_blank');
-                }
-            }
         });
 
         function logout() {
@@ -211,9 +164,7 @@
         async function trackAndGo(serviceName, actionType, targetUrl) {
             try {
                 await fetch(`/api/track-service/${encodeURIComponent(serviceName)}`, { method: 'POST' });
-            } catch (e) {
-                console.log("Tracking error, but continuing...", e);
-            }
+            } catch (e) { console.log(e); }
 
             if (actionType === 'link') {
                 window.location.href = targetUrl;

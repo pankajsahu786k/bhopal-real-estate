@@ -5,109 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Instant Rent Agreement Generator | Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        // 🔒 SECURITY CHECK: Redirect to login if user is not authenticated
+        if (!localStorage.getItem('brokerName')) {
+            alert("कृपया इन प्रीमियम सेवाओं का उपयोग करने के लिए पहले लॉगिन करें।");
+            window.location.href = 'login.html';
+        }
+    </script>
     <style>
-        /* 🎨 Global Layout Configuration */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; min-height: 100vh; }
         a { text-decoration: none; }
 
-        /* 👑 Premium Navigation Header Styling */
-        .super-app-header {
-            background: #ffffff;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            border-bottom: 2px solid #f59e0b;
-            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.06);
-            padding: 10px 30px;
-            width: 100%;
-        }
-        .header-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: nowrap;
-        }
-        .brand-logo {
-            font-size: 20px;
-            font-weight: 800;
-            color: #1e1b4b;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
+        /* Header Styling */
+        .super-app-header { background: #ffffff; position: sticky; top: 0; z-index: 1000; border-bottom: 2px solid #f59e0b; box-shadow: 0 4px 20px rgba(30, 27, 75, 0.06); padding: 10px 30px; width: 100%; }
+        .header-container { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .brand-logo { font-size: 20px; font-weight: 800; color: #1e1b4b; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
         .brand-logo span.logo-main span { color: #27ae60; }
         .brand-logo .sparkle { color: #f59e0b; }
-        .brand-logo .app-tag {
-            font-size: 10px;
-            background: #e0e7ff;
-            color: #4338ca;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
+        .brand-logo .app-tag { font-size: 10px; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 10px; font-weight: 700; text-transform: uppercase; }
         .navigation-hub { flex-grow: 1; display: flex; justify-content: center; }
-        .nav-matrix-links { display: flex; list-style: none; gap: 6px; align-items: center; margin: 0; padding: 0; }
-        .matrix-link {
-            font-size: 12px;
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-            padding: 8px 14px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            transition: 0.2s ease;
-            white-space: nowrap;
-        }
+        .nav-matrix-links { display: flex; list-style: none; gap: 6px; align-items: center; }
+        .matrix-link { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; padding: 8px 14px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; transition: 0.2s ease; }
         .matrix-link:hover { color: #1e1b4b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
         .matrix-link.active { color: #fff !important; background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important; border-color: #1e1b4b !important; }
-        .broker-login-nav-btn { background: #2c3e50 !important; color: white !important; border-color: #2c3e50 !important; }
-        .broker-login-nav-btn:hover { background: #1a252f !important; }
         
-        .instant-access-badge {
-            font-size: 11px;
-            font-weight: 700;
-            color: #065f46;
-            background: #d1fae5;
-            padding: 8px 14px;
-            border-radius: 6px;
-            border: 1px solid #a7f3d0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; animation: networkPulse 1.8s infinite ease-in-out; }
-        @keyframes networkPulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
+        .user-badge { font-size: 11px; font-weight: 700; color: #1e1b4b; background: #f1f5f9; padding: 8px 14px; border-radius: 6px; border: 1px solid #cbd5e1; display: flex; align-items: center; gap: 6px; }
+        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; }
 
-        /* 🏢 Dynamic Split Layout Container */
+        /* Layout Grid */
         .agreement-wrapper { max-width: 1350px; width: 100%; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 5fr 6fr; gap: 25px; flex-grow: 1; }
         
-        /* 📝 Form Input Field Set */
+        /* Form Card */
         .form-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-top: 4px solid #f59e0b; height: fit-content; }
-        .form-card h2 { color: #1e1b4b; font-size: 20px; font-weight: 800; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .form-card h2 { color: #1e1b4b; font-size: 20px; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        .section-divider { font-size: 13px; font-weight: 700; color: #f59e0b; margin: 15px 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .form-group { display: flex; flex-direction: column; }
         .form-group.full-width { grid-column: 1 / -1; }
-        .form-group label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+        .form-group label { font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #475569; }
         .form-group input, .form-group textarea { padding: 11px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #f8fafc; }
         .form-group input:focus, .form-group textarea:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
         
         .gen-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
-        .gen-btn:hover { background: #219653; transform: translateY(-1px); }
+        .gen-btn:hover { background: #219653; }
 
-        /* 📄 Stamp & Legal Preview Container Box */
+        /* Preview Card */
         .preview-card { background: white; padding: 45px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; min-height: 650px; display: flex; flex-direction: column; }
         .stamp-bypass-box { border: 2px dashed #94a3b8; padding: 25px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 30px; border-radius: 6px; background: #f8fafc; }
         .preview-header { text-align: center; border-bottom: 2px double #111; padding-bottom: 12px; margin-bottom: 25px; }
-        .preview-header h3 { margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #111; }
+        .preview-header h3 { margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; color: #111; }
         .legal-text { font-size: 14px; line-height: 1.8; text-align: justify; color: #111; flex-grow: 1; }
         .legal-text p { margin-bottom: 15px; }
         
@@ -115,10 +63,8 @@
         .sig-block { text-align: center; width: 45%; font-size: 12px; font-weight: 700; color: #111; }
         .sig-line { margin-bottom: 45px; border-bottom: 1px solid #111; width: 100%; }
         
-        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 20px; align-self: flex-end; display: none; transition: 0.2s; }
-        .print-btn:hover { background: #2e2a72; }
+        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 20px; align-self: flex-end; display: none; }
 
-        /* 🖨️ Professional Printing Drivers Configuration Layout */
         @media print {
             body { background: white; color: black; }
             .form-card, .super-app-header, .print-btn { display: none !important; }
@@ -126,81 +72,88 @@
             .preview-card { border: none; box-shadow: none; padding: 0; }
             .stamp-bypass-box { height: 180px; border: none; background: transparent; }
         }
-        @media (max-width: 1150px) {
-            .header-container { flex-direction: column; gap: 10px; }
-            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
-            .agreement-wrapper { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 1150px) { .agreement-wrapper { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
     <header class="super-app-header">
         <div class="header-container">
-            <div class="brand-logo" onclick="window.location.href='index.html'">
+            <div class="brand-logo" onclick="window.location.href='dashboard.html'">
                 <span class="sparkle">✨</span> 
                 <span class="logo-main">Bhopal <span>Properties</span></span> 
                 <span class="app-tag">Super App</span>
             </div>
-            
             <nav class="navigation-hub">
                 <ul class="nav-matrix-links">
-                    <li><a href="index.html" class="matrix-link">Home</a></li>
-                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
-                    <li><a href="services.html?service=tenant" class="matrix-link">Tenant Verification</a></li>
-                    <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
-                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
-                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
-                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
+                    <li><a href="dashboard.html" class="matrix-link">My Properties</a></li>
+                    <li><a href="services.html" class="matrix-link active">Super Services</a></li>
                 </ul>
             </nav>
-            
-            <div class="instant-access-badge">
-                <span class="pulse-dot"></span> Open Access (No Login Required)
+            <div class="user-badge">
+                <span class="pulse-dot"></span> <span id="headerUserName">Broker Account</span>
             </div>
         </div>
     </header>
 
     <div class="agreement-wrapper">
         <div class="form-card">
-            <h2>Rent Agreement Generator</h2>
+            <h2>Rent Agreement Details</h2>
             <form id="agreementForm" onsubmit="generateAgreementDraft(event)">
+                
+                <div class="section-divider">👤 Landlord Details (मकान मालिक)</div>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>मकान मालिक का नाम (Landlord) *</label>
-                        <input type="text" id="ownerName" required placeholder="Owner Name">
+                        <label>मकान मालिक का नाम *</label>
+                        <input type="text" id="ownerName" required placeholder="Landlord Full Name">
                     </div>
                     <div class="form-group">
-                        <label>किरायेदार का नाम (Tenant) *</label>
-                        <input type="text" id="tenantName" required placeholder="Tenant Name">
+                        <label>मोबाइल नंबर *</label>
+                        <input type="tel" id="ownerMobile" required placeholder="10 Digit Mobile No.">
                     </div>
                 </div>
-                
                 <div class="form-group full-width" style="margin-bottom: 15px;">
-                    <label>प्रॉपर्टी का पूरा पता (Property Address) *</label>
+                    <label>मकान मालिक का स्थायी पता (Landlord Address) *</label>
+                    <input type="text" id="ownerAddress" required placeholder="Permanent Address of Landlord">
+                </div>
+
+                <div class="section-divider">👤 Tenant Details (किरायेदार)</div>
+                <div class="form-group full-width" style="margin-bottom: 15px;">
+                    <label>किरायेदार का नाम *</label>
+                    <input type="text" id="tenantName" required placeholder="Tenant Full Name">
+                </div>
+                
+                <div class="section-divider">🏠 Property & Rent Term Details</div>
+                <div class="form-group full-width" style="margin-bottom: 15px;">
+                    <label>किराए पर दी जाने वाली प्रॉपर्टी का पूरा पता *</label>
                     <textarea id="propAddress" rows="2" required placeholder="e.g., House No. 45, Sector C, Shahpura, Bhopal, MP"></textarea>
                 </div>
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>महीने का किराया (Monthly Rent ₹) *</label>
-                        <input type="number" id="monthlyRent" required placeholder="Amount in ₹">
+                        <label>महीने का किराया (₹) *</label>
+                        <input type="number" id="monthlyRent" required placeholder="Rent per month">
                     </div>
                     <div class="form-group">
-                        <label>सिक्योरिटी डिपॉजिट (Advance ₹) *</label>
-                        <input type="number" id="securityDeposit" required placeholder="Advance Amount ₹">
+                        <label>सिक्योरिटी डिपॉजिट (₹) *</label>
+                        <input type="number" id="securityDeposit" required placeholder="Advance Amount">
                     </div>
                 </div>
 
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>एग्रीमेंट की अवधि (Months) *</label>
+                        <label>एग्रीमेंट अवधि (Months) *</label>
                         <input type="number" id="durationMonths" value="11" required>
                     </div>
                     <div class="form-group">
-                        <label>शुरू होने की तारीख (Start Date) *</label>
-                        <input type="date" id="startDate" required>
+                        <label>बिजली बिल दर (₹ / Unit) *</label>
+                        <input type="number" id="electricityRate" step="0.1" placeholder="e.g. 8 or 10" required>
                     </div>
+                </div>
+                
+                <div class="form-group full-width" style="margin-bottom: 15px;">
+                    <label>शुरू होने की तारीख (Start Date) *</label>
+                    <input type="date" id="startDate" required>
                 </div>
 
                 <button type="submit" class="gen-btn">✨ ड्राफ्ट तैयार करें (Generate Draft)</button>
@@ -226,15 +179,23 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const name = localStorage.getItem('brokerName') || 'Broker';
+            document.getElementById('headerUserName').innerText = name;
+        });
+
         function generateAgreementDraft(e) {
             e.preventDefault();
             
             const owner = document.getElementById('ownerName').value;
+            const ownerMob = document.getElementById('ownerMobile').value;
+            const ownerAddr = document.getElementById('ownerAddress').value;
             const tenant = document.getElementById('tenantName').value;
             const address = document.getElementById('propAddress').value;
             const rent = document.getElementById('monthlyRent').value;
             const advance = document.getElementById('securityDeposit').value;
             const months = document.getElementById('durationMonths').value;
+            const elecRate = document.getElementById('electricityRate').value;
             
             const rawDate = document.getElementById('startDate').value;
             if(!rawDate) return;
@@ -244,7 +205,7 @@
                 <p>This Rent Agreement is made and executed on this <strong>${sDate}</strong> at <strong>Bhopal, Madhya Pradesh</strong>.</p>
                 
                 <p><strong>BETWEEN:</strong><br>
-                <strong>${owner}</strong>, hereinafter called the <strong>"LANDLORD"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the FIRST PART.</p>
+                <strong>${owner}</strong>, Mobile No: <strong>${ownerMob}</strong>, Residing at: <strong>${ownerAddr}</strong>, hereinafter called the <strong>"LANDLORD"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the FIRST PART.</p>
                 
                 <p><strong>AND:</strong><br>
                 <strong>${tenant}</strong>, hereinafter called the <strong>"TENANT"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the SECOND PART.</p>
@@ -254,8 +215,9 @@
                 <p><strong>NOW THIS AGREEMENT WITNESSETH AS UNDER:</strong><br>
                 1. That the Tenant shall pay a fixed monthly rent of <strong>₹ ${rent}/- (Rupees ${numberToWords(rent)} Only)</strong> per month. The rent shall be payable by the 5th of every English calendar month.<br>
                 2. That the Tenant has paid an interest-free security deposit of <strong>₹ ${advance}/-</strong> to the Landlord, which shall be refunded at the time of vacating the premises.<br>
-                3. That the Tenant shall use the premises for residential purposes only and shall pay utility charges like electricity and water separately as per usage.<br>
-                4. That the Tenant shall not make any structural alterations or sub-let the property to any third party without the prior written consent of the Landlord.</p>
+                3. That the Tenant shall use the premises for residential purposes only and shall pay utility charges separately as per usage.<br>
+                4. That the Tenant shall not make any structural alterations or sub-let the property to any third party without the prior written consent of the Landlord.<br>
+                5. That the Tenant has explicitly agreed to pay Electricity Charges at a fixed rate of <strong>₹ ${elecRate} per Unit</strong> directly to the Landlord/Electricity Board every month according to sub-meter/main-meter reading variations.</p>
             `;
 
             document.getElementById('legalTextContent').innerHTML = legalTemplateHtml;
