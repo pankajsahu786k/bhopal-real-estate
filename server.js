@@ -698,27 +698,40 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 // 1️⃣ OWNER API: मकान मालिक नया किरायेदार जोड़ेगा या उसका डेटा अपडेट करेगा
-// OWNER API: किरायेदार का डेटा सेव, अपडेट या हमेशा के लिए लॉक करना
-// server.js के अंदर /api/owner/upsert-tenant-ledger को इस प्रकार मॉडिफाई करें
+// ==========================================
+// 🏠 TENANT LEDGER UPSERT & LOCK ROUTE
+// ==========================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
-        const { 
-            ownerEmail, roomOrFlatNo, tenantEmail, tenantName, tenantPassword, mobileNo,
-            balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
-            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord 
-        } = req.body;
+        const ownerEmail = req.body.ownerEmail;
+        const tenantEmail = req.body.tenantEmail;
+        const tenantName = req.body.tenantName;
+        const tenantPassword = req.body.tenantPassword;
+        const roomOrFlatNo = req.body.roomOrFlatNo;
+        const mobileNo = req.body.mobileNo;
+        const balanceOpening = req.body.balanceOpening;
+        const monthlyRent = req.body.monthlyRent;
+        const previousUnitReading = req.body.previousUnitReading;
+        const currentUnitReading = req.body.currentUnitReading;
+        const unitRate = req.body.unitRate;
+        const waterOrOtherCharges = req.body.waterOrOtherCharges;
+        const amountReceived = req.body.amountReceived;
+        const paymentMode = req.body.paymentMode;
+        const status = req.body.status;
+        const lockRecord = req.body.lockRecord;
 
-        // 🔥 Room No और Owner Email के कॉम्बिनेशन से ढूंढें
-        let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo });
+        let tenant = await TenantLedger.findOne({ ownerEmail: ownerEmail, tenantEmail: tenantEmail });
 
         const rentOpening = Number(balanceOpening || 0);
         const rentMon = Number(monthlyRent || 0);
         const totalRentDue = rentOpening + rentMon;
+
         const prevRead = Number(previousUnitReading || 0);
         const currRead = Number(currentUnitReading || 0);
         const totalUnitConsumption = Math.max(0, currRead - prevRead);
         const rate = Number(unitRate || 0);
         const totalElectricityBill = totalUnitConsumption * rate;
+
         const other = Number(waterOrOtherCharges || 0);
         const totalAmountPayable = totalRentDue + totalElectricityBill + other;
         const recAmount = Number(amountReceived || 0);
@@ -726,12 +739,15 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 
         if (tenant) {
             if (tenant.isLocked || tenant.status === 'Left') {
-                return res.status(403).json({ success: false, message: '❌ Yeh record lock ho chuka hai! Ab ise badla nahi ja sakta.' });
+                return res.status(403).json({ 
+                    success: false, 
+                    message: '❌ Record locked h! Isme badlav nahi kiya ja sakta.' 
+                });
             }
 
             tenant.tenantName = tenantName;
-            tenant.tenantEmail = tenantEmail.toLowerCase().trim();
             if (tenantPassword) tenant.tenantPassword = tenantPassword;
+            tenant.roomOrFlatNo = roomOrFlatNo;
             tenant.mobileNo = mobileNo;
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
@@ -747,24 +763,48 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.paymentMode = paymentMode;
             tenant.status = status;
 
-            if (lockRecord === true || status === 'Left') tenant.isLocked = true;
+            if (lockRecord === true || status === 'Left') {
+                tenant.isLocked = true;
+            }
+
+            tenant.lastUpdated = Date.now();
             await tenant.save();
         } else {
             const isLockedInit = (lockRecord === true || status === 'Left');
             tenant = new TenantLedger({
-                ownerEmail, roomOrFlatNo, tenantEmail: tenantEmail.toLowerCase().trim(), tenantPassword, tenantName, mobileNo,
-                balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
-                previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
-                unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
-                totalAmountPayable, amountReceived: recAmount, paymentMode, status,
+                ownerEmail: ownerEmail,
+                roomOrFlatNo: roomOrFlatNo,
+                tenantEmail: tenantEmail.toLowerCase().trim(),
+                tenantPassword: tenantPassword,
+                tenantName: tenantName,
+                mobileNo: mobileNo,
+                balanceOpening: rentOpening,
+                monthlyRent: rentMon,
+                totalRentDue: totalRentDue,
+                previousUnitReading: prevRead,
+                currentUnitReading: currRead,
+                totalUnitConsumption: totalUnitConsumption,
+                unitRate: rate,
+                totalElectricityBill: totalElectricityBill,
+                waterOrOtherCharges: other,
+                totalAmountPayable: totalAmountPayable,
+                amountReceived: recAmount,
+                paymentMode: paymentMode,
+                status: status,
                 isLocked: isLockedInit
             });
             await tenant.save();
         }
 
-        res.json({ success: true, message: (status === 'Left' || lockRecord) ? '🔒 Record locked and archived permanently!' : '✅ Data safely registered!' });
+        res.json({ 
+            success: true, 
+            message: (status === 'Left' || lockRecord) 
+                ? '🔒 Record ko locked aur archive kar diya gaya h!' 
+                : '✅ Data safely saved!' 
+        });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error' });
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Side Error' });
     }
 });
 
