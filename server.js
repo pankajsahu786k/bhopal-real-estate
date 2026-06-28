@@ -137,19 +137,37 @@ const universalReceiptSchema = new mongoose.Schema({
 }, { timestamps: true });
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 // 🏠 Tenant Ledger Schema (रेंट, बिजली यूनिट और डिजिटल खाता के लिए)
+// 🏠 Advanced Tenant Ledger Schema (As per User Excel Image)
 const TenantLedgerSchema = new mongoose.Schema({
-    ownerEmail: { type: String, required: true }, // किस मकान मालिक का किरायेदार है
+    ownerEmail: { type: String, required: true },
     tenantName: { type: String, required: true },
-    tenantEmail: { type: String, required: true, unique: true }, // किरायेदार का लॉगिन ईमेल
-    tenantPassword: { type: String, required: true }, // किरायेदार का पासवर्ड
-    roomOrFlatNo: { type: String },
+    tenantEmail: { type: String, required: true }, // लॉगिन के लिए
+    tenantPassword: { type: String, required: true },
+    roomOrFlatNo: { type: String, required: true },
+    mobileNo: { type: String },
+    
+    // 💵 Financial Fields
+    balanceOpening: { type: Number, default: 0 }, // पुराना बकाया
     monthlyRent: { type: Number, default: 0 },
+    totalRentDue: { type: Number, default: 0 }, // Opening Balance + Monthly Rent
+    
+    // ⚡ Electricity Fields
     previousUnitReading: { type: Number, default: 0 },
     currentUnitReading: { type: Number, default: 0 },
-    unitRate: { type: Number, default: 0 }, // प्रति यूनिट बिजली का चार्ज
-    otherCharges: { type: Number, default: 0 },
-    dueAmount: { type: Number, default: 0 },
-    paymentStatus: { type: String, default: 'Unpaid' }, // Paid / Unpaid
+    totalUnitConsumption: { type: Number, default: 0 }, // (Curr - Prev)
+    unitRate: { type: Number, default: 0 },
+    totalElectricityBill: { type: Number, default: 0 }, // (Consumption * Rate)
+    
+    // 💧 Other Charges & Totals
+    waterOrOtherCharges: { type: Number, default: 0 },
+    totalAmountPayable: { type: Number, default: 0 }, // Rent Due + Elec Bill + Other Charges
+    amountReceived: { type: Number, default: 0 },
+    paymentMode: { type: String, enum: ['Cash', 'UPI/Online', 'Check', 'Unpaid'], default: 'Unpaid' }, // 🔥 NAYA COLUMN
+    remainderBalance: { type: Number, default: 0 }, // Payable - Received
+    
+    // 🔒 Status & Security Locks
+    status: { type: String, enum: ['Active', 'Left'], default: 'Active' }, // 🔥 NAYA: 'Left' होने पर परमानेंट लॉक रहेगा
+    isLocked: { type: Boolean, default: false }, // मैन्युअल या ऑटो लॉक के लिए
     lastUpdated: { type: Date, default: Date.now }
 }, { timestamps: true });
 
@@ -680,38 +698,90 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 // 1️⃣ OWNER API: मकान मालिक नया किरायेदार जोड़ेगा या उसका डेटा अपडेट करेगा
+// OWNER API: किरायेदार का डेटा सेव, अपडेट या हमेशा के लिए लॉक करना
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
-        const { ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, monthlyRent, previousUnitReading, currentUnitReading, unitRate, otherCharges, dueAmount, paymentStatus } = req.body;
+        const { 
+            ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, mobileNo,
+            balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
+            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord 
+        } = req.body;
 
-        // चेक करें कि क्या किरायेदार पहले से मौजूद है, अगर है तो अपडेट करें, नहीं तो नया बनाएं
-        let tenant = await TenantLedger.findOne({ tenantEmail });
+        let tenant = await TenantLedger.findOne({ ownerEmail, tenantEmail });
+
+        // गणना (Calculations) बैकएंड पर ही ऑटोमैटिकली कर लेते हैं ताकि डेटा 100% सही रहे
+        const rentOpening = Number(balanceOpening || 0);
+        const rentMon = Number(monthlyRent || 0);
+        const totalRentDue = rentOpening + rentMon;
+
+        const prevRead = Number(previousUnitReading || 0);
+        const currRead = Number(currentUnitReading || 0);
+        const totalUnitConsumption = Math.max(0, currRead - prevRead);
+        const rate = Number(unitRate || 0);
+        const totalElectricityBill = totalUnitConsumption * rate;
+
+        const other = Number(waterOrOtherCharges || 0);
+        const totalAmountPayable = totalRentDue + totalElectricityBill + other;
+        const recAmount = Number(amountReceived || 0);
+        const remainderBalance = totalAmountPayable - recAmount;
 
         if (tenant) {
-            // Update Existing Record
+            // 🚫 SECURITY CHECK: अगर रिकॉर्ड मैन्युअल लॉक है या किरायेदार कमरा छोड़ चुका (Left) है, तो कोई एडिट नहीं होगा
+            if (tenant.isLocked || tenant.status === 'Left') {
+                return res.status(403).json({ 
+                    success: false, 
+                    message: '❌ यह रिकॉर्ड लॉक/आर्काइव हो चुका है! सुरक्षा कारणों से अब इसे एडिट नहीं किया जा सकता।' 
+                });
+            }
+
+            // डेटा अपडेट करें
             tenant.tenantName = tenantName;
-            if(tenantPassword) tenant.tenantPassword = tenantPassword; // केवल तभी बदलें जब नया पासवर्ड भेजा हो
+            if (tenantPassword) tenant.tenantPassword = tenantPassword;
             tenant.roomOrFlatNo = roomOrFlatNo;
-            tenant.monthlyRent = monthlyRent;
-            tenant.previousUnitReading = previousUnitReading;
-            tenant.currentUnitReading = currentUnitReading;
-            tenant.unitRate = unitRate;
-            tenant.otherCharges = otherCharges;
-            tenant.dueAmount = dueAmount;
-            tenant.paymentStatus = paymentStatus;
+            tenant.mobileNo = mobileNo;
+            tenant.balanceOpening = rentOpening;
+            tenant.monthlyRent = rentMon;
+            tenant.totalRentDue = totalRentDue;
+            tenant.previousUnitReading = prevRead;
+            tenant.currentUnitReading = currRead;
+            tenant.totalUnitConsumption = totalUnitConsumption;
+            tenant.unitRate = rate;
+            tenant.totalElectricityBill = totalElectricityBill;
+            tenant.waterOrOtherCharges = other;
+            tenant.totalAmountPayable = totalAmountPayable;
+            tenant.amountReceived = recAmount;
+            tenant.paymentMode = paymentMode;
+            tenant.status = status; // Active या Left
+
+            // अगर ओनर लॉक बटन दबाता है या किरायेदार कमरा छोड़ देता है, तो रिकॉर्ड हमेशा के लिए लॉक कर दें
+            if (lockRecord === true || status === 'Left') {
+                tenant.isLocked = true;
+            }
+
             tenant.lastUpdated = Date.now();
             await tenant.save();
         } else {
-            // Create New Tenant Ledger & Login Creds
+            // बिल्कुल नया रिकॉर्ड बनाने के लिए
+            const isLockedInit = (lockRecord === true || status === 'Left');
             tenant = new TenantLedger({
-                ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, monthlyRent, previousUnitReading, currentUnitReading, unitRate, otherCharges, dueAmount, paymentStatus
+                ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, mobileNo,
+                balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
+                previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
+                unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
+                totalAmountPayable, amountReceived: recAmount, paymentMode, status,
+                isLocked: isLockedInit
             });
             await tenant.save();
         }
 
-        res.json({ success: true, message: '✅ Tenant Ledger डिजिटली सुरक्षित सेव कर दिया गया है!' });
+        res.json({ 
+            success: true, 
+            message: (status === 'Left' || lockRecord) 
+                ? '🔒 रिकॉर्ड को हमेशा के लिए लॉक और सुरक्षित आर्काइव कर दिया गया है!' 
+                : '✅ डिजिटल डेटा सुरक्षित सेव कर दिया गया है!' 
+        });
     } catch (error) {
-        console.error("Ledger Upsert Error:", error);
+        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
