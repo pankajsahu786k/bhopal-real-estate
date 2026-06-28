@@ -241,31 +241,31 @@
                 runLiveCalculations();
 
                 if (result.success && result.data) {
-                    // 1. चालू एंट्री को फॉर्म में लोड करें
+                    // 1. चालू (Unlocked) एंट्री को फॉर्म में वापस लोड करें
                     const activeRecord = result.data.find(t => t.roomOrFlatNo === activeRoom && t.isLocked === false);
                     if(activeRecord) {
-                        document.getElementById('tName').value = activeRecord.tenantName;
-                        document.getElementById('tEmail').value = activeRecord.tenantEmail;
+                        document.getElementById('tName').value = activeRecord.tenantName || '';
+                        document.getElementById('tEmail').value = activeRecord.tenantEmail || '';
                         document.getElementById('tMobile').value = activeRecord.mobileNo || '';
-                        document.getElementById('balanceOpening').value = activeRecord.balanceOpening;
-                        document.getElementById('monthlyRent').value = activeRecord.monthlyRent;
-                        document.getElementById('prevUnit').value = activeRecord.previousUnitReading;
-                        document.getElementById('currUnit').value = activeRecord.currentUnitReading;
-                        document.getElementById('unitRate').value = activeRecord.unitRate;
-                        document.getElementById('waterCharges').value = activeRecord.waterOrOtherCharges;
-                        document.getElementById('amtReceived').value = activeRecord.amountReceived;
-                        document.getElementById('paymentMode').value = activeRecord.paymentMode;
-                        document.getElementById('roomStatus').value = activeRecord.status;
+                        document.getElementById('balanceOpening').value = activeRecord.balanceOpening || 0;
+                        document.getElementById('monthlyRent').value = activeRecord.monthlyRent || 0;
+                        document.getElementById('prevUnit').value = activeRecord.previousUnitReading || 0;
+                        document.getElementById('currUnit').value = activeRecord.currentUnitReading || 0;
+                        document.getElementById('unitRate').value = activeRecord.unitRate || 9;
+                        document.getElementById('waterCharges').value = activeRecord.waterOrOtherCharges || 0; // 🔥 फ़िक्स: स्कीमा मैपिंग अलाइनमेंट
+                        document.getElementById('amtReceived').value = activeRecord.amountReceived || 0;
+                        document.getElementById('paymentMode').value = activeRecord.paymentMode || 'Unpaid';
+                        document.getElementById('roomStatus').value = activeRecord.status || 'Active';
                         runLiveCalculations();
                     }
 
-                    // 2. लॉक हो चुकी पुरानी सभी एंट्रीज को नीचे डायरी की तरह एक-एक लाइन (Row) में जोड़ें!
+                    // 2. लॉक हो चुकी पुरानी सभी एंट्रीज को नीचे डायरी की तरह जोड़ें
                     const lockedRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom && t.isLocked === true);
                     if(lockedRecords.length > 0) {
                         const tbody = document.getElementById('diaryHistoryTableBody');
                         tbody.innerHTML = '';
                         lockedRecords.forEach(rec => {
-                            const date = new Date(rec.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2026' });
+                            const date = new Date(rec.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
                             tbody.innerHTML += `
                                 <tr>
                                     <td><strong>${date}</strong></td>
@@ -287,6 +287,43 @@
                     }
                 }
             } catch (e) { console.error(e); }
+        }
+
+        async function saveData(shouldLock) {
+            const payload = {
+                ownerEmail,
+                roomOrFlatNo: activeRoom,
+                tenantName: document.getElementById('tName').value,
+                tenantEmail: document.getElementById('tEmail').value.trim(),
+                tenantPassword: document.getElementById('tPassword').value,
+                mobileNo: document.getElementById('tMobile').value,
+                balanceOpening: document.getElementById('balanceOpening').value,
+                monthlyRent: document.getElementById('monthlyRent').value,
+                previousUnitReading: document.getElementById('prevUnit').value,
+                currentUnitReading: document.getElementById('currUnit').value,
+                unitRate: document.getElementById('unitRate').value,
+                waterOrOtherCharges: document.getElementById('waterCharges').value, // 🔥 फ़िक्स: एपीआई पेलोड नेमिंग सिंक
+                amountReceived: document.getElementById('amtReceived').value,
+                paymentMode: document.getElementById('paymentMode').value,
+                status: document.getElementById('roomStatus').value,
+                lockRecord: shouldLock
+            };
+
+            if(!payload.tenantName || !payload.tenantEmail) {
+                alert("कृपया पहले किरायेदार का नाम और ईमेल भरें!");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/owner/upsert-tenant-ledger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchRoomData();
+            } catch(e) { alert("Connectivity failure."); }
         }
 
         async function saveData(shouldLock) {

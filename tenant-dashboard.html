@@ -91,17 +91,15 @@
                     document.getElementById('tTotalUnits').innerText = `${totalUnits} Units`;
                     
                     document.getElementById('tRate').innerText = `₹${data.unitRate}/Unit`;
-                    document.getElementById('tOther').innerText = `₹${data.otherCharges}`;
-                    document.getElementById('tDue').innerText = `₹${data.dueAmount}`;
+                    document.getElementById('tOther').innerText = `₹${data.waterOrOtherCharges || 0}`; // 🔥 फ़िक्स: waterOrOtherCharges बाइंडिंग
+                    document.getElementById('tDue').innerText = `₹${data.totalAmountPayable || 0}`; // 🔥 फ़िक्स: totalAmountPayable बाइंडिंग
                     
                     const statusEl = document.getElementById('tStatus');
-                    if(data.paymentStatus === 'Paid') {
-                        statusEl.innerHTML = `<span class="status-badge" style="background:#2ecc71;">✅ Paid</span>`;
+                    if(data.paymentMode !== 'Unpaid') {
+                        statusEl.innerHTML = `<span class="status-badge" style="background:#2ecc71;">✅ Paid (${data.paymentMode})</span>`;
                     } else {
                         statusEl.innerHTML = `<span class="status-badge" style="background:#e67e22;">⏳ Unpaid / Pending</span>`;
                     }
-                } else {
-                    alert("आपका डिजिटल खाता लोड नहीं हो सका।");
                 }
             } catch (e) {
                 console.error(e);
