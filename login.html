@@ -45,6 +45,7 @@
             const btn = document.getElementById('loginBtn');
             const errorMsg = document.getElementById('errorMsg');
             btn.innerText = "Verifying...";
+            errorMsg.style.display = "none";
             
             try {
                 // 1. Purane kisi bhi stale cache ko pehle clean karein
@@ -58,17 +59,27 @@
                         password: document.getElementById('password').value 
                     })
                 });
+
                 const data = await res.json();
                 
                 if (data.success) {
-                    // 2. Clear token injection
+                    // 🚪 CHECK 1: अगर लॉगिन करने वाला एक किरायेदार (Tenant) है
+                    if (data.role === 'tenant') {
+                        localStorage.setItem('tenantEmail', data.tenantData.tenantEmail);
+                        localStorage.setItem('userRole', 'tenant');
+                        localStorage.setItem('brokerName', data.tenantData.tenantName);
+                        window.location.href = 'tenant-dashboard.html'; // सीधे रीड-ओनली खाता पोर्टल पर भेजें
+                        return;
+                    }
+
+                    // 💼 CHECK 2: अगर सामान्य यूजर, ब्रोकर या कोई अन्य एजेंट है
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
                     localStorage.setItem('userRole', data.role);
 
                     const cleanRole = data.role ? data.role.trim() : '';
 
-                    // 3. Routing Engine Execution
+                    // 3. Routing Engine Execution (Aapke Saare Purane Logics Block)
                     if (cleanRole === 'admin') {
                         window.location.replace('admin-dashboard.html');
                     } else if (cleanRole === 'police_agent') {
@@ -80,17 +91,17 @@
                     } else if (cleanRole === 'transporter') {
                         window.location.replace('transporter-dashboard.html');
                     } else if (cleanRole === 'rk_decorator') {
-                        // 👑 Force hard routing directly to rk-dashboard
                         window.location.replace('rk-dashboard.html');
                     } else {
                         window.location.replace('dashboard.html');
                     }
                 } else {
-                    errorMsg.innerText = "❌ " + data.message;
+                    errorMsg.innerText = "❌ " + (data.message || "लॉगिन विफल!");
                     errorMsg.style.display = "block";
                     btn.innerText = "Log In 🚀";
                 }
             } catch (err) {
+                console.error(err);
                 errorMsg.innerText = "❌ Server Error!";
                 errorMsg.style.display = "block";
                 btn.innerText = "Log In 🚀";

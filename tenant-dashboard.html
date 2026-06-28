@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Portal - Bhopal Properties</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #2c3e50; }
+        .ledger-container { max-width: 600px; background: white; margin: 40px auto; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #3498db; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .welcome-text { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        .data-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px dashed #eee; font-size: 15px; }
+        .data-label { font-weight: bold; color: #34495e; }
+        .data-value { font-weight: 600; color: #2c3e50; }
+        .highlight { color: #e74c3c; font-weight: bold; font-size: 18px; }
+        .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
+        .logout-btn { display: block; width: 100%; text-align: center; background: #e74c3c; color: white; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 30px; text-decoration: none; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+    <div class="ledger-container">
+        <h2>📋 Aapka Digital Rent Ledger</h2>
+        <div class="welcome-text">Bhopal Properties Tenant Live Portal (Read-Only Mode)</div>
+        
+        <div class="data-row">
+            <span class="data-label">Tenant Name:</span>
+            <span class="data-value" id="tName">Loading...</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Room / Flat No:</span>
+            <span class="data-value" id="tRoom">Loading...</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Monthly Rent:</span>
+            <span class="data-value" id="tRent">₹0</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Previous Unit Reading:</span>
+            <span class="data-value" id="tPrevUnit">0</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Current Unit Reading:</span>
+            <span class="data-value" id="tCurrUnit">0</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Total Consumption Units:</span>
+            <span class="data-value" id="tTotalUnits" style="color:#2980b9;">0</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Electricity Rate (per unit):</span>
+            <span class="data-value" id="tRate">₹0</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Other Maintenance Charges:</span>
+            <span class="data-value" id="tOther">₹0</span>
+        </div>
+        <div class="data-row" style="background: #fdf2e9; padding: 15px 5px; margin-top: 10px; border-radius: 4px;">
+            <span class="data-label highlight">Total Due Amount:</span>
+            <span class="data-value highlight" id="tDue">₹0</span>
+        </div>
+        <div class="data-row">
+            <span class="data-label">Payment Status:</span>
+            <span id="tStatus">Loading...</span>
+        </div>
+
+        <a href="login.html" onclick="localStorage.clear();" class="logout-btn">🚪 Log Out</a>
+    </div>
+
+    <script>
+        window.onload = async function() {
+            const tenantEmail = localStorage.getItem('tenantEmail');
+            if(!tenantEmail) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/tenant/my-ledger?email=${encodeURIComponent(tenantEmail)}`);
+                const result = await res.json();
+
+                if(result.success && result.data) {
+                    const data = result.data;
+                    document.getElementById('tName').innerText = data.tenantName;
+                    document.getElementById('tRoom').innerText = data.roomOrFlatNo || 'N/A';
+                    document.getElementById('tRent').innerText = `₹${data.monthlyRent}`;
+                    document.getElementById('tPrevUnit').innerText = data.previousUnitReading;
+                    document.getElementById('tCurrUnit').innerText = data.currentUnitReading;
+                    
+                    const totalUnits = Math.max(0, data.currentUnitReading - data.previousUnitReading);
+                    document.getElementById('tTotalUnits').innerText = `${totalUnits} Units`;
+                    
+                    document.getElementById('tRate').innerText = `₹${data.unitRate}/Unit`;
+                    document.getElementById('tOther').innerText = `₹${data.otherCharges}`;
+                    document.getElementById('tDue').innerText = `₹${data.dueAmount}`;
+                    
+                    const statusEl = document.getElementById('tStatus');
+                    if(data.paymentStatus === 'Paid') {
+                        statusEl.innerHTML = `<span class="status-badge" style="background:#2ecc71;">✅ Paid</span>`;
+                    } else {
+                        statusEl.innerHTML = `<span class="status-badge" style="background:#e67e22;">⏳ Unpaid / Pending</span>`;
+                    }
+                } else {
+                    alert("आपका डिजिटल खाता लोड नहीं हो सका।");
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

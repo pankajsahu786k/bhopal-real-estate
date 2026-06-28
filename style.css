@@ -258,3 +258,112 @@ button:hover {
     .header-container { flex-direction: column; gap: 12px; text-align: center; }
     .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
 }
+/* ⚡ Super App Single-Line Structured Header */
+.super-app-header {
+    background: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 2px solid #f59e0b;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    padding: 10px 25px;
+}
+.header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap; /* किसी भी हाल में नीचे टूटने नहीं देगा */
+}
+.brand-logo {
+    font-size: 20px;
+    font-weight: 700;
+    color: #2c3e50;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.brand-logo .logo-accent { color: #27ae60; }
+.brand-logo .sparkle { color: #f59e0b; }
+.brand-logo .app-tag {
+    font-size: 10px;
+    background: #e0e7ff;
+    color: #4338ca;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 700;
+    margin-left: 5px;
+    text-transform: uppercase;
+}
+.nav-matrix-links {
+    display: flex;
+    list-style: none;
+    gap: 6px;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+}
+.matrix-link {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    transition: 0.2s ease;
+    white-space: nowrap;
+}
+.matrix-link:hover {
+    color: #1e1b4b;
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.05);
+}
+.matrix-link.active {
+    color: #fff !important;
+    background: #2c3e50 !important;
+    border-color: #2c3e50 !important;
+}
+.header-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.broker-login-nav-btn {
+    background: #2c3e50 !important;
+    color: white !important;
+    border-color: #2c3e50 !important;
+}
+.broker-login-nav-btn:hover { background: #1a252f !important; }
+
+.instant-access-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #065f46;
+    background: #d1fae5;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid #a7f3d0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.pulse-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #10b981;
+    border-radius: 50%;
+    animation: networkPulse 1.8s infinite ease-in-out;
+}
+@keyframes networkPulse {
+    0%, 100% { transform: scale(0.8); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 1; }
+}
+
+/* Responsive Menu for Tablets/Mobiles */
+@media (max-width: 1024px) {
+    .header-container { flex-direction: column; gap: 10px; }
+    .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+}

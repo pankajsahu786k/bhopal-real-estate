@@ -136,7 +136,24 @@ const universalReceiptSchema = new mongoose.Schema({
     paymentStatus: { type: String, default: 'Paid' }
 }, { timestamps: true });
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
+// 🏠 Tenant Ledger Schema (रेंट, बिजली यूनिट और डिजिटल खाता के लिए)
+const TenantLedgerSchema = new mongoose.Schema({
+    ownerEmail: { type: String, required: true }, // किस मकान मालिक का किरायेदार है
+    tenantName: { type: String, required: true },
+    tenantEmail: { type: String, required: true, unique: true }, // किरायेदार का लॉगिन ईमेल
+    tenantPassword: { type: String, required: true }, // किरायेदार का पासवर्ड
+    roomOrFlatNo: { type: String },
+    monthlyRent: { type: Number, default: 0 },
+    previousUnitReading: { type: Number, default: 0 },
+    currentUnitReading: { type: Number, default: 0 },
+    unitRate: { type: Number, default: 0 }, // प्रति यूनिट बिजली का चार्ज
+    otherCharges: { type: Number, default: 0 },
+    dueAmount: { type: Number, default: 0 },
+    paymentStatus: { type: String, default: 'Unpaid' }, // Paid / Unpaid
+    lastUpdated: { type: Date, default: Date.now }
+}, { timestamps: true });
 
+const TenantLedger = mongoose.model('TenantLedger', TenantLedgerSchema);
 
 // ==========================================
 // 3️⃣ API ROUTES
@@ -639,6 +656,86 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
             res.json({ success: true, message: 'User, their properties, and all photos deleted!' });
         } else { res.status(404).json({ success: false, message: 'User not found' }); }
     } catch (error) { res.status(500).json({ success: false }); }
+});
+// 1️⃣ OWNER API: मकान मालिक नया किरायेदार जोड़ेगा या उसका डेटा अपडेट करेगा
+app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
+    try {
+        const { ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, monthlyRent, previousUnitReading, currentUnitReading, unitRate, otherCharges, dueAmount, paymentStatus } = req.body;
+
+        // चेक करें कि क्या किरायेदार पहले से मौजूद है, अगर है तो अपडेट करें, नहीं तो नया बनाएं
+        let tenant = await TenantLedger.findOne({ tenantEmail });
+
+        if (tenant) {
+            // Update Existing Record
+            tenant.tenantName = tenantName;
+            if(tenantPassword) tenant.tenantPassword = tenantPassword; // केवल तभी बदलें जब नया पासवर्ड भेजा हो
+            tenant.roomOrFlatNo = roomOrFlatNo;
+            tenant.monthlyRent = monthlyRent;
+            tenant.previousUnitReading = previousUnitReading;
+            tenant.currentUnitReading = currentUnitReading;
+            tenant.unitRate = unitRate;
+            tenant.otherCharges = otherCharges;
+            tenant.dueAmount = dueAmount;
+            tenant.paymentStatus = paymentStatus;
+            tenant.lastUpdated = Date.now();
+            await tenant.save();
+        } else {
+            // Create New Tenant Ledger & Login Creds
+            tenant = new TenantLedger({
+                ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, monthlyRent, previousUnitReading, currentUnitReading, unitRate, otherCharges, dueAmount, paymentStatus
+            });
+            await tenant.save();
+        }
+
+        res.json({ success: true, message: '✅ Tenant Ledger डिजिटली सुरक्षित सेव कर दिया गया है!' });
+    } catch (error) {
+        console.error("Ledger Upsert Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// 2️⃣ OWNER API: मालिक अपने सभी किरायेदारों की लिस्ट देख सके
+app.get('/api/owner/my-tenants', async (req, res) => {
+    try {
+        const { email } = req.query;
+        const tenants = await TenantLedger.find({ ownerEmail: email });
+        res.json({ success: true, data: tenants });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
+});
+
+// 3️⃣ TENANT PORTAL: किरायेदार का डायरेक्ट लॉगिन राउट
+app.post('/api/tenant/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const tenant = await TenantLedger.findOne({ tenantEmail: email, tenantPassword: password });
+
+        if (!tenant) {
+            return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड! कृपया दोबारा जांचें।' });
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'लॉगिन सफल!',
+            role: 'tenant',
+            tenantData: tenant
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// 4️⃣ TENANT API: किरायेदार लॉगिन होने के बाद अपना रीयल-टाइम डेटा बिना एडिट ऑप्शन के देख सके
+app.get('/api/tenant/my-ledger', async (req, res) => {
+    try {
+        const { email } = req.query;
+        const ledger = await TenantLedger.findOne({ tenantEmail: email });
+        if (!ledger) return res.status(404).json({ success: false, message: 'कोई रिकॉर्ड नहीं मिला।' });
+        res.json({ success: true, data: ledger });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
 });
 
 const PORT = process.env.PORT || 3000;
