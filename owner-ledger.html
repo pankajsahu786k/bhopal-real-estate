@@ -9,6 +9,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
         
+        /* Sidebar Navigation Matrix */
         .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar h2 { text-align: center; padding: 20px 0; background-color: #1a252f; font-size: 18px; margin: 0; }
         .nav-links { list-style: none; padding: 0; }
@@ -38,13 +39,13 @@
         .btn-save { background: #2ecc71; color: white; }
         .btn-lock { background: #e74c3c; color: white; }
 
-        /* 📋 Diary Style Excel Line Table Layout */
-        .diary-table-wrapper { overflow-x: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; margin-top: 10px; }
-        .diary-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1300px; text-align: left; }
-        .diary-table th, .diary-table td { border: 1px solid #cbd5e1; padding: 10px; }
-        .diary-table th { background: #34495e; color: white; text-transform: uppercase; font-size: 11px; }
+        /* 📋 FIXED DIARY VIEW: अब टेबल एकदम चौड़ी, साफ़ और सुव्यवस्थित दिखेगी */
+        .diary-table-wrapper { width: 100%; overflow-x: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #cbd5e1; margin-top: 10px; }
+        .diary-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; min-width: 1400px; table-layout: auto; }
+        .diary-table th, .diary-table td { border: 1px solid #cbd5e1; padding: 12px 10px; white-space: nowrap; }
+        .diary-table th { background: #34495e; color: white; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
         .diary-table tr:nth-child(even) { background: #f8fafc; }
-        .badge-locked { background: #64748b; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; }
+        .badge-locked { background: #64748b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -74,7 +75,7 @@
         </div>
 
         <div class="khata-card">
-            <h3 style="color:#2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;" id="currentRoomTitle">Room 101 Entry Form</h3>
+            <h3 style="color:#2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;" id="currentRoomTitle">Room 101 Form Panel</h3>
             <form id="ledgerForm">
                 <div class="form-grid">
                     <div class="form-group">
@@ -87,12 +88,13 @@
                     </div>
                     <div class="form-group">
                         <label>Create Login Password</label>
-                        <input type="password" id="tPassword" placeholder="Keep blank to auto-allocate default password">
+                        <input type="password" id="tPassword" placeholder="पहलें महीने पासवर्ड सेट करें, बाद में खाली छोड़ सकते हैं">
                     </div>
                     <div class="form-group">
                         <label>Mobile Number</label>
                         <input type="text" id="tMobile" placeholder="10 Digit Mobile No">
                     </div>
+
                     <div class="form-group">
                         <label>Balance (Opening / Old Dues)</label>
                         <input type="number" id="balanceOpening" value="0" oninput="runLiveCalculations()">
@@ -240,26 +242,34 @@
                 document.getElementById('diaryHistoryTableBody').innerHTML = '<tr><td colspan="13" style="text-align:center; color:#64748b;">कोई लॉक डेटा उपलब्ध नहीं है।</td></tr>';
                 runLiveCalculations();
 
-                if (result.success && result.data) {
-                    // 1. चालू (Unlocked) एंट्री को फॉर्म में वापस लोड करें
-                    const activeRecord = result.data.find(t => t.roomOrFlatNo === activeRoom && t.isLocked === false);
-                    if(activeRecord) {
-                        document.getElementById('tName').value = activeRecord.tenantName || '';
-                        document.getElementById('tEmail').value = activeRecord.tenantEmail || '';
-                        document.getElementById('tMobile').value = activeRecord.mobileNo || '';
-                        document.getElementById('balanceOpening').value = activeRecord.balanceOpening || 0;
-                        document.getElementById('monthlyRent').value = activeRecord.monthlyRent || 0;
-                        document.getElementById('prevUnit').value = activeRecord.previousUnitReading || 0;
-                        document.getElementById('currUnit').value = activeRecord.currentUnitReading || 0;
-                        document.getElementById('unitRate').value = activeRecord.unitRate || 9;
-                        document.getElementById('waterCharges').value = activeRecord.waterOrOtherCharges || 0; // 🔥 फ़िक्स: स्कीमा मैपिंग अलाइनमेंट
-                        document.getElementById('amtReceived').value = activeRecord.amountReceived || 0;
-                        document.getElementById('paymentMode').value = activeRecord.paymentMode || 'Unpaid';
-                        document.getElementById('roomStatus').value = activeRecord.status || 'Active';
+                if (result.success && result.data && result.data.length > 0) {
+                    // कमरे के सभी रिकार्ड्स को छाँटें (चाहे लॉक हों या अनलॉक)
+                    const roomRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom);
+                    
+                    if (roomRecords.length > 0) {
+                        // 🔥 FEATURE: किरायेदार की प्रोफाइल डिटेल्स हमेशा सबसे लेटेस्ट रिकॉर्ड से उठाएंगे ताकि ओनर को बार-बार नाम-ईमेल न भरना पड़े!
+                        const latestRecord = roomRecords[0]; 
+                        document.getElementById('tName').value = latestRecord.tenantName || '';
+                        document.getElementById('tEmail').value = latestRecord.tenantEmail || '';
+                        document.getElementById('tMobile').value = latestRecord.mobileNo || '';
+
+                        // चालू महीने का डेटा लोड करें
+                        const activeRecord = roomRecords.find(t => t.isLocked === false);
+                        if(activeRecord) {
+                            document.getElementById('balanceOpening').value = activeRecord.balanceOpening || 0;
+                            document.getElementById('monthlyRent').value = activeRecord.monthlyRent || 0;
+                            document.getElementById('prevUnit').value = activeRecord.previousUnitReading || 0;
+                            document.getElementById('currUnit').value = activeRecord.currentUnitReading || 0;
+                            document.getElementById('unitRate').value = activeRecord.unitRate || 9;
+                            document.getElementById('waterCharges').value = activeRecord.waterOrOtherCharges || 0;
+                            document.getElementById('amtReceived').value = activeRecord.amountReceived || 0;
+                            document.getElementById('paymentMode').value = activeRecord.paymentMode || 'Unpaid';
+                            document.getElementById('roomStatus').value = activeRecord.status || 'Active';
+                        }
                         runLiveCalculations();
                     }
 
-                    // 2. लॉक हो चुकी पुरानी सभी एंट्रीज को नीचे डायरी की तरह जोड़ें
+                    // लॉक हो चुकी पुरानी सभी हिस्ट्री रोज़ को नीचे डायरी व्यू में रेंडर करें
                     const lockedRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom && t.isLocked === true);
                     if(lockedRecords.length > 0) {
                         const tbody = document.getElementById('diaryHistoryTableBody');
@@ -302,43 +312,6 @@
                 previousUnitReading: document.getElementById('prevUnit').value,
                 currentUnitReading: document.getElementById('currUnit').value,
                 unitRate: document.getElementById('unitRate').value,
-                waterOrOtherCharges: document.getElementById('waterCharges').value, // 🔥 फ़िक्स: एपीआई पेलोड नेमिंग सिंक
-                amountReceived: document.getElementById('amtReceived').value,
-                paymentMode: document.getElementById('paymentMode').value,
-                status: document.getElementById('roomStatus').value,
-                lockRecord: shouldLock
-            };
-
-            if(!payload.tenantName || !payload.tenantEmail) {
-                alert("कृपया पहले किरायेदार का नाम और ईमेल भरें!");
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/owner/upsert-tenant-ledger', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                alert(data.message);
-                fetchRoomData();
-            } catch(e) { alert("Connectivity failure."); }
-        }
-
-        async function saveData(shouldLock) {
-            const payload = {
-                ownerEmail,
-                roomOrFlatNo: activeRoom,
-                tenantName: document.getElementById('tName').value,
-                tenantEmail: document.getElementById('tEmail').value.trim(),
-                tenantPassword: document.getElementById('tPassword').value,
-                mobileNo: document.getElementById('tMobile').value,
-                balanceOpening: document.getElementById('balanceOpening').value,
-                monthlyRent: document.getElementById('monthlyRent').value,
-                previousUnitReading: document.getElementById('prevUnit').value,
-                currentUnitReading: document.getElementById('currUnit').value,
-                unitRate: document.getElementById('unitRate').value,
                 waterOrOtherCharges: document.getElementById('waterCharges').value,
                 amountReceived: document.getElementById('amtReceived').value,
                 paymentMode: document.getElementById('paymentMode').value,
@@ -359,6 +332,21 @@
                 });
                 const data = await res.json();
                 alert(data.message);
+                
+                // 🔥 ऑटो-अपडेट ओपनिंग बैलेंस: लॉक होते ही रीमेनिंग बैलेंस अगले महीने का ओपनिंग बैलेंस बन जाएगा!
+                if (shouldLock) {
+                    const nextOpeningBalance = document.getElementById('remainderBalance').value;
+                    const nextPrevUnit = document.getElementById('currUnit').value;
+                    
+                    setTimeout(() => {
+                        document.getElementById('balanceOpening').value = nextOpeningBalance;
+                        document.getElementById('prevUnit').value = nextPrevUnit;
+                        document.getElementById('currUnit').value = '';
+                        document.getElementById('amtReceived').value = '0';
+                        document.getElementById('paymentMode').value = 'Unpaid';
+                    }, 500);
+                }
+                
                 fetchRoomData();
             } catch(e) { alert("Connectivity failure."); }
         }
