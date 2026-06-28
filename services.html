@@ -15,7 +15,7 @@
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; display: flex; height: 100vh; }
         
         /* Sidebar */
-        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; }
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #1a252f; font-size: 18px; }
         .nav-links { list-style: none; padding: 0; margin: 0; }
         .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
@@ -106,7 +106,7 @@
             </div>
 
             <div class="category-section">
-                <div class="category-title">⚖️ Legal Documents & Verification (Login Required)</div>
+                <div class="category-title">⚖️ Legal Documents & Verification</div>
                 <div class="app-grid">
                     <div class="service-card" onclick="trackAndGo('Police Verification', 'link', 'police-verification.html')">
                         <div class="service-icon" style="background:#e8f4f8;">👮</div>
@@ -129,7 +129,7 @@
                     <div class="service-card" onclick="trackAndGo('Wedding Decorators', 'link', 'rk-decorators.html')">
                         <div class="service-icon" style="background:#f5eef8;">🎊</div>
                         <h3>Wedding Decorators</h3>
-                        <p>शादी और बड़े फंक्शन्स के लिए प्रीमियम टेंट और डेकोरेशन।</p>
+                        <p>шади और बड़े फंक्शन्स के लिए प्रीमियम टेंट और डेकोरेशन।</p>
                         <button class="book-btn" style="background: #9b59b6;">Book Decorator</button>
                     </div>
                     <div class="service-card" onclick="trackAndGo('R.K Birth Baloon Decor', 'link', 'rk-decorators.html')">
@@ -143,6 +143,48 @@
                         <h3>Premium Caters</h3>
                         <p>हर तरह की पार्टी के लिए स्वादिष्ट खाना और बेहतरीन कैटरिंग सर्विस।</p>
                         <button class="book-btn" style="background: #1abc9c;">See Menu</button>
+                    </div>
+                    <div class="service-card" onclick="trackAndGo('Festival Items', 'link', 'rk-decorators.html')">
+                        <div class="service-icon" style="background:#fcf3cf;">🪔</div>
+                        <h3>Festival Items</h3>
+                        <p>त्यौहारों के लिए पूजा सामग्री और सजावट का सारा सामान।</p>
+                        <button class="book-btn" style="background: #f1c40f; color:#2c3e50;">Order Now</button>
+                    </div>
+                    <div class="service-card" onclick="trackAndGo('Stage Events', 'link', 'rk-decorators.html')">
+                        <div class="service-icon" style="background:#eae6f8;">🎭</div>
+                        <h3>Stage & Mega Events</h3>
+                        <p>सांस्कृतिक कार्यक्रम, लाइव शो और कॉलेज फेस्टिवल्स के लिए ग्रैंड स्टेज और लाइट सेटअप।</p>
+                        <button class="book-btn" style="background: #6c5ce7;">Book Stage</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-section">
+                <div class="category-title">🛠️ Daily Needs & Travel</div>
+                <div class="app-grid">
+                    <div class="service-card" onclick="trackAndGo('Electrician', 'whatsapp')">
+                        <div class="service-icon" style="background:#f4f6f6;">⚡</div>
+                        <h3>Expert Electrician</h3>
+                        <p>घर की वायरिंग, AC और कूलर रिपेयरिंग के लिए अनुभवी इलेक्ट्रीशियन।</p>
+                        <button class="book-btn" style="background: #7f8c8d;">Call Expert</button>
+                    </div>
+                    <div class="service-card" onclick="trackAndGo('Carpenter', 'whatsapp')">
+                        <div class="service-icon" style="background:#fdedec;">🪚</div>
+                        <h3>Carpenter Work</h3>
+                        <p>फर्नीचर बनाने या मरम्मत के लिए सबसे बढ़िया कारपेंटर (बढ़ई)।</p>
+                        <button class="book-btn" style="background: #d35400;">Book Carpenter</button>
+                    </div>
+                    <div class="service-card" onclick="trackAndGo('Maid Services', 'whatsapp')">
+                        <div class="service-icon" style="background:#eaf2f8;">🧹</div>
+                        <h3>Maid / Cleaning Services</h3>
+                        <p>घर की सफाई, बर्तन और खाना बनाने के लिए वेरीफाइड मेड।</p>
+                        <button class="book-btn" style="background: #2980b9;">Find Maid</button>
+                    </div>
+                    <div class="service-card" onclick="trackAndGo('Car Rental', 'whatsapp')">
+                        <div class="service-icon" style="background:#ebf5fb;">🚗</div>
+                        <h3>Car Rental & Taxi</h3>
+                        <p>लोकल या बाहर घूमने के लिए AC कैब और कार रेंटल सर्विस।</p>
+                        <button class="book-btn" style="background: #34495e;">Rent a Car</button>
                     </div>
                 </div>
             </div>
@@ -164,7 +206,9 @@
         async function trackAndGo(serviceName, actionType, targetUrl) {
             try {
                 await fetch(`/api/track-service/${encodeURIComponent(serviceName)}`, { method: 'POST' });
-            } catch (e) { console.log(e); }
+            } catch (e) {
+                console.log("Tracking error, but continuing...", e);
+            }
 
             if (actionType === 'link') {
                 window.location.href = targetUrl;
