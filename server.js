@@ -583,18 +583,40 @@ app.post('/api/verify-otp', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-app.post('/api/login', async(req, res) => {
+app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email: email.toLowerCase().trim(), password });
+        const emailLower = email.toLowerCase().trim();
+
+        // 💼 STEP 1: पहले मुख्य User कलेक्शन (Owner/Admin/Broker) में चेक करें
+        const user = await User.findOne({ email: emailLower, password });
+        
         if (user) {
             let actualRole = user.role || 'user';
             if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
-            res.json({ success: true, name: user.name, email: user.email, role: actualRole });
-        } else {
-            res.status(401).json({ success: false });
+            return res.json({ success: true, name: user.name, email: user.email, role: actualRole });
         }
-    } catch (error) { res.status(500).json({ success: false }); }
+
+        // 🚪 STEP 2: अगर मुख्य यूजर लिस्ट में नहीं मिला, तो TenantLedger (किरायेदार खाता) में चेक करें
+        const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
+        
+        if (tenant) {
+            return res.json({ 
+                success: true, 
+                name: tenant.tenantName, 
+                email: tenant.tenantEmail, 
+                role: 'tenant',
+                tenantData: tenant // फ्रंटएंड रिडायरेक्शन के लिए पूरा डेटा भेजा
+            });
+        }
+
+        // ❌ STEP 3: अगर दोनों कलेक्शन में कहीं नहीं मिला
+        return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड!' });
+
+    } catch (error) { 
+        console.error("Login Router Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' }); 
+    }
 });
 
 // ADMIN APIs
