@@ -1,175 +1,304 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Digital Ledger - Bhopal Real Estate</title>
+    <title>Tenant Ledger - Bhopal Properties</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 100%; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h2 { color: #2c3e50; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .filter-section { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; }
-        select { padding: 8px 12px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; }
-        .table-wrapper { overflow-x: auto; max-width: 100%; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 1400px; }
-        th, td { border: 1px solid #e2e8f0; padding: 10px; }
-        th { background-color: #34495e; color: white; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-        tr:nth-child(even) { background-color: #f8fafc; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 5px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px; }
-        input:disabled, select:disabled { background-color: #e2e8f0; color: #64748b; cursor: not-allowed; }
-        .btn-save { background: #2ecc71; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-lock { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .badge-locked { background: #64748b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
-        .badge-left { background: #e2e8f0; color: #ef4444; padding: 4px 8px; border-radius: 4px; font-weight: bold; border: 1px solid #ef4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar Navigation Matrix */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar h2 { text-align: center; padding: 20px 0; background-color: #1a252f; font-size: 18px; margin: 0; }
+        .nav-links { list-style: none; padding: 0; }
+        .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
+        .nav-links a:hover, .nav-links a.active { background-color: #34495e; color: white; border-left-color: #f59e0b; }
+
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
+        .header-box { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* Room Selector Cards */
+        .room-container { display: flex; gap: 15px; margin-bottom: 10px; }
+        .room-card { padding: 15px 25px; background: white; border: 2px solid #e2e8f0; border-radius: 10px; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .room-card:hover { border-color: #3498db; }
+        .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; }
+
+        /* Khata Form Layout As Per Image */
+        .khata-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-top: 5px solid #f59e0b; position: relative; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: #34495e; }
+        .form-group input, .form-group select { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: #f8fafc; transition: 0.2s; }
+        .form-group input:focus { border-color: #3498db; background: white; }
+        .form-group input:disabled, .form-group select:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
+        
+        /* Auto Calculation Highlighters */
+        .auto-calc { background: #ebf5fb !important; font-weight: bold; color: #2980b9; }
+        .total-payable-box { background: #e8f8f5 !important; font-weight: bold; color: #27ae60; font-size: 16px; }
+        .remainder-box { background: #fdf2e9 !important; font-weight: bold; color: #e74c3c; font-size: 16px; }
+        
+        .action-bar { display: flex; justify-content: flex-end; gap: 15px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
+        .btn { padding: 12px 25px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; font-size: 14px; }
+        .btn-save { background: #2ecc71; color: white; }
+        .btn-lock { background: #e74c3c; color: white; }
+        .lock-status-banner { background: #ffeaa7; color: #d63031; padding: 12px; border-radius: 8px; font-weight: bold; display: none; text-align: center; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>
-        <span>📋 Tenant Digital Khata Register (Excel View)</span>
-        <select id="statusFilter" onchange="loadOwnerLedger()">
-            <option value="Active">Show Active Tenants Only</option>
-            <option value="Left">Show Left / Archived History</option>
-        </select>
-    </h2>
+    <aside class="sidebar">
+        <h2>Bhopal Properties</h2>
+        <ul class="nav-links">
+            <li><a href="dashboard.html">🏠 My Properties</a></li>
+            <li><a href="add-property.html">➕ Add New Property</a></li>
+            <li><a href="profile.html">👤 Profile Settings</a></li>
+            <li><a href="services.html">⚡ Super Services</a></li>
+            <li><a href="owner-ledger.html" class="active">📋 Tenant Ledger (खाता)</a></li>
+        </ul>
+    </aside>
 
-    <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Room No</th>
-                    <th>Tenant Details</th>
-                    <th>Balance (Opening)</th>
-                    <th>Monthly Rent</th>
-                    <th>Total Rent Due</th>
-                    <th>Prev Unit</th>
-                    <th>Curr Unit</th>
-                    <th>Units Used</th>
-                    <th>Unit Rate</th>
-                    <th>Light Bill</th>
-                    <th>Other Charges</th>
-                    <th>Net Payable</th>
-                    <th>Amt Received</th>
-                    <th>Payment Mode</th>
-                    <th>Remainder Bal</th>
-                    <th>Room Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="ledgerTableBody">
-                </tbody>
-        </table>
+    <div class="main-content">
+        <div class="header-box">
+            <h2>📋 TANGENT DIGITAL KHATA MANAGEMENT FORM</h2>
+            <select id="statusFilter" onchange="switchRoom(activeRoom)">
+                <option value="Active">🟢 Active Tenant</option>
+                <option value="Left">🔴 Left / Archived</option>
+            </select>
+        </div>
+
+        <div class="room-container">
+            <div class="room-card selected-room" onclick="switchRoom('Room 101', this)">🚪 Room 101</div>
+            <div class="room-card" onclick="switchRoom('Room 102', this)">🚪 Room 102</div>
+            <div class="room-card" onclick="switchRoom('Room 103', this)">🚪 Room 103</div>
+            <div class="room-card" onclick="switchRoom('Room 104', this)">🚪 Room 104</div>
+            <div class="room-card" onclick="switchRoom('Room 105', this)">🚪 Room 105</div>
+        </div>
+
+        <div class="khata-card">
+            <div id="lockBanner" class="lock-status-banner">🔒 BORDER LOCKED: Yeh data hamesha ke liye lock ho chuka hai aur edit nahi ho sakta!</div>
+            
+            <h3 style="color:#2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px;" id="currentRoomTitle">Room 101 Details</h3>
+            
+            <form id="ledgerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Tenant Name</label>
+                        <input type="text" id="tName" placeholder="Enter Tenant Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tenant Login Email</label>
+                        <input type="email" id="tEmail" placeholder="tenant@gmail.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Create Login Password</label>
+                        <input type="password" id="tPassword" placeholder="Set password for tenant">
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number</label>
+                        <input type="text" id="tMobile" placeholder="10 Digit Mobile No">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Balance (A/C Opening / Old Dues)</label>
+                        <input type="number" id="balanceOpening" value="0" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Monthly Rent</label>
+                        <input type="number" id="monthlyRent" value="0" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Rent Due (Opening + Monthly)</label>
+                        <input type="number" id="totalRentDue" class="auto-calc" readonly value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Previous Unit Reading</label>
+                        <input type="number" id="prevUnit" value="0" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Current Unit Reading</label>
+                        <input type="number" id="currUnit" value="0" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Unit Consumption</label>
+                        <input type="number" id="totalConsumption" class="auto-calc" readonly value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit Rate (₹ per unit)</label>
+                        <input type="number" id="unitRate" value="9" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Electricity Bill</label>
+                        <input type="number" id="totalElecBill" class="auto-calc" readonly value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Water / Other Maintenance Charges</label>
+                        <input type="number" id="waterCharges" value="0" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Total Amount Payable (Rent + Light + Other)</label>
+                        <input type="number" id="totalPayable" class="total-payable-box" readonly value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Amount Received (Payment)</label>
+                        <input type="number" id="amtReceived" value="0" oninput="runLiveCalculations()">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Mode</label>
+                        <select id="paymentMode">
+                            <option value="Unpaid">Unpaid</option>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI/Online">UPI/Online</option>
+                            <option value="Check">Check</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Remainder Balance (Baki Dues)</label>
+                        <input type="number" id="remainderBalance" class="remainder-box" readonly value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Room Allocation Status</label>
+                        <select id="roomStatus">
+                            <option value="Active">Active Tenant</option>
+                            <option value="Left">Left Room (Permanent Lock Archive)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="action-bar" id="actionBtnContainer">
+                    <button type="button" class="btn btn-save" onclick="saveData(false)">💾 Save Current Progress</button>
+                    <button type="button" class="btn btn-lock" onclick="saveData(true)">🔒 Lock Ledger Month</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<script>
-async function loadOwnerLedger() {
-    const ownerEmail = localStorage.getItem('brokerEmail');
-    const filterStatus = document.getElementById('statusFilter').value;
-    
-    try {
-        const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
-        const result = await res.json();
-        const tbody = document.getElementById('ledgerTableBody');
-        tbody.innerHTML = '';
+    <script>
+        let activeRoom = 'Room 101';
+        const ownerEmail = localStorage.getItem('brokerEmail');
 
-        if (!result.success || result.data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">No data found.</td></tr>`;
-            return;
+        // ⚡ LIVE COMPUTATION PARSING MATRIX: Bina kisi button dabaye apne aap calculation karega
+        function runLiveCalculations() {
+            const opBal = Number(document.getElementById('balanceOpening').value || 0);
+            const mRent = Number(document.getElementById('monthlyRent').value || 0);
+            const rentDue = opBal + mRent;
+            document.getElementById('totalRentDue').value = rentDue;
+
+            const prev = Number(document.getElementById('prevUnit').value || 0);
+            const curr = Number(document.getElementById('currUnit').value || 0);
+            const consumed = Math.max(0, curr - prev);
+            document.getElementById('totalConsumption').value = consumed;
+
+            const rate = Number(document.getElementById('unitRate').value || 0);
+            const eBill = consumed * rate;
+            document.getElementById('totalElecBill').value = eBill;
+
+            const other = Number(document.getElementById('waterCharges').value || 0);
+            const payable = rentDue + eBill + other;
+            document.getElementById('totalPayable').value = payable;
+
+            const rec = Number(document.getElementById('amtReceived').value || 0);
+            document.getElementById('remainderBalance').value = payable - rec;
         }
 
-        // फिल्टर के हिसाब से डेटा छानें (Active या Left)
-        const filteredData = result.data.filter(item => item.status === filterStatus);
+        function switchRoom(roomName, element) {
+            activeRoom = roomName;
+            document.getElementById('currentRoomTitle').innerText = `${roomName} Data Registry`;
+            if(element) {
+                document.querySelectorAll('.room-card').forEach(c => c.classList.remove('selected-room'));
+                element.classList.add('selected-room');
+            }
+            fetchRoomData();
+        }
 
-        filteredData.forEach(item => {
-            const isRowDisabled = item.isLocked || item.status === 'Left';
-            const disabledAttr = isRowDisabled ? 'disabled' : '';
+        async function fetchRoomData() {
+            const filterStatus = document.getElementById('statusFilter').value;
+            try {
+                const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
+                const result = await res.json();
+                
+                // Form Reset default fields
+                document.getElementById('ledgerForm').reset();
+                enableForm(true);
+                document.getElementById('lockBanner').style.display = 'none';
+                document.getElementById('actionBtnContainer').style.display = 'flex';
 
-            tbody.innerHTML += `
-                <tr id="row-${item._id}">
-                    <td><input type="text" id="room-${item._id}" value="${item.roomOrFlatNo}" ${disabledAttr}></td>
-                    <td>
-                        <strong style="color:#1e293b;">${item.tenantName}</strong><br>
-                        <span style="font-size:11px; color:#64748b;">${item.tenantEmail}</span>
-                    </td>
-                    <td><input type="number" id="opening-${item._id}" value="${item.balanceOpening}" ${disabledAttr}></td>
-                    <td><input type="number" id="rent-${item._id}" value="${item.monthlyRent}" ${disabledAttr}></td>
-                    <td style="font-weight:bold; color:#1e293b;">₹${item.totalRentDue}</td>
-                    <td><input type="number" id="prev-${item._id}" value="${item.previousUnitReading}" ${disabledAttr}></td>
-                    <td><input type="number" id="curr-${item._id}" value="${item.currentUnitReading}" ${disabledAttr}></td>
-                    <td style="color:#2563eb; font-weight:bold;">${item.totalUnitConsumption}</td>
-                    <td><input type="number" id="rate-${item._id}" value="${item.unitRate}" ${disabledAttr}></td>
-                    <td>₹${item.totalElectricityBill}</td>
-                    <td><input type="number" id="other-${item._id}" value="${item.waterOrOtherCharges}" ${disabledAttr}></td>
-                    <td style="font-weight:bold; color:#16a34a; font-size:14px;">₹${item.totalAmountPayable}</td>
-                    <td><input type="number" id="rec-${item._id}" value="${item.amountReceived}" ${disabledAttr}></td>
-                    <td>
-                        <select id="mode-${item._id}" ${disabledAttr}>
-                            <option value="Unpaid" ${item.paymentMode === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
-                            <option value="Cash" ${item.paymentMode === 'Cash' ? 'selected' : ''}>Cash</option>
-                            <option value="UPI/Online" ${item.paymentMode === 'UPI/Online' ? 'selected' : ''}>UPI/Online</option>
-                            <option value="Check" ${item.paymentMode === 'Check' ? 'selected' : ''}>Check</option>
-                        </select>
-                    </td>
-                    <td style="font-weight:bold; color:#dc2626;">₹${item.remainderBalance}</td>
-                    <td>
-                        <select id="status-${item._id}" ${disabledAttr} style="color: ${item.status === 'Left' ? '#ef4444' : '#16a34a'}; font-weight:bold;">
-                            <option value="Active" ${item.status === 'Active' ? 'selected' : ''}>🟢 Active</option>
-                            <option value="Left" ${item.status === 'Left' ? 'selected' : ''}>🔴 Left Room</option>
-                        </select>
-                    </td>
-                    <td>
-                        ${isRowDisabled ? 
-                            (item.status === 'Left' ? '<span class="badge-left">🚪 Archived (Left)</span>' : '<span class="badge-locked">🔒 Data Locked</span>') : 
-                            `<button class="btn-save" onclick="saveRow('${item._id}', '${item.tenantEmail}', false)">💾 Save</button>
-                             <button class="btn-lock" onclick="saveRow('${item._id}', '${item.tenantEmail}', true)" style="margin-left:4px;">🔒 Lock Month</button>`
+                if (result.success && result.data) {
+                    // Filter specifically by room number and status logic
+                    const match = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === filterStatus);
+                    if(match) {
+                        document.getElementById('tName').value = match.tenantName;
+                        document.getElementById('tEmail').value = match.tenantEmail;
+                        document.getElementById('tMobile').value = match.mobileNo || '';
+                        document.getElementById('balanceOpening').value = match.balanceOpening;
+                        document.getElementById('monthlyRent').value = match.monthlyRent;
+                        document.getElementById('prevUnit').value = match.previousUnitReading;
+                        document.getElementById('currUnit').value = match.currentUnitReading;
+                        document.getElementById('unitRate').value = match.unitRate;
+                        document.getElementById('waterCharges').value = match.waterOrOtherCharges;
+                        document.getElementById('amtReceived').value = match.amountReceived;
+                        document.getElementById('paymentMode').value = match.paymentMode;
+                        document.getElementById('roomStatus').value = match.status;
+                        
+                        runLiveCalculations();
+
+                        // 🚫 LOCK TRAP IF TRIGGERED OR LEFT
+                        if(match.isLocked || match.status === 'Left') {
+                            enableForm(false);
+                            document.getElementById('lockBanner').style.display = 'block';
+                            document.getElementById('actionBtnContainer').style.display = 'none';
                         }
-                    </td>
-                </tr>`;
-        });
-    } catch (e) {
-        console.error("Error rendering ledger:", e);
-    }
-}
+                    }
+                }
+            } catch (e) { console.error("Error fetching room registry:", e); }
+        }
 
-async function saveRow(id, tenantEmail, shouldLock) {
-    const ownerEmail = localStorage.getItem('brokerEmail');
-    const statusVal = document.getElementById(`status-${id}`).value;
+        function enableForm(status) {
+            const fields = ['tName', 'tEmail', 'tPassword', 'tMobile', 'balanceOpening', 'monthlyRent', 'prevUnit', 'currUnit', 'unitRate', 'waterCharges', 'amtReceived', 'paymentMode', 'roomStatus'];
+            fields.forEach(f => document.getElementById(f).disabled = !status);
+        }
 
-    const bodyData = {
-        ownerEmail,
-        tenantEmail,
-        roomOrFlatNo: document.getElementById(`room-${id}`).value,
-        balanceOpening: document.getElementById(`opening-${id}`).value,
-        monthlyRent: document.getElementById(`rent-${id}`).value,
-        previousUnitReading: document.getElementById(`prev-${id}`).value,
-        currentUnitReading: document.getElementById(`curr-${id}`).value,
-        unitRate: document.getElementById(`rate-${id}`).value,
-        waterOrOtherCharges: document.getElementById(`other-${id}`).value,
-        amountReceived: document.getElementById(`rec-${id}`).value,
-        paymentMode: document.getElementById(`mode-${id}`).value,
-        status: statusVal,
-        lockRecord: shouldLock || statusVal === 'Left'
-    };
+        async function saveData(shouldLock) {
+            const statusVal = document.getElementById('roomStatus').value;
+            
+            if (shouldLock && !confirm("Kya aap sach me is mahine ka records lock karna chahte hain? Iske baad aap bhi edit nahi kar payenge!")) return;
+            if (statusVal === 'Left' && !confirm("Tenant mark as 'Left Room'. Data permanently archive ho jayega!")) return;
 
-    if (statusVal === 'Left' && !confirm("चेतावनी: किरायेदार को 'Left Room' मार्क करने से यह रिकॉर्ड हमेशा के लिए लॉक हो जाएगा और आर्काइव में सुरक्षित रहेगा। क्या आप आश्वस्त हैं?")) {
-        return;
-    }
+            const payload = {
+                ownerEmail,
+                roomOrFlatNo: activeRoom,
+                tenantName: document.getElementById('tName').value,
+                tenantEmail: document.getElementById('tEmail').value.trim(),
+                tenantPassword: document.getElementById('tPassword').value,
+                mobileNo: document.getElementById('tMobile').value,
+                balanceOpening: document.getElementById('balanceOpening').value,
+                monthlyRent: document.getElementById('monthlyRent').value,
+                previousUnitReading: document.getElementById('prevUnit').value,
+                currentUnitReading: document.getElementById('currUnit').value,
+                unitRate: document.getElementById('unitRate').value,
+                waterOrOtherCharges: document.getElementById('waterCharges').value,
+                amountReceived: document.getElementById('amtReceived').value,
+                paymentMode: document.getElementById('paymentMode').value,
+                status: statusVal,
+                lockRecord: shouldLock || statusVal === 'Left'
+            };
 
-    try {
-        const res = await fetch('/api/owner/upsert-tenant-ledger', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bodyData)
-        });
-        const data = await res.json();
-        alert(data.message);
-        loadOwnerLedger(); // री-फ्रेश ग्रिड डेटा
-    } catch(e) { alert("Save operations failed."); }
-}
+            try {
+                const res = await fetch('/api/owner/upsert-tenant-ledger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+                fetchRoomData();
+            } catch(e) { alert("Server connectivity failure."); }
+        }
 
-window.onload = loadOwnerLedger;
-</script>
+        window.onload = () => switchRoom('Room 101');
+    </script>
 </body>
 </html>

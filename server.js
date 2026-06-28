@@ -699,45 +699,39 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 });
 // 1️⃣ OWNER API: मकान मालिक नया किरायेदार जोड़ेगा या उसका डेटा अपडेट करेगा
 // OWNER API: किरायेदार का डेटा सेव, अपडेट या हमेशा के लिए लॉक करना
+// server.js के अंदर /api/owner/upsert-tenant-ledger को इस प्रकार मॉडिफाई करें
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
         const { 
-            ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, mobileNo,
+            ownerEmail, roomOrFlatNo, tenantEmail, tenantName, tenantPassword, mobileNo,
             balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
             waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord 
         } = req.body;
 
-        let tenant = await TenantLedger.findOne({ ownerEmail, tenantEmail });
+        // 🔥 Room No और Owner Email के कॉम्बिनेशन से ढूंढें
+        let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo });
 
-        // गणना (Calculations) बैकएंड पर ही ऑटोमैटिकली कर लेते हैं ताकि डेटा 100% सही रहे
         const rentOpening = Number(balanceOpening || 0);
         const rentMon = Number(monthlyRent || 0);
         const totalRentDue = rentOpening + rentMon;
-
         const prevRead = Number(previousUnitReading || 0);
         const currRead = Number(currentUnitReading || 0);
         const totalUnitConsumption = Math.max(0, currRead - prevRead);
         const rate = Number(unitRate || 0);
         const totalElectricityBill = totalUnitConsumption * rate;
-
         const other = Number(waterOrOtherCharges || 0);
         const totalAmountPayable = totalRentDue + totalElectricityBill + other;
         const recAmount = Number(amountReceived || 0);
         const remainderBalance = totalAmountPayable - recAmount;
 
         if (tenant) {
-            // 🚫 SECURITY CHECK: अगर रिकॉर्ड मैन्युअल लॉक है या किरायेदार कमरा छोड़ चुका (Left) है, तो कोई एडिट नहीं होगा
             if (tenant.isLocked || tenant.status === 'Left') {
-                return res.status(403).json({ 
-                    success: false, 
-                    message: '❌ यह रिकॉर्ड लॉक/आर्काइव हो चुका है! सुरक्षा कारणों से अब इसे एडिट नहीं किया जा सकता।' 
-                });
+                return res.status(403).json({ success: false, message: '❌ Yeh record lock ho chuka hai! Ab ise badla nahi ja sakta.' });
             }
 
-            // डेटा अपडेट करें
             tenant.tenantName = tenantName;
+            tenant.tenantEmail = tenantEmail.toLowerCase().trim();
             if (tenantPassword) tenant.tenantPassword = tenantPassword;
-            tenant.roomOrFlatNo = roomOrFlatNo;
             tenant.mobileNo = mobileNo;
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
@@ -751,20 +745,14 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.totalAmountPayable = totalAmountPayable;
             tenant.amountReceived = recAmount;
             tenant.paymentMode = paymentMode;
-            tenant.status = status; // Active या Left
+            tenant.status = status;
 
-            // अगर ओनर लॉक बटन दबाता है या किरायेदार कमरा छोड़ देता है, तो रिकॉर्ड हमेशा के लिए लॉक कर दें
-            if (lockRecord === true || status === 'Left') {
-                tenant.isLocked = true;
-            }
-
-            tenant.lastUpdated = Date.now();
+            if (lockRecord === true || status === 'Left') tenant.isLocked = true;
             await tenant.save();
         } else {
-            // बिल्कुल नया रिकॉर्ड बनाने के लिए
             const isLockedInit = (lockRecord === true || status === 'Left');
             tenant = new TenantLedger({
-                ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, mobileNo,
+                ownerEmail, roomOrFlatNo, tenantEmail: tenantEmail.toLowerCase().trim(), tenantPassword, tenantName, mobileNo,
                 balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
                 previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
                 unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
@@ -774,14 +762,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             await tenant.save();
         }
 
-        res.json({ 
-            success: true, 
-            message: (status === 'Left' || lockRecord) 
-                ? '🔒 रिकॉर्ड को हमेशा के लिए लॉक और सुरक्षित आर्काइव कर दिया गया है!' 
-                : '✅ डिजिटल डेटा सुरक्षित सेव कर दिया गया है!' 
-        });
+        res.json({ success: true, message: (status === 'Left' || lockRecord) ? '🔒 Record locked and archived permanently!' : '✅ Data safely registered!' });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
