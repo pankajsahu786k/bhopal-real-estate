@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Police Verification | Bhopal Properties</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <script>
         (function() {
@@ -14,8 +15,145 @@
             }
         })();
     </script>
+
+    <style>
+        /* 🎨 Global Layout Configuration */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background-color: #f4f7f6; color: #333; display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 30px; }
+        a { text-decoration: none; }
+
+        /* 👑 Premium Connected Header Navigation Bar */
+        .super-app-header {
+            background: #ffffff;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 2px solid #f59e0b;
+            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.06);
+            padding: 10px 30px;
+            width: 100%;
+        }
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        .brand-logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: #1e1b4b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
+        .brand-logo span.logo-main span { color: #27ae60; }
+        .brand-logo .sparkle { color: #f59e0b; }
+        .brand-logo .app-tag {
+            font-size: 10px;
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .navigation-hub { flex-grow: 1; display: flex; justify-content: center; }
+        .nav-matrix-links { display: flex; list-style: none; gap: 6px; align-items: center; margin: 0; padding: 0; }
+        .matrix-link {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            transition: 0.2s ease;
+            white-space: nowrap;
+        }
+        .matrix-link:hover { color: #1e1b4b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+        .matrix-link.active { color: #fff !important; background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important; border-color: #1e1b4b !important; }
+        
+        .user-badge {
+            font-size: 11px;
+            font-weight: 700;
+            color: #065f46;
+            background: #d1fae5;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #a7f3d0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; }
+
+        /* 📋 Main Form Area Wrapper Container */
+        .form-container { max-width: 850px; width: 100%; margin: 30px auto; background: white; padding: 35px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border-top: 4px solid #2c3e50; }
+        .back-btn { display: inline-block; font-size: 14px; color: #475569; font-weight: 600; margin-bottom: 20px; transition: 0.2s; }
+        .back-btn:hover { color: #111; }
+        
+        h2 { color: #2c3e50; font-size: 24px; font-weight: 800; margin-bottom: 5px; }
+        .subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+        
+        .section-title { font-size: 14px; font-weight: 700; color: #f59e0b; text-transform: uppercase; margin: 25px 0 15px 0; letter-spacing: 0.5px; background: #faf5ff; padding: 6px 12px; border-radius: 4px; border-left: 3px solid #f59e0b; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px; }
+        
+        .form-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .form-group label { font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #475569; }
+        .form-group input, .form-group textarea, .form-group select { padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #f8fafc; font-family: inherit; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { border-color: #2c3e50; background: white; box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.08); }
+        .form-group input[type="file"] { background: #fff; padding: 8px; cursor: pointer; }
+
+        /* 🔥 Dynamic Submission Call To Action Controller Button */
+        .submit-btn { width: 100%; border: none; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; transition: 0.3s ease; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+
+        /* Tablet Menu Wrap Media Query Rule */
+        @media (max-width: 1150px) {
+            .header-container { flex-direction: column; gap: 10px; text-align: center; }
+            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
+        }
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; gap: 0; }
+            .form-container { padding: 20px; margin: 15px auto; width: 95%; }
+        }
+    </style>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
+
+    <header class="super-app-header">
+        <div class="header-container">
+            <div class="brand-logo" onclick="window.location.href='index.html'">
+                <span class="sparkle">✨</span> 
+                <span class="logo-main">Bhopal <span>Properties</span></span> 
+                <span class="app-tag">Super App</span>
+            </div>
+            
+            <nav class="navigation-hub">
+                <ul class="nav-matrix-links">
+                    <li><a href="index.html" class="matrix-link">Home</a></li>
+                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
+                    <li><a href="services.html?service=tenant" class="matrix-link active">Tenant Verification</a></li>
+                    <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
+                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
+                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
+                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
+                </ul>
+            </nav>
+            
+            <div class="instant-access-badge">
+                <div class="user-badge"><span class="pulse-dot"></span> SECURE MATRIX</div>
+            </div>
+        </div>
+    </header>
 
     <div class="form-container">
         <a href="services.html" class="back-btn">← Back to Services</a>
@@ -109,7 +247,6 @@
     <script>
     let isPaymentBypassedGlobal = false;
 
-    // 🌟 1. Page load होते ही लाइव पेमेंट स्टेटस चेक करेगा और बटन का नाम बदलेगा
     document.addEventListener('DOMContentLoaded', async () => {
         const userEmail = localStorage.getItem('brokerEmail');
         if (!userEmail) {
@@ -136,7 +273,6 @@
         }
     });
 
-    // 🌟 2. Form Submit होने पर काम करने वाला मेन फंक्शन
     document.getElementById('verificationForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
@@ -146,7 +282,6 @@
 
         const userEmail = localStorage.getItem('brokerEmail') || 'guest@user.com';
 
-        // फ़ॉर्म का सारा डेटा इकट्ठा करें
         const formData = new FormData();
         formData.append('userEmail', userEmail);
         formData.append('ownerName', document.getElementById('ownerName').value);
@@ -162,7 +297,6 @@
         formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
         formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
         
-        // Multiple Photos Injection
         const photoInput = document.getElementById('tenantPhoto');
         if (photoInput.files.length > 0) formData.append('tenantPhoto', photoInput.files[0]);
 
@@ -172,18 +306,15 @@
         const backInput = document.getElementById('aadharBack');
         if (backInput.files.length > 0) formData.append('aadharBack', backInput.files[0]);
 
-        // 🔓 CONDITION A: अगर मास्टर कंट्रोल स्विच FREE MODE (Bypass) पर है
         if (isPaymentBypassedGlobal) {
             const freeTxnId = 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
             btn.innerText = "Bypass Verified! Uploading... 🔓";
             submitDataWithUniversalReceipt(formData, btn, originalText, freeTxnId, 'Tenant Police Verification (FREE)', 0, 'Bypassed (Free)');
         } 
-        // 💳 CONDITION B: अगर Paid Mode एक्टिव है (Razorpay पॉपअप खुलेगा - ₹110)
         else {
             try {
                 btn.innerText = "Initiating Payment... 💳";
                 
-                // ₹110 के लिए custom amount ऑब्जेक्ट भेजेंगे (11000 पैसे)
                 const orderRes = await fetch('/api/create-order', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -199,7 +330,7 @@
 
                 const options = {
                     "key": "rzp_test_T3oTzNzTDvWgUL", 
-                    "amount": 11000, // Fixed ₹110 in check-out window (11000 paise)
+                    "amount": 11000, 
                     "currency": "INR",
                     "name": "Bhopal Properties",
                     "description": "Tenant Police Verification Charges",
@@ -235,7 +366,6 @@
         }
     });
 
-    // ☁️ 3. डेटा सबमिट करने और यूनिवर्सल रसीद जनरेट करने का फ़ंक्शन
     async function submitDataWithUniversalReceipt(formData, btn, originalText, txnId, serviceName, amt, payStatus) {
         try {
             const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
