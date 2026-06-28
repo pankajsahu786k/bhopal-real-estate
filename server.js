@@ -75,9 +75,10 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
+// 👮 UPGRADED Verification Schema (With Status and Txn Tracking)
 const verificationSchema = new mongoose.Schema({
     userEmail: String,      
-    documentUrl: String,    
+    documentUrl: { type: String, default: '' },    
     tenantName: String,
     tenantFatherName: String,  
     tenantDOB: String,         
@@ -93,9 +94,27 @@ const verificationSchema = new mongoose.Schema({
     aadharFrontPhoto: { type: String, default: '' },
     aadharBackPhoto: { type: String, default: '' },
     familyMembers: Number,  
-    status: { type: String, default: 'Pending' }
+    status: { type: String, default: 'Pending' }, // Pending / Complete / Done
+    transactionId: { type: String, default: '' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
+
+// 📄 NEW SCHEMA: Rent Agreement Model Configuration
+const rentAgreementSchema = new mongoose.Schema({
+    userEmail: { type: String, required: true },
+    ownerName: String,
+    ownerMobile: String,
+    ownerAddress: String,
+    tenantName: String,
+    propAddress: String,
+    monthlyRent: Number,
+    securityDeposit: Number,
+    durationMonths: Number,
+    electricityRate: Number,
+    startDate: String,
+    status: { type: String, default: 'Complete' } // Realtime download enabled immediately
+}, { timestamps: true });
+const RentAgreement = mongoose.model('RentAgreement', rentAgreementSchema);
 
 const serviceAnalyticsSchema = new mongoose.Schema({
     serviceName: { type: String, unique: true },
@@ -122,6 +141,35 @@ const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSche
 // ==========================================
 // 3️⃣ API ROUTES
 // ==========================================
+
+// -- NEW: Rent Agreement Save Endpoint Matrix --
+app.post('/api/save-rent-agreement', async (req, res) => {
+    try {
+        const { userEmail, agreementData } = req.body;
+        const newAgreement = new RentAgreement({
+            userEmail: userEmail.toLowerCase().trim(),
+            ...agreementData
+        });
+        await newAgreement.save();
+        res.json({ success: true, message: '✅ Rent Agreement safely archived!' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// -- NEW: Live Real-time Status Tracker Engine Router --
+app.get('/api/user/my-verifications', async (req, res) => {
+    try {
+        const email = req.query.email;
+        if (!email) return res.status(400).json({ success: false, message: "Email parameter missing" });
+        
+        // Database se data load karega live updates dashboard par bhejne ke liye
+        const data = await Verification.find({ userEmail: email.toLowerCase().trim() }).sort({ createdAt: -1 });
+        res.json({ success: true, data: data });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // -- UNIVERSAL AUTOMATED RECEIPT APIs --
 app.post('/api/save-receipt', async (req, res) => {
@@ -212,11 +260,16 @@ app.post('/api/submit-verification', upload.fields([
         const aadharFrontUrl = req.files && req.files['aadharFront'] ? req.files['aadharFront'][0].path : '';
         const aadharBackUrl = req.files && req.files['aadharBack'] ? req.files['aadharBack'][0].path : '';
 
+        // Random transaction target map placeholder if not passed by payment payload
+        const targetTxn = req.body.transactionId || 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+
         const verificationData = { 
             ...req.body, 
             tenantPhoto: tenantPhotoUrl,
             aadharFrontPhoto: aadharFrontUrl,
-            aadharBackPhoto: aadharBackUrl
+            aadharBackPhoto: aadharBackUrl,
+            status: 'Pending', // Default state locked to pending tracking sequence
+            transactionId: targetTxn
         };
 
         const newRequest = new Verification(verificationData);
@@ -282,6 +335,7 @@ app.get('/api/admin/verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
+// 👮 FIXED AGENT ROUTE: जब एजेंट फाइल सबमिट करेगा तो स्टेटस 'Complete' होगा और पीडीएफ डैशबोर्ड पर चमकेगी!
 app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificationDoc'), async (req, res) => {
     try {
         if (!req.file) {
@@ -305,8 +359,10 @@ app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificatio
         });
 
         const docUrl = uploadResult.secure_url || uploadResult.url;
-        await Verification.findByIdAndUpdate(req.params.id, { status: 'Done', documentUrl: docUrl });
-        res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Done!' });
+        
+        // 🔥 UPDATE STATUS TO 'Complete': ताकि यूजर के स्क्रीन पर पेंडिंग की जगह तुरंत कंप्लीट दिखे
+        await Verification.findByIdAndUpdate(req.params.id, { status: 'Complete', documentUrl: docUrl });
+        res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Complete!' });
     } catch (error) { 
         console.error("Cloudinary Upload Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' }); 
@@ -367,7 +423,6 @@ app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: RK Baloon Packages को आपके अपने डेटाबेस में सेव करने के लिए (Default 'published')
 app.post('/api/rk-add-package', async (req, res) => {
     try {
         const { category, packageData } = req.body;
@@ -380,7 +435,6 @@ app.post('/api/rk-add-package', async (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: Live Website पर डेटा दिखाने के लिए Fetch राउट
 app.get('/api/rk-get-packages/:category', async (req, res) => {
     try {
         const { category } = req.params;
@@ -391,7 +445,6 @@ app.get('/api/rk-get-packages/:category', async (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: RK Baloon Packages ko Edit / Update karne ka controller route
 app.put('/api/rk-edit-package', async (req, res) => {
     try {
         const { category, id, updateData } = req.body;
@@ -407,7 +460,6 @@ app.put('/api/rk-edit-package', async (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: Publish / Unpublish Status Update mapping handler controller
 app.post('/api/rk-toggle-status', async (req, res) => {
     try {
         const { category, id, status } = req.body;
@@ -423,7 +475,6 @@ app.post('/api/rk-toggle-status', async (req, res) => {
     }
 });
 
-// 🎈 NAYA ROUTE: RK Baloon Packages ko native database se permanently delete karne ke liye
 app.delete('/api/rk-delete-package/:category/:id', async (req, res) => {
     try {
         const { category, id } = req.params;
