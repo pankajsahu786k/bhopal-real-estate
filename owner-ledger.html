@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Ledger - Bhopal Properties</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Sidebar Restored */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #1a252f; font-size: 18px; }
+        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
+        .nav-links a:hover { background-color: #34495e; color: white; border-left-color: #2ecc71; }
+        .nav-links a.active { background-color: #34495e; color: white; border-left-color: #f59e0b; }
+
+        .main-content-wrapper { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; padding: 30px; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        h2 { color: #2c3e50; font-weight: 700; }
+        
+        .add-btn { background: #27ae60; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; text-decoration: none; font-size: 14px; }
+        .add-btn:hover { background: #219653; }
+        
+        select { padding: 8px 12px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: bold; outline: none; }
+        .table-wrapper { overflow-x: auto; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); border: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; min-width: 1500px; }
+        th, td { border: 1px solid #e2e8f0; padding: 12px 10px; }
+        th { background-color: #34495e; color: white; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        
+        input[type="text"], input[type="number"], input[type="email"], input[type="password"] { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: #f8fafc; }
+        input:focus { border-color: #3498db; background: white; }
+        input:disabled, select:disabled { background-color: #e2e8f0; color: #64748b; cursor: not-allowed; }
+        
+        /* Buttons */
+        .btn-save { background: #2ecc71; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-lock { background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .badge-locked { background: #64748b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+
+        /* Modal Popup Setup */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 12px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .modal-close { font-size: 24px; cursor: pointer; color: #aaa; border: none; background: none; }
+        .form-grid-modal { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <h2>Bhopal Properties</h2>
+        <ul class="nav-links">
+            <li><a href="dashboard.html">🏠 My Properties</a></li>
+            <li><a href="add-property.html">➕ Add New Property</a></li>
+            <li><a href="profile.html">👤 Profile Settings</a></li>
+            <li><a href="services.html">⚡ Super Services</a></li>
+            <li><a href="owner-ledger.html" class="active">📋 Tenant Ledger (खाता)</a></li>
+        </ul>
+    </aside>
+
+    <div class="main-content-wrapper">
+        <div class="content-header">
+            <h2>📋 किरायेदार डिजिटल खाता रजिस्टर (Excel View)</h2>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <select id="statusFilter" onchange="loadOwnerLedger()">
+                    <option value="Active">🟢 Active Tenants Only</option>
+                    <option value="Left">🔴 Left / Archived History</option>
+                </select>
+                <button class="add-btn" onclick="openModal()">➕ Add New Tenant Login</button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Room No</th>
+                        <th>Tenant Details</th>
+                        <th>Mobile No</th>
+                        <th>Balance (Opening)</th>
+                        <th>Monthly Rent</th>
+                        <th>Total Rent Due</th>
+                        <th>Prev Unit</th>
+                        <th>Curr Unit</th>
+                        <th>Units Used</th>
+                        <th>Unit Rate</th>
+                        <th>Light Bill</th>
+                        <th>Other Charges</th>
+                        <th>Net Payable</th>
+                        <th>Amt Received</th>
+                        <th>Payment Mode</th>
+                        <th>Remainder Bal</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ledgerTableBody">
+                    <tr><td colspan="18" style="text-align:center; padding:20px; color:#64748b;">डेटा लोड हो रहा है... ⏳</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="modal" id="tenantModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="color:#2c3e50;">👤 Add New Tenant Account</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="tenantForm" onsubmit="submitNewTenant(event)">
+                <div class="form-grid-modal">
+                    <div>
+                        <label style="font-size:12px; font-weight:600;">Tenant Name *</label>
+                        <input type="text" id="modalName" required placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600;">Room / Flat No *</label>
+                        <input type="text" id="modalRoom" required placeholder="Room 102">
+                    </div>
+                </div>
+                <div class="form-grid-modal">
+                    <div>
+                        <label style="font-size:12px; font-weight:600;">Tenant Email *</label>
+                        <input type="email" id="modalEmail" required placeholder="tenant@gmail.com">
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600;">Create Password *</label>
+                        <input type="password" id="modalPass" required placeholder="••••••••">
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size:12px; font-weight:600;">Mobile Number</label>
+                    <input type="text" id="modalMobile" placeholder="10 Digit Number">
+                </div>
+                <button type="submit" class="add-btn" style="width: 100%; padding: 12px;">Create Tenant & Open Ledger 🚀</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal() { document.getElementById('tenantModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('tenantModal').style.display = 'none'; document.getElementById('tenantForm').reset(); }
+
+        async function submitNewTenant(e) {
+            e.preventDefault();
+            const ownerEmail = localStorage.getItem('brokerEmail');
+            
+            const payload = {
+                ownerEmail,
+                tenantEmail: document.getElementById('modalEmail').value.trim(),
+                tenantName: document.getElementById('modalName').value,
+                tenantPassword: document.getElementById('modalPass').value,
+                roomOrFlatNo: document.getElementById('modalRoom').value,
+                mobileNo: document.getElementById('modalMobile').value,
+                balanceOpening: 0, monthlyRent: 0, previousUnitReading: 0, currentUnitReading: 0,
+                unitRate: 9, waterOrOtherCharges: 0, amountReceived: 0, paymentMode: 'Unpaid',
+                status: 'Active', lockRecord: false
+            };
+
+            try {
+                const res = await fetch('/api/owner/upsert-tenant-ledger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+                closeModal();
+                loadOwnerLedger();
+            } catch(err) { alert("Error adding tenant account."); }
+        }
+
+        async function loadOwnerLedger() {
+            const ownerEmail = localStorage.getItem('brokerEmail');
+            const filterStatus = document.getElementById('statusFilter').value;
+            
+            try {
+                const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
+                const result = await res.json();
+                const tbody = document.getElementById('ledgerTableBody');
+                tbody.innerHTML = '';
+
+                if (!result.success || !result.data || result.data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="18" style="text-align:center; padding:20px; color:#64748b;">कोई किरायेदार नहीं मिला। ऊपर बटन पर क्लिक करके पहला खाता खोलें!</td></tr>`;
+                    return;
+                }
+
+                const filteredData = result.data.filter(item => item.status === filterStatus);
+
+                filteredData.forEach(item => {
+                    const isRowDisabled = item.isLocked || item.status === 'Left';
+                    const disabledAttr = isRowDisabled ? 'disabled' : '';
+
+                    tbody.innerHTML += `
+                        <tr id="row-${item._id}">
+                            <td><input type="text" id="room-${item._id}" value="${item.roomOrFlatNo || ''}" ${disabledAttr}></td>
+                            <td>
+                                <strong style="color:#2c3e50;">${item.tenantName}</strong><br>
+                                <span style="font-size:11px; color:#64748b;">${item.tenantEmail}</span>
+                            </td>
+                            <td><input type="text" id="mobile-${item._id}" value="${item.mobileNo || ''}" ${disabledAttr}></td>
+                            <td><input type="number" id="opening-${item._id}" value="${item.balanceOpening || 0}" ${disabledAttr}></td>
+                            <td><input type="number" id="rent-${item._id}" value="${item.monthlyRent || 0}" ${disabledAttr}></td>
+                            <td style="font-weight:bold; color:#2c3e50;">₹${item.totalRentDue || 0}</td>
+                            <td><input type="number" id="prev-${item._id}" value="${item.previousUnitReading || 0}" ${disabledAttr}></td>
+                            <td><input type="number" id="curr-${item._id}" value="${item.currentUnitReading || 0}" ${disabledAttr}></td>
+                            <td style="color:#2980b9; font-weight:bold;">${item.totalUnitConsumption || 0}</td>
+                            <td><input type="number" id="rate-${item._id}" value="${item.unitRate || 0}" ${disabledAttr}></td>
+                            <td>₹${item.totalElectricityBill || 0}</td>
+                            <td><input type="number" id="other-${item._id}" value="${item.waterOrOtherCharges || 0}" ${disabledAttr}></td>
+                            <td style="font-weight:bold; color:#27ae60; font-size:14px;">₹${item.totalAmountPayable || 0}</td>
+                            <td><input type="number" id="rec-${item._id}" value="${item.amountReceived || 0}" ${disabledAttr}></td>
+                            <td>
+                                <select id="mode-${item._id}" ${disabledAttr}>
+                                    <option value="Unpaid" ${item.paymentMode === 'Unpaid' ? 'selected' : ''}>Unpaid</option>
+                                    <option value="Cash" ${item.paymentMode === 'Cash' ? 'selected' : ''}>Cash</option>
+                                    <option value="UPI/Online" ${item.paymentMode === 'UPI/Online' ? 'selected' : ''}>UPI/Online</option>
+                                    <option value="Check" ${item.paymentMode === 'Check' ? 'selected' : ''}>Check</option>
+                                </select>
+                            </td>
+                            <td style="font-weight:bold; color:#e74c3c;">₹${item.remainderBalance || 0}</td>
+                            <td>
+                                <select id="status-${item._id}" ${disabledAttr} style="color: ${item.status === 'Left' ? '#e74c3c' : '#27ae60'}; font-weight:bold;">
+                                    <option value="Active" ${item.status === 'Active' ? 'selected' : ''}>🟢 Active</option>
+                                    <option value="Left" ${item.status === 'Left' ? 'selected' : ''}>🔴 Left Room</option>
+                                </select>
+                            </td>
+                            <td>
+                                ${isRowDisabled ? 
+                                    (item.status === 'Left' ? '<span class="badge-left" style="color:#e74c3c; font-weight:bold;">🚪 Left (Archived)</span>' : '<span class="badge-locked">🔒 Locked</span>') : 
+                                    `<button class="btn-save" onclick="saveRow('${item._id}', '${item.tenantEmail}', false)">💾 Save</button>
+                                     <button class="btn-lock" onclick="saveRow('${item._id}', '${item.tenantEmail}', true)" style="margin-left:4px;">🔒 Lock</button>`
+                                }
+                            </td>
+                        </tr>`;
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveRow(id, tenantEmail, shouldLock) {
+            const ownerEmail = localStorage.getItem('brokerEmail');
+            const statusVal = document.getElementById(`status-${id}`).value;
+
+            const bodyData = {
+                ownerEmail, tenantEmail,
+                roomOrFlatNo: document.getElementById(`room-${id}`).value,
+                mobileNo: document.getElementById(`mobile-${id}`).value,
+                balanceOpening: document.getElementById(`opening-${id}`).value,
+                monthlyRent: document.getElementById(`rent-${id}`).value,
+                previousUnitReading: document.getElementById(`prev-${id}`).value,
+                currentUnitReading: document.getElementById(`curr-${id}`).value,
+                unitRate: document.getElementById(`rate-${id}`).value,
+                waterOrOtherCharges: document.getElementById(`other-${id}`).value,
+                amountReceived: document.getElementById(`rec-${id}`).value,
+                paymentMode: document.getElementById(`mode-${id}`).value,
+                status: statusVal,
+                lockRecord: shouldLock || statusVal === 'Left'
+            };
+
+            if (statusVal === 'Left' && !confirm("चेतावनी: किरायेदार को 'Left Room' मार्क करने से यह रिकॉर्ड हमेशा के लिए लॉक हो जाएगा। क्या आप तैयार हैं?")) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/owner/upsert-tenant-ledger', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyData)
+                });
+                const data = await res.json();
+                alert(data.message);
+                loadOwnerLedger();
+            } catch(e) { alert("Save failed."); }
+        }
+
+        window.onload = loadOwnerLedger;
+    </script>
+</body>
+</html>
