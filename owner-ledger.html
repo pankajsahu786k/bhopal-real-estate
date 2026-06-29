@@ -7,45 +7,54 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
+        body { background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; width: 100vw; }
         
-        /* Sidebar Navigation Matrix */
-        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        /* 🚪 Sidebar Layout Lock */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
         .sidebar h2 { text-align: center; padding: 20px 0; background-color: #1a252f; font-size: 18px; margin: 0; }
-        .nav-links { list-style: none; padding: 0; }
+        .nav-links { list-style: none; }
         .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
         .nav-links a:hover, .nav-links a.active { background-color: #34495e; color: white; border-left-color: #f59e0b; }
 
-        .main-content { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 25px; }
-        .header-box { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        /* 🔥 MAIN WORKSPACE WRAPPER (100% चौड़ाई कवर करने के लिए) */
+        .main-content { flex: 1; overflow-y: auto; padding: 25px; display: flex; flex-direction: column; gap: 20px; min-width: 0; height: 100vh; }
+        .header-box { display: flex; justify-content: space-between; align-items: center; background: white; padding: 15px 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         
-        .room-container { display: flex; gap: 15px; }
-        .room-card { padding: 15px 25px; background: white; border: 2px solid #e2e8f0; border-radius: 10px; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; }
+        /* Room Controller Layout */
+        .room-container { display: flex; gap: 12px; }
+        .room-card { padding: 12px 22px; background: white; border: 2px solid #e2e8f0; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; transition: 0.2s; }
         .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; }
 
-        .khata-card { background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border-top: 5px solid #f59e0b; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        .form-group label { font-size: 13px; font-weight: 600; color: #34495e; }
-        .form-group input, .form-group select { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; outline: none; background: #f8fafc; }
+        /* Khata Entry Form Dashboard Card */
+        .khata-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-top: 5px solid #f59e0b; }
+        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; } /* 🔥 4 Column Layout ताकि फॉर्म कम जगह ले */
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 12px; font-weight: 600; color: #34495e; }
+        .form-group input, .form-group select { padding: 10px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 13px; outline: none; background: #f8fafc; }
         .form-group input:focus { border-color: #3498db; background: white; }
         
         .auto-calc { background: #ebf5fb !important; font-weight: bold; color: #2980b9; }
         .total-payable-box { background: #e8f8f5 !important; font-weight: bold; color: #27ae60; }
         .remainder-box { background: #fdf2e9 !important; font-weight: bold; color: #e74c3c; }
         
-        .action-bar { display: flex; justify-content: flex-end; gap: 15px; margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
-        .btn { padding: 12px 25px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; font-size: 14px; }
+        .action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+        .btn { padding: 10px 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; font-size: 13px; }
         .btn-save { background: #2ecc71; color: white; }
         .btn-lock { background: #e74c3c; color: white; }
 
-        /* 📋 FIXED DIARY VIEW: अब टेबल एकदम चौड़ी, साफ़ और सुव्यवस्थित दिखेगी */
-        .diary-table-wrapper { width: 100%; overflow-x: auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); border: 1px solid #cbd5e1; margin-top: 10px; }
-        .diary-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; min-width: 1400px; table-layout: auto; }
-        .diary-table th, .diary-table td { border: 1px solid #cbd5e1; padding: 12px 10px; white-space: nowrap; }
-        .diary-table th { background: #34495e; color: white; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        /* 📋 DIARY MAX VIEWPORT CONFIGURATION (पूरा बड़ा और सुव्यवस्थित टेबल) */
+        .diary-table-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: #2c3e50; margin-top: 10px; }
+        .diary-table-wrapper { width: 100%; overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; }
+        .diary-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+        .diary-table th, .diary-table td { border: 1px solid #cbd5e1; padding: 12px 14px; white-space: nowrap; }
+        .diary-table th { background: #34495e; color: white; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
         .diary-table tr:nth-child(even) { background: #f8fafc; }
         .badge-locked { background: #64748b; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+
+        /* 📱 Responsive Media Rule Setup */
+        @media (max-width: 1200px) {
+            .form-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
@@ -88,13 +97,12 @@
                     </div>
                     <div class="form-group">
                         <label>Create Login Password</label>
-                        <input type="password" id="tPassword" placeholder="पहलें महीने पासवर्ड सेट करें, बाद में खाली छोड़ सकते हैं">
+                        <input type="password" id="tPassword" placeholder="Set password for tenant">
                     </div>
                     <div class="form-group">
                         <label>Mobile Number</label>
                         <input type="text" id="tMobile" placeholder="10 Digit Mobile No">
                     </div>
-
                     <div class="form-group">
                         <label>Balance (Opening / Old Dues)</label>
                         <input type="number" id="balanceOpening" value="0" oninput="runLiveCalculations()">
@@ -167,9 +175,10 @@
             </form>
         </div>
 
-        <div style="margin-top: 15px;">
-            <h3 style="color:#2c3e50; font-weight:700;">📜 Locked Months History (आपकी डायरी जैसा लाइन व्यू)</h3>
+        <div class="diary-table-title">
+            <span>Document Log Matrix: 📜 Locked Months History (आपकी डायरी जैसा लाइन व्यू)</span>
         </div>
+        
         <div class="diary-table-wrapper">
             <table class="diary-table">
                 <thead>
@@ -243,17 +252,14 @@
                 runLiveCalculations();
 
                 if (result.success && result.data && result.data.length > 0) {
-                    // कमरे के सभी रिकार्ड्स को छाँटें (चाहे लॉक हों या अनलॉक)
                     const roomRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom);
                     
                     if (roomRecords.length > 0) {
-                        // 🔥 FEATURE: किरायेदार की प्रोफाइल डिटेल्स हमेशा सबसे लेटेस्ट रिकॉर्ड से उठाएंगे ताकि ओनर को बार-बार नाम-ईमेल न भरना पड़े!
                         const latestRecord = roomRecords[0]; 
                         document.getElementById('tName').value = latestRecord.tenantName || '';
                         document.getElementById('tEmail').value = latestRecord.tenantEmail || '';
                         document.getElementById('tMobile').value = latestRecord.mobileNo || '';
 
-                        // चालू महीने का डेटा लोड करें
                         const activeRecord = roomRecords.find(t => t.isLocked === false);
                         if(activeRecord) {
                             document.getElementById('balanceOpening').value = activeRecord.balanceOpening || 0;
@@ -269,7 +275,6 @@
                         runLiveCalculations();
                     }
 
-                    // लॉक हो चुकी पुरानी सभी हिस्ट्री रोज़ को नीचे डायरी व्यू में रेंडर करें
                     const lockedRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom && t.isLocked === true);
                     if(lockedRecords.length > 0) {
                         const tbody = document.getElementById('diaryHistoryTableBody');
@@ -333,7 +338,6 @@
                 const data = await res.json();
                 alert(data.message);
                 
-                // 🔥 ऑटो-अपडेट ओपनिंग बैलेंस: लॉक होते ही रीमेनिंग बैलेंस अगले महीने का ओपनिंग बैलेंस बन जाएगा!
                 if (shouldLock) {
                     const nextOpeningBalance = document.getElementById('remainderBalance').value;
                     const nextPrevUnit = document.getElementById('currUnit').value;
