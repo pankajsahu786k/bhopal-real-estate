@@ -680,30 +680,20 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 // ==========================================
 // 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR & ARCHIVE MATRIX
 // ==========================================
+// ==========================================
+// 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR (EASY VERSION)
+// ==========================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
         const {
             ownerEmail, roomOrFlatNo, tenantEmail, tenantName, mobileNo,
             balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
-            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord,
-            joiningDate, billingDate
+            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord
         } = req.body;
 
         const emailLower = tenantEmail ? tenantEmail.toLowerCase().trim() : 'guest@tenant.com';
 
-        // 🛡️ सुरक्षा कवच: जॉइनिंग डेट से पहले ओनर बिल या रीडिंग अपडेट नहीं कर सकता
-        if (joiningDate && billingDate) {
-            const join = new Date(joiningDate);
-            const bill = new Date(billingDate);
-            if (bill < join) {
-                return res.status(400).json({
-                    success: false,
-                    message: '❌ सुरक्षा ब्लॉक: किरायेदार की जॉइनिंग डेट से पहले का बिल या रीडिंग अपडेट नहीं की जा सकती!'
-                });
-            }
-        }
-
-        // कैलकुलेशन लॉजिक्स
+        // 🧮 बिल्कुल सीधी और सरल गणना (Simple Calculations)
         const rentOpening = Number(balanceOpening || 0);
         const rentMon = Number(monthlyRent || 0);
         const totalRentDue = rentOpening + rentMon;
@@ -728,8 +718,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.tenantName = tenantName;
             tenant.tenantEmail = emailLower;
             tenant.mobileNo = mobileNo;
-            tenant.joiningDate = joiningDate ? new Date(joiningDate) : tenant.joiningDate;
-            tenant.billingDate = billingDate ? new Date(billingDate) : tenant.billingDate;
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
             tenant.totalRentDue = totalRentDue;
@@ -744,14 +732,13 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.paymentMode = paymentMode;
             tenant.status = status;
 
-            // 🔥 अगर ओनर ने "Lock Ledger Month" दबाया है
+            // 🔒 अगर ओनर ने "Lock" बटन दबाया तो ये महीना लॉक होगा और अगले महीने का फ्रेश रो बनेगा
             if (lockRecord === true || status === 'Left') {
                 tenant.isLocked = true;
                 await tenant.save();
                 
-                // 🧾 AUTOMATED DIGITAL INVOICE GENERATION SYSTEM
+                // 🧾 यूनीक रसीद आईडी (Invoice Target Button के लिए)
                 const invoiceTxnId = 'INV_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                
                 const newInvoiceReceipt = new UniversalReceipt({
                     userEmail: ownerEmail.toLowerCase().trim(),
                     serviceName: `Rent Invoice (${roomOrFlatNo}) - ${tenantName}`,
@@ -761,14 +748,14 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 });
                 await newInvoiceReceipt.save();
 
-                // अगले महीने के लिए पिछला करंट रीडिंग ऑटो रोलओवर कर के नया ब्लैंक रो बनाएं
+                // 🔥 AUTO ROLLOVER: अगले महीने के लिए नया रो बनाएँ जहाँ करंट रीडिंग अब पिछली रीडिंग बन चुकी है!
                 if (status !== 'Left') {
                     const nextMonthRow = new TenantLedger({
                         ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
-                        joiningDate: joiningDate ? new Date(joiningDate) : null,
-                        billingDate: null,
                         balanceOpening: remainderBalance, monthlyRent: rentMon, totalRentDue: remainderBalance + rentMon,
-                        previousUnitReading: currRead, currentUnitReading: 0, totalUnitConsumption: 0,
+                        previousUnitReading: currRead, // 🔄 पिछली रीडिंग में इस महीने की करंट रीडिंग आ गई!
+                        currentUnitReading: 0, 
+                        totalUnitConsumption: 0,
                         unitRate: rate, totalElectricityBill: 0, waterOrOtherCharges: other,
                         totalAmountPayable: remainderBalance + rentMon + other, amountReceived: 0, paymentMode: 'Unpaid', status: 'Active',
                         isLocked: false
@@ -779,11 +766,9 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 await tenant.save();
             }
         } else {
-            // फ्रेश रूम एलोकेशन
+            // फ्रेश रूम एलोकेशन एंट्री
             tenant = new TenantLedger({
                 ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
-                joiningDate: joiningDate ? new Date(joiningDate) : null,
-                billingDate: billingDate ? new Date(billingDate) : null,
                 balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
                 previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
                 unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
@@ -795,8 +780,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.json({ 
             success: true, 
             message: lockRecord 
-                ? '🔒 महीना लॉक हो गया है और किरायेदार के लिए डिजिटल इनवॉइस रसीद सफलतापूर्वक जनरेट हो गई है!' 
-                : '✅ प्रोग्रेस डेटा सुरक्षित सेव कर लिया गया है!' 
+                ? '🔒 महीना लॉक हो गया! अगले महीने की पुरानी रीडिंग अपने आप अपडेट हो गई है।' 
+                : '✅ प्रोग्रेस डेटा सुरक्षित सेव हो गया है!' 
         });
 
     } catch (error) {
