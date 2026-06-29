@@ -75,7 +75,7 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
-// 👮 UPGRADED Verification Schema (With Status and Txn Tracking)
+// 👮 Verification Schema
 const verificationSchema = new mongoose.Schema({
     userEmail: String,      
     documentUrl: { type: String, default: '' },    
@@ -94,12 +94,12 @@ const verificationSchema = new mongoose.Schema({
     aadharFrontPhoto: { type: String, default: '' },
     aadharBackPhoto: { type: String, default: '' },
     familyMembers: Number,  
-    status: { type: String, default: 'Pending' }, // Pending / Complete / Done
+    status: { type: String, default: 'Pending' }, 
     transactionId: { type: String, default: '' }
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
 
-// 📄 NEW SCHEMA: Rent Agreement Model Configuration
+// 📄 Rent Agreement Model Configuration
 const rentAgreementSchema = new mongoose.Schema({
     userEmail: { type: String, required: true },
     ownerName: String,
@@ -112,7 +112,7 @@ const rentAgreementSchema = new mongoose.Schema({
     durationMonths: Number,
     electricityRate: Number,
     startDate: String,
-    status: { type: String, default: 'Complete' } // Realtime download enabled immediately
+    status: { type: String, default: 'Complete' }
 }, { timestamps: true });
 const RentAgreement = mongoose.model('RentAgreement', rentAgreementSchema);
 
@@ -136,38 +136,42 @@ const universalReceiptSchema = new mongoose.Schema({
     paymentStatus: { type: String, default: 'Paid' }
 }, { timestamps: true });
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
-// 🏠 Tenant Ledger Schema (रेंट, बिजली यूनिट और डिजिटल खाता के लिए)
-// 🏠 Advanced Tenant Ledger Schema (As per User Excel Image)
+
+// 🏠 ADVANCED TENANT LEDGER SCHEMA (🔥 FIXED: Dates and Roll-over properties synced)
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
     tenantName: { type: String, required: true },
-    tenantEmail: { type: String, required: true }, // लॉगिन के लिए
-    tenantPassword: { type: String, required: true },
+    tenantEmail: { type: String, required: true }, 
+    tenantPassword: { type: String, default: 'N/A' },
     roomOrFlatNo: { type: String, required: true },
     mobileNo: { type: String },
     
+    // 🔥 NEW COMPILATION DATE TRACKERS
+    joiningDate: { type: Date },
+    billingDate: { type: Date },
+    
     // 💵 Financial Fields
-    balanceOpening: { type: Number, default: 0 }, // पुराना बकाया
+    balanceOpening: { type: Number, default: 0 }, 
     monthlyRent: { type: Number, default: 0 },
-    totalRentDue: { type: Number, default: 0 }, // Opening Balance + Monthly Rent
+    totalRentDue: { type: Number, default: 0 }, 
     
     // ⚡ Electricity Fields
     previousUnitReading: { type: Number, default: 0 },
     currentUnitReading: { type: Number, default: 0 },
-    totalUnitConsumption: { type: Number, default: 0 }, // (Curr - Prev)
+    totalUnitConsumption: { type: Number, default: 0 }, 
     unitRate: { type: Number, default: 0 },
-    totalElectricityBill: { type: Number, default: 0 }, // (Consumption * Rate)
+    totalElectricityBill: { type: Number, default: 0 }, 
     
     // 💧 Other Charges & Totals
     waterOrOtherCharges: { type: Number, default: 0 },
-    totalAmountPayable: { type: Number, default: 0 }, // Rent Due + Elec Bill + Other Charges
+    totalAmountPayable: { type: Number, default: 0 }, 
     amountReceived: { type: Number, default: 0 },
-    paymentMode: { type: String, enum: ['Cash', 'UPI/Online', 'Check', 'Unpaid'], default: 'Unpaid' }, // 🔥 NAYA COLUMN
-    remainderBalance: { type: Number, default: 0 }, // Payable - Received
+    paymentMode: { type: String, enum: ['Cash', 'UPI/Online', 'Check', 'Unpaid'], default: 'Unpaid' }, 
+    remainderBalance: { type: Number, default: 0 }, 
     
     // 🔒 Status & Security Locks
-    status: { type: String, enum: ['Active', 'Left'], default: 'Active' }, // 🔥 NAYA: 'Left' होने पर परमानेंट लॉक रहेगा
-    isLocked: { type: Boolean, default: false }, // मैन्युअल या ऑटो लॉक के लिए
+    status: { type: String, enum: ['Active', 'Left'], default: 'Active' }, 
+    isLocked: { type: Boolean, default: false }, 
     lastUpdated: { type: Date, default: Date.now }
 }, { timestamps: true });
 
@@ -177,7 +181,6 @@ const TenantLedger = mongoose.model('TenantLedger', TenantLedgerSchema);
 // 3️⃣ API ROUTES
 // ==========================================
 
-// -- NEW: Rent Agreement Save Endpoint Matrix --
 app.post('/api/save-rent-agreement', async (req, res) => {
     try {
         const { userEmail, agreementData } = req.body;
@@ -192,13 +195,10 @@ app.post('/api/save-rent-agreement', async (req, res) => {
     }
 });
 
-// -- NEW: Live Real-time Status Tracker Engine Router --
 app.get('/api/user/my-verifications', async (req, res) => {
     try {
         const email = req.query.email;
         if (!email) return res.status(400).json({ success: false, message: "Email parameter missing" });
-        
-        // Database se data load karega live updates dashboard par bhejne ke liye
         const data = await Verification.find({ userEmail: email.toLowerCase().trim() }).sort({ createdAt: -1 });
         res.json({ success: true, data: data });
     } catch (error) {
@@ -206,7 +206,6 @@ app.get('/api/user/my-verifications', async (req, res) => {
     }
 });
 
-// -- UNIVERSAL AUTOMATED RECEIPT APIs --
 app.post('/api/save-receipt', async (req, res) => {
     try {
         const { userEmail, serviceName, transactionId, amountPaid, paymentStatus } = req.body;
@@ -235,7 +234,6 @@ app.get('/api/my-receipts', async (req, res) => {
     }
 });
 
-// -- SUPER APP SERVICES TRACKER APIs --
 app.post('/api/track-service/:serviceName', async (req, res) => {
     try {
         const serviceName = req.params.serviceName;
@@ -259,7 +257,6 @@ app.get('/api/admin/service-analytics', async (req, res) => {
     }
 });
 
-// -- PAYMENT BYPASS APIs --
 app.get('/api/payment-status', async (req, res) => {
     try {
         const bypassConfig = await Config.findOne({ key: 'bypassPayment' });
@@ -284,7 +281,6 @@ app.post('/api/admin/toggle-payment', async (req, res) => {
     }
 });
 
-// -- USER APIs (Multi-File Field Handler for Tenant Verification) --
 app.post('/api/submit-verification', upload.fields([
     { name: 'tenantPhoto', maxCount: 1 },
     { name: 'aadharFront', maxCount: 1 },
@@ -295,7 +291,6 @@ app.post('/api/submit-verification', upload.fields([
         const aadharFrontUrl = req.files && req.files['aadharFront'] ? req.files['aadharFront'][0].path : '';
         const aadharBackUrl = req.files && req.files['aadharBack'] ? req.files['aadharBack'][0].path : '';
 
-        // Random transaction target map placeholder if not passed by payment payload
         const targetTxn = req.body.transactionId || 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
         const verificationData = { 
@@ -303,7 +298,7 @@ app.post('/api/submit-verification', upload.fields([
             tenantPhoto: tenantPhotoUrl,
             aadharFrontPhoto: aadharFrontUrl,
             aadharBackPhoto: aadharBackUrl,
-            status: 'Pending', // Default state locked to pending tracking sequence
+            status: 'Pending', 
             transactionId: targetTxn
         };
 
@@ -340,7 +335,6 @@ app.get('/api/my-verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 🗑️ User Only Delete Property API
 app.delete('/api/user/delete-property/:id', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
@@ -362,7 +356,6 @@ app.delete('/api/user/delete-property/:id', async (req, res) => {
     }
 });
 
-// -- POLICE AGENT APIs --
 app.get('/api/admin/verifications', async (req, res) => {
     try {
         const requests = await Verification.find({ status: 'Pending' }).sort({ createdAt: -1 }); 
@@ -370,7 +363,6 @@ app.get('/api/admin/verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 👮 FIXED AGENT ROUTE: जब एजेंट फाइल सबमिट करेगा तो स्टेटस 'Complete' होगा और पीडीएफ डैशबोर्ड पर चमकेगी!
 app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificationDoc'), async (req, res) => {
     try {
         if (!req.file) {
@@ -394,8 +386,6 @@ app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificatio
         });
 
         const docUrl = uploadResult.secure_url || uploadResult.url;
-        
-        // 🔥 UPDATE STATUS TO 'Complete': ताकि यूजर के स्क्रीन पर पेंडिंग की जगह तुरंत कंप्लीट दिखे
         await Verification.findByIdAndUpdate(req.params.id, { status: 'Complete', documentUrl: docUrl });
         res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Complete!' });
     } catch (error) { 
@@ -411,7 +401,6 @@ app.post('/api/admin/change-verification-status/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// -- OTHER GENERAL APIs --
 app.get('/api/get-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(req.params.id, { $inc: { views: 1 } }, { new: true });
@@ -444,7 +433,6 @@ app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (r
     } catch (err) { res.status(500).json({ success: false }); }
 });
 
-// 🎈 RK Baloon Dashboard ke liye Image Upload Route
 app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
     try {
         if (!req.file) {
@@ -476,7 +464,7 @@ app.get('/api/rk-get-packages/:category', async (req, res) => {
         const items = await mongoose.connection.db.collection(`${category}_cards`).find({}).sort({ id: -1 }).toArray();
         res.json({ success: true, data: items });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Fetch Failed' });
+        options.status(500).json({ success: false, message: 'Fetch Failed' });
     }
 });
 
@@ -606,38 +594,30 @@ app.post('/api/login', async (req, res) => {
         const { email, password } = req.body;
         const emailLower = email.toLowerCase().trim();
 
-        // 💼 STEP 1: पहले मुख्य User कलेक्शन (Owner/Admin/Broker) में चेक करें
         const user = await User.findOne({ email: emailLower, password });
-        
         if (user) {
             let actualRole = user.role || 'user';
             if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
             return res.json({ success: true, name: user.name, email: user.email, role: actualRole });
         }
 
-        // 🚪 STEP 2: अगर मुख्य यूजर लिस्ट में नहीं मिला, तो TenantLedger (किरायेदार खाता) में चेक करें
         const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
-        
         if (tenant) {
             return res.json({ 
                 success: true, 
                 name: tenant.tenantName, 
                 email: tenant.tenantEmail, 
                 role: 'tenant',
-                tenantData: tenant // फ्रंटएंड रिडायरेक्शन के लिए पूरा डेटा भेजा
+                tenantData: tenant 
             });
         }
 
-        // ❌ STEP 3: अगर दोनों कलेक्शन में कहीं नहीं मिला
         return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड!' });
-
     } catch (error) { 
-        console.error("Login Router Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' }); 
     }
 });
 
-// ADMIN APIs
 app.get('/api/admin/all-data', async (req, res) => {
     try {
         const users = await User.find({});
@@ -659,7 +639,6 @@ app.post('/api/admin/unpublish-property/:id', async (req, res) => {
     try { await Property.findByIdAndUpdate(req.params.id, { status: 'pending' }); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// SMART DELETE APIs
 app.delete('/api/admin/delete-property/:id', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
@@ -697,13 +676,7 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
         } else { res.status(404).json({ success: false, message: 'User not found' }); }
     } catch (error) { res.status(500).json({ success: false }); }
 });
-// 1️⃣ OWNER API: मकान मालिक नया किरायेदार जोड़ेगा या उसका डेटा अपडेट करेगा
-// ==========================================
-// 🏠 TENANT LEDGER UPSERT & LOCK ROUTE
-// ==========================================
-// ==========================================
-// 🏠 UPGRADED: TENANT LEDGER WITH AUTOMATIC ROLL-OVER & DATE VALIDATION
-// ==========================================
+
 // ==========================================
 // 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR & ARCHIVE MATRIX
 // ==========================================
@@ -712,10 +685,23 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         const {
             ownerEmail, roomOrFlatNo, tenantEmail, tenantName, mobileNo,
             balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
-            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord
+            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord,
+            joiningDate, billingDate
         } = req.body;
 
         const emailLower = tenantEmail ? tenantEmail.toLowerCase().trim() : 'guest@tenant.com';
+
+        // 🛡️ सुरक्षा कवच: जॉइनिंग डेट से पहले ओनर बिल या रीडिंग अपडेट नहीं कर सकता
+        if (joiningDate && billingDate) {
+            const join = new Date(joiningDate);
+            const bill = new Date(billingDate);
+            if (bill < join) {
+                return res.status(400).json({
+                    success: false,
+                    message: '❌ सुरक्षा ब्लॉक: किरायेदार की जॉइनिंग डेट से पहले का बिल या रीडिंग अपडेट नहीं की जा सकती!'
+                });
+            }
+        }
 
         // कैलकुलेशन लॉजिक्स
         const rentOpening = Number(balanceOpening || 0);
@@ -742,6 +728,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.tenantName = tenantName;
             tenant.tenantEmail = emailLower;
             tenant.mobileNo = mobileNo;
+            tenant.joiningDate = joiningDate ? new Date(joiningDate) : tenant.joiningDate;
+            tenant.billingDate = billingDate ? new Date(billingDate) : tenant.billingDate;
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
             tenant.totalRentDue = totalRentDue;
@@ -757,11 +745,11 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.status = status;
 
             // 🔥 अगर ओनर ने "Lock Ledger Month" दबाया है
-            if (lockRecord === true) {
+            if (lockRecord === true || status === 'Left') {
                 tenant.isLocked = true;
+                await tenant.save();
                 
                 // 🧾 AUTOMATED DIGITAL INVOICE GENERATION SYSTEM
-                // बिना किसी यूजर लॉगिन के, हम सीधे यूनिवर्सल रसीद टेबल में एक परमानेंट इनवॉइस आईडी इंजेक्ट कर रहे हैं
                 const invoiceTxnId = 'INV_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
                 
                 const newInvoiceReceipt = new UniversalReceipt({
@@ -774,22 +762,28 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 await newInvoiceReceipt.save();
 
                 // अगले महीने के लिए पिछला करंट रीडिंग ऑटो रोलओवर कर के नया ब्लैंक रो बनाएं
-                const nextMonthRow = new TenantLedger({
-                    ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantPassword: 'N/A', tenantName, mobileNo,
-                    balanceOpening: remainderBalance, monthlyRent: rentMon, totalRentDue: remainderBalance + rentMon,
-                    previousUnitReading: currRead, currentUnitReading: 0, totalUnitConsumption: 0,
-                    unitRate: rate, totalElectricityBill: 0, waterOrOtherCharges: other,
-                    totalAmountPayable: remainderBalance + rentMon + other, amountReceived: 0, paymentMode: 'Unpaid', status: 'Active',
-                    isLocked: false
-                });
-                await nextMonthRow.save();
+                if (status !== 'Left') {
+                    const nextMonthRow = new TenantLedger({
+                        ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
+                        joiningDate: joiningDate ? new Date(joiningDate) : null,
+                        billingDate: null,
+                        balanceOpening: remainderBalance, monthlyRent: rentMon, totalRentDue: remainderBalance + rentMon,
+                        previousUnitReading: currRead, currentUnitReading: 0, totalUnitConsumption: 0,
+                        unitRate: rate, totalElectricityBill: 0, waterOrOtherCharges: other,
+                        totalAmountPayable: remainderBalance + rentMon + other, amountReceived: 0, paymentMode: 'Unpaid', status: 'Active',
+                        isLocked: false
+                    });
+                    await nextMonthRow.save();
+                }
+            } else {
+                await tenant.save();
             }
-
-            await tenant.save();
         } else {
             // फ्रेश रूम एलोकेशन
             tenant = new TenantLedger({
-                ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantPassword: 'N/A', tenantName, mobileNo,
+                ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
+                joiningDate: joiningDate ? new Date(joiningDate) : null,
+                billingDate: billingDate ? new Date(billingDate) : null,
                 balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
                 previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
                 unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
@@ -810,7 +804,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
-// 2️⃣ OWNER API: मालिक अपने सभी किरायेदारों की लिस्ट देख सके
+
 app.get('/api/owner/my-tenants', async (req, res) => {
     try {
         const { email } = req.query;
@@ -821,14 +815,13 @@ app.get('/api/owner/my-tenants', async (req, res) => {
     }
 });
 
-// 3️⃣ TENANT PORTAL: किरायेदार का डायरेक्ट लॉगिन राउट
 app.post('/api/tenant/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const tenant = await TenantLedger.findOne({ tenantEmail: email, tenantPassword: password });
 
         if (!tenant) {
-            return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड! कृपया दोबारा जांचें।' });
+            return res.status(401).json({ success: false, message: 'गलत ईमेल या密码! कृपया दोबारा जांचें।' });
         }
 
         res.json({ 
@@ -842,7 +835,6 @@ app.post('/api/tenant/login', async (req, res) => {
     }
 });
 
-// 4️⃣ TENANT API: किरायेदार लॉगिन होने के बाद अपना रीयल-टाइम डेटा बिना एडिट ऑप्शन के देख सके
 app.get('/api/tenant/my-ledger', async (req, res) => {
     try {
         const { email } = req.query;
