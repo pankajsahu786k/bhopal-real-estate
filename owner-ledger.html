@@ -33,7 +33,6 @@
         .form-group { display: flex; flex-direction: column; gap: 3px; }
         .form-group label { font-size: 12px; font-weight: 700; color: #34495e; }
         
-        /* Font size large but padding tight to fit single screen view */
         .form-group input, .form-group select { padding: 8px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 15px; font-weight: 600; outline: none; background: #f8fafc; color: #1e293b; }
         .form-group input:focus { border-color: #3498db; background: white; }
         .form-group input:disabled, .form-group select:disabled { background-color: #e2e8f0; color: #475569; }
@@ -51,13 +50,11 @@
         /* 📋 FIXED AREA: INLINE HISTORY VIEW Matrix Grid (No 67% zoom required) */
         .diary-table-title { font-size: 15px; font-weight: 800; color: #1e293b; margin-top: 5px; }
         
-        /* Scroll trap logic added here */
         .diary-table-wrapper { width: 100%; overflow-x: auto; overflow-y: auto; max-height: 230px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 2px solid #cbd5e1; }
         
         .diary-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
         .diary-table th, .diary-table td { border: 2px solid #cbd5e1; padding: 10px 14px; white-space: nowrap; }
         
-        /* Sticky table header so it stays on top while scrolling */
         .diary-table th { background: #2c3e50; color: white; font-weight: 700; text-transform: uppercase; font-size: 12px; position: sticky; top: 0; z-index: 10; }
         .diary-table tr:nth-child(even) { background: #f8fafc; }
         .badge-locked { background: #475569; color: white; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px; }
@@ -103,12 +100,16 @@
                         <input type="text" id="tName" placeholder="Enter Tenant Name" required>
                     </div>
                     <div class="form-group">
-                        <label>Tenant Login Email</label>
+                        <label>Tenant Email (Receipt Sync)</label>
                         <input type="email" id="tEmail" placeholder="tenant@gmail.com" required>
                     </div>
                     <div class="form-group">
-                        <label>Create Login Password</label>
-                        <input type="password" id="tPassword" placeholder="Set password for tenant">
+                        <label>Room Start / Joining Date *</label>
+                        <input type="date" id="joiningDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Billing Date *</label>
+                        <input type="date" id="billingDate" required>
                     </div>
                     <div class="form-group">
                         <label>Mobile Number</label>
@@ -206,7 +207,7 @@
                         <th>Amt Rec.</th>
                         <th>Pay Mode</th>
                         <th>Balance</th>
-                        <th>Status</th>
+                        <th>Invoice Target</th>
                     </tr>
                 </thead>
                 <tbody id="diaryHistoryTableBody">
@@ -270,6 +271,7 @@
                         document.getElementById('tName').value = latestRecord.tenantName || '';
                         document.getElementById('tEmail').value = latestRecord.tenantEmail || '';
                         document.getElementById('tMobile').value = latestRecord.mobileNo || '';
+                        document.getElementById('joiningDate').value = latestRecord.joiningDate ? latestRecord.joiningDate.split('T')[0] : '';
 
                         const activeRecord = roomRecords.find(t => t.isLocked === false);
                         if(activeRecord) {
@@ -282,6 +284,7 @@
                             document.getElementById('amtReceived').value = activeRecord.amountReceived || 0;
                             document.getElementById('paymentMode').value = activeRecord.paymentMode || 'Unpaid';
                             document.getElementById('roomStatus').value = activeRecord.status || 'Active';
+                            document.getElementById('billingDate').value = activeRecord.billingDate ? activeRecord.billingDate.split('T')[0] : '';
                         }
                         runLiveCalculations();
                     }
@@ -292,6 +295,11 @@
                         tbody.innerHTML = '';
                         lockedRecords.forEach(rec => {
                             const date = new Date(rec.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                            
+                            const generatedSrvName = `Rent Invoice (${rec.roomOrFlatNo}) - ${rec.tenantName}`;
+                            const mockTxn = 'INV_' + rec.roomOrFlatNo.replace(/\s+/g, '') + '_' + rec._id.substring(18).toUpperCase();
+                            const invoiceUrl = `receipt.html?txn=${mockTxn}&service=${encodeURIComponent(generatedSrvName)}&amount=${rec.amountReceived}`;
+
                             tbody.innerHTML += `
                                 <tr>
                                     <td><strong>${date}</strong></td>
@@ -306,7 +314,9 @@
                                     <td style="color:#16a34a;">₹${rec.amountReceived}</td>
                                     <td><span style="color:#475569; font-weight:bold;">${rec.paymentMode}</span></td>
                                     <td style="color:#e74c3c; font-weight:bold;">₹${rec.remainderBalance}</td>
-                                    <td><span class="badge-locked">🔒 ${rec.status}</span></td>
+                                    <td>
+                                        <a href="${invoiceUrl}" target="_blank" style="background: #9b59b6; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">🖨️ View Invoice</a>
+                                    </td>
                                 </tr>
                             `;
                         });
@@ -321,7 +331,7 @@
                 roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
                 tenantEmail: document.getElementById('tEmail').value.trim(),
-                tenantPassword: document.getElementById('tPassword').value,
+                tPassword: 'N/A',
                 mobileNo: document.getElementById('tMobile').value,
                 balanceOpening: document.getElementById('balanceOpening').value,
                 monthlyRent: document.getElementById('monthlyRent').value,
@@ -332,11 +342,13 @@
                 amountReceived: document.getElementById('amtReceived').value,
                 paymentMode: document.getElementById('paymentMode').value,
                 status: document.getElementById('roomStatus').value,
-                lockRecord: shouldLock
+                lockRecord: shouldLock,
+                joiningDate: document.getElementById('joiningDate').value,
+                billingDate: document.getElementById('billingDate').value
             };
 
-            if(!payload.tenantName || !payload.tenantEmail) {
-                alert("कृपया पहले किरायेदार का नाम और ईमेल भरें!");
+            if(!payload.tenantName || !payload.tenantEmail || !payload.joiningDate || !payload.billingDate) {
+                alert("कृपया किरायेदार का नाम, ईमेल, जॉइनिंग डेट और बिलिंग डेट अनिवार्य रूप से भरें!");
                 return;
             }
 
@@ -347,21 +359,13 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                alert(data.message);
                 
-                if (shouldLock) {
-                    const nextOpeningBalance = document.getElementById('remainderBalance').value;
-                    const nextPrevUnit = document.getElementById('currUnit').value;
-                    
-                    setTimeout(() => {
-                        document.getElementById('balanceOpening').value = nextOpeningBalance;
-                        document.getElementById('prevUnit').value = nextPrevUnit;
-                        document.getElementById('currUnit').value = '';
-                        document.getElementById('amtReceived').value = '0';
-                        document.getElementById('paymentMode').value = 'Unpaid';
-                    }, 500);
+                if(!res.ok) {
+                    alert(data.message || "डेटा सेव नहीं हो सका।");
+                    return;
                 }
-                
+
+                alert(data.message);
                 fetchRoomData();
             } catch(e) { alert("Connectivity failure."); }
         }
