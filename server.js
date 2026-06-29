@@ -75,7 +75,6 @@ const brokerProfileSchema = new mongoose.Schema({
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
-// 👮 Verification Schema
 const verificationSchema = new mongoose.Schema({
     userEmail: String,      
     documentUrl: { type: String, default: '' },    
@@ -99,7 +98,6 @@ const verificationSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Verification = mongoose.model('Verification', verificationSchema);
 
-// 📄 Rent Agreement Model Configuration
 const rentAgreementSchema = new mongoose.Schema({
     userEmail: { type: String, required: true },
     ownerName: String,
@@ -137,7 +135,7 @@ const universalReceiptSchema = new mongoose.Schema({
 }, { timestamps: true });
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 
-// 🏠 ADVANCED TENANT LEDGER SCHEMA (🔥 FIXED: Dates and Roll-over properties synced)
+// 🏠 TENANT LEDGER SCHEMA (🔥 FIXED: Added missing joiningDate and billingDate fields)
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
     tenantName: { type: String, required: true },
@@ -146,9 +144,9 @@ const TenantLedgerSchema = new mongoose.Schema({
     roomOrFlatNo: { type: String, required: true },
     mobileNo: { type: String },
     
-    // 🔥 NEW COMPILATION DATE TRACKERS
-    joiningDate: { type: Date },
-    billingDate: { type: Date },
+    // 🔥 New Fields Sync To Fix Server Crash Error
+    joiningDate: { type: String, default: '' },
+    billingDate: { type: String, default: '' },
     
     // 💵 Financial Fields
     balanceOpening: { type: Number, default: 0 }, 
@@ -175,7 +173,8 @@ const TenantLedgerSchema = new mongoose.Schema({
     lastUpdated: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-const TenantLedger = mongoose.model('TenantLedger', TenantLedgerSchema);
+// Prevent mongoose overwrite compile crashes
+const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedger', TenantLedgerSchema);
 
 // ==========================================
 // 3️⃣ API ROUTES
@@ -464,7 +463,7 @@ app.get('/api/rk-get-packages/:category', async (req, res) => {
         const items = await mongoose.connection.db.collection(`${category}_cards`).find({}).sort({ id: -1 }).toArray();
         res.json({ success: true, data: items });
     } catch (error) {
-        options.status(500).json({ success: false, message: 'Fetch Failed' });
+        res.status(500).json({ success: false, message: 'Fetch Failed' });
     }
 });
 
@@ -678,22 +677,20 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 });
 
 // ==========================================
-// 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR & ARCHIVE MATRIX
-// ==========================================
-// ==========================================
-// 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR (EASY VERSION)
+// 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR & ARCHIVE MATRIX (🔥 FIXED & SIMPLIFIED MODE)
 // ==========================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
         const {
             ownerEmail, roomOrFlatNo, tenantEmail, tenantName, mobileNo,
             balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
-            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord
+            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord,
+            joiningDate, billingDate
         } = req.body;
 
         const emailLower = tenantEmail ? tenantEmail.toLowerCase().trim() : 'guest@tenant.com';
 
-        // 🧮 बिल्कुल सीधी और सरल गणना (Simple Calculations)
+        // 🧮 Simple Calculations
         const rentOpening = Number(balanceOpening || 0);
         const rentMon = Number(monthlyRent || 0);
         const totalRentDue = rentOpening + rentMon;
@@ -707,7 +704,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         const recAmount = Number(amountReceived || 0);
         const remainderBalance = totalAmountPayable - recAmount;
 
-        // चालू महीने का अनलॉक्ड रिकॉर्ड ढूँढें
+        // Find active record configuration
         let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, isLocked: false });
 
         if (tenant) {
@@ -718,6 +715,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.tenantName = tenantName;
             tenant.tenantEmail = emailLower;
             tenant.mobileNo = mobileNo;
+            tenant.joiningDate = joiningDate || tenant.joiningDate;
+            tenant.billingDate = billingDate || tenant.billingDate;
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
             tenant.totalRentDue = totalRentDue;
@@ -732,13 +731,13 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.paymentMode = paymentMode;
             tenant.status = status;
 
-            // 🔒 अगर ओनर ने "Lock" बटन दबाया तो ये महीना लॉक होगा और अगले महीने का फ्रेश रो बनेगा
             if (lockRecord === true || status === 'Left') {
                 tenant.isLocked = true;
                 await tenant.save();
                 
-                // 🧾 यूनीक रसीद आईडी (Invoice Target Button के लिए)
+                // 🧾 Generate dynamic unique trace keys for UniversalReceipt schema object
                 const invoiceTxnId = 'INV_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                
                 const newInvoiceReceipt = new UniversalReceipt({
                     userEmail: ownerEmail.toLowerCase().trim(),
                     serviceName: `Rent Invoice (${roomOrFlatNo}) - ${tenantName}`,
@@ -748,14 +747,14 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 });
                 await newInvoiceReceipt.save();
 
-                // 🔥 AUTO ROLLOVER: अगले महीने के लिए नया रो बनाएँ जहाँ करंट रीडिंग अब पिछली रीडिंग बन चुकी है!
+                // 🔄 AUTO ROLLOVER: Next month creation map block
                 if (status !== 'Left') {
                     const nextMonthRow = new TenantLedger({
                         ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
+                        joiningDate: joiningDate || '',
+                        billingDate: '',
                         balanceOpening: remainderBalance, monthlyRent: rentMon, totalRentDue: remainderBalance + rentMon,
-                        previousUnitReading: currRead, // 🔄 पिछली रीडिंग में इस महीने की करंट रीडिंग आ गई!
-                        currentUnitReading: 0, 
-                        totalUnitConsumption: 0,
+                        previousUnitReading: currRead, currentUnitReading: 0, totalUnitConsumption: 0,
                         unitRate: rate, totalElectricityBill: 0, waterOrOtherCharges: other,
                         totalAmountPayable: remainderBalance + rentMon + other, amountReceived: 0, paymentMode: 'Unpaid', status: 'Active',
                         isLocked: false
@@ -766,9 +765,11 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 await tenant.save();
             }
         } else {
-            // फ्रेश रूम एलोकेशन एंट्री
+            // Fresh allocation deployment initialization block
             tenant = new TenantLedger({
                 ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
+                joiningDate: joiningDate || '',
+                billingDate: billingDate || '',
                 balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
                 previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
                 unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
@@ -785,8 +786,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         });
 
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Server Error' });
+        console.error("Upsert Ledger Operational Error Log:", error);
+        res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
 
@@ -806,7 +807,7 @@ app.post('/api/tenant/login', async (req, res) => {
         const tenant = await TenantLedger.findOne({ tenantEmail: email, tenantPassword: password });
 
         if (!tenant) {
-            return res.status(401).json({ success: false, message: 'गलत ईमेल या密码! कृपया दोबारा जांचें।' });
+            return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड! कृपया दोबारा जांचें।' });
         }
 
         res.json({ 
@@ -824,7 +825,7 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
     try {
         const { email } = req.query;
         const ledger = await TenantLedger.findOne({ tenantEmail: email });
-        if (!ledger) return res.status(404).json({ success: false, message: 'कोई रिकॉर्ड नहीं मिला।' });
+        if (!ledger) return res.status(404).json({ success: false, message: 'कोई记录 नहीं मिला।' });
         res.json({ success: true, data: ledger });
     } catch (error) {
         res.status(500).json({ success: false });
