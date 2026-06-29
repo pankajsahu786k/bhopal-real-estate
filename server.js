@@ -701,27 +701,34 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 // ==========================================
 // 🏠 TENANT LEDGER UPSERT & LOCK ROUTE
 // ==========================================
+// ==========================================
+// 🏠 UPGRADED: TENANT LEDGER WITH AUTOMATIC ROLL-OVER & DATE VALIDATION
+// ==========================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
-        const ownerEmail = req.body.ownerEmail;
-        const tenantEmail = req.body.tenantEmail;
-        const tenantName = req.body.tenantName;
-        const tenantPassword = req.body.tenantPassword;
-        const roomOrFlatNo = req.body.roomOrFlatNo;
-        const mobileNo = req.body.mobileNo;
-        const balanceOpening = req.body.balanceOpening;
-        const monthlyRent = req.body.monthlyRent;
-        const previousUnitReading = req.body.previousUnitReading;
-        const currentUnitReading = req.body.currentUnitReading;
-        const unitRate = req.body.unitRate;
-        const waterOrOtherCharges = req.body.waterOrOtherCharges;
-        const amountReceived = req.body.amountReceived;
-        const paymentMode = req.body.paymentMode;
-        const status = req.body.status;
-        const lockRecord = req.body.lockRecord;
+        const {
+            ownerEmail, tenantEmail, tenantName, tenantPassword, roomOrFlatNo, mobileNo,
+            balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
+            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord,
+            joiningDate, billingDate // 🔥 फ्रंटएंड से ये दोनों डेट्स पास करेंगे
+        } = req.body;
 
-        let tenant = await TenantLedger.findOne({ ownerEmail: ownerEmail, tenantEmail: tenantEmail });
+        const emailLower = tenantEmail ? tenantEmail.toLowerCase().trim() : 'no-email@tenant.com';
+        const finalPassword = tenantPassword && tenantPassword.trim() !== '' ? tenantPassword : 'tenant123456';
 
+        // 🛡️ सुरक्षा कवच: जॉइनिंग डेट से पहले ओनर बिल या रीडिंग अपडेट नहीं कर सकता
+        if (joiningDate && billingDate) {
+            const join = new Date(joiningDate);
+            const bill = new Date(billingDate);
+            if (bill < join) {
+                return res.status(400).json({
+                    success: false,
+                    message: '❌ सुरक्षा ब्लॉक: किरायेदार की जॉइनिंग डेट से पहले का बिल या रीडिंग अपडेट नहीं की जा सकती!'
+                });
+            }
+        }
+
+        // कैलकुलेशन लॉजिक्स
         const rentOpening = Number(balanceOpening || 0);
         const rentMon = Number(monthlyRent || 0);
         const totalRentDue = rentOpening + rentMon;
@@ -737,6 +744,9 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         const recAmount = Number(amountReceived || 0);
         const remainderBalance = totalAmountPayable - recAmount;
 
+        // चालू (Unlocked) रिकॉर्ड को ढूंढें
+        let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, isLocked: false });
+
         if (tenant) {
             if (tenant.isLocked || tenant.status === 'Left') {
                 return res.status(403).json({ 
@@ -746,8 +756,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             }
 
             tenant.tenantName = tenantName;
-            if (tenantPassword) tenant.tenantPassword = tenantPassword;
-            tenant.roomOrFlatNo = roomOrFlatNo;
+            tenant.tenantEmail = emailLower;
+            if (tenantPassword) tenant.tenantPassword = finalPassword;
             tenant.mobileNo = mobileNo;
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
@@ -763,34 +773,48 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.paymentMode = paymentMode;
             tenant.status = status;
 
+            // अगर ओनर ने "Lock Month" दबाया है
             if (lockRecord === true || status === 'Left') {
                 tenant.isLocked = true;
-            }
+                await tenant.save();
 
-            tenant.lastUpdated = Date.now();
-            await tenant.save();
+                // 🔥 AUTOMATIC SHIFT MATRIX: लॉक होते ही अगले महीने के लिए नया रो बनाएँ
+                // और इस महीने की Current Reading को अगले महीने की Previous Reading बना दें!
+                if (status !== 'Left') {
+                    const nextMonthRow = new TenantLedger({
+                        ownerEmail,
+                        roomOrFlatNo,
+                        tenantEmail: emailLower,
+                        tenantPassword: finalPassword,
+                        tenantName,
+                        mobileNo,
+                        balanceOpening: remainderBalance, // इस महीने का बचा बकाया अगले महीने का ओपनिंग बनेगा
+                        monthlyRent: rentMon,
+                        previousUnitReading: currRead,     // 🔥 पिछली रीडिंग में करंट रीडिंग ऑटो सेट हो गई!
+                        currentUnitReading: 0,              // नई करंट रीडिंग फ्रेश चालू होगी
+                        unitRate: rate,
+                        waterOrOtherCharges: other,
+                        amountReceived: 0,
+                        paymentMode: 'Unpaid',
+                        status: 'Active',
+                        isLocked: false
+                    });
+                    await nextMonthRow.save();
+                }
+            } else {
+                tenant.lastUpdated = Date.now();
+                await tenant.save();
+            }
+            
         } else {
+            // बिल्कुल फ्रेश रिकॉर्ड बनाने के लिए
             const isLockedInit = (lockRecord === true || status === 'Left');
             tenant = new TenantLedger({
-                ownerEmail: ownerEmail,
-                roomOrFlatNo: roomOrFlatNo,
-                tenantEmail: tenantEmail.toLowerCase().trim(),
-                tenantPassword: tenantPassword,
-                tenantName: tenantName,
-                mobileNo: mobileNo,
-                balanceOpening: rentOpening,
-                monthlyRent: rentMon,
-                totalRentDue: totalRentDue,
-                previousUnitReading: prevRead,
-                currentUnitReading: currRead,
-                totalUnitConsumption: totalUnitConsumption,
-                unitRate: rate,
-                totalElectricityBill: totalElectricityBill,
-                waterOrOtherCharges: other,
-                totalAmountPayable: totalAmountPayable,
-                amountReceived: recAmount,
-                paymentMode: paymentMode,
-                status: status,
+                ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantPassword: finalPassword, tenantName, mobileNo,
+                balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
+                previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
+                unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
+                totalAmountPayable, amountReceived: recAmount, paymentMode, status,
                 isLocked: isLockedInit
             });
             await tenant.save();
@@ -799,15 +823,15 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.json({ 
             success: true, 
             message: (status === 'Left' || lockRecord) 
-                ? '🔒 Record ko locked aur archive kar diya gaya h!' 
+                ? '🔒 Record ko locked aur archive kar diya gaya h! Agle mahine ki purani reading auto-update ho gayi h.' 
                 : '✅ Data safely saved!' 
         });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Server Side Error' });
     }
 });
-
 // 2️⃣ OWNER API: मालिक अपने सभी किरायेदारों की लिस्ट देख सके
 app.get('/api/owner/my-tenants', async (req, res) => {
     try {
