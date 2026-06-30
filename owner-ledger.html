@@ -3,61 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tenant Registration & Ledger - Bhopal Properties</title>
+    <title>Tenant Ledger - Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
-        body { background-color: #f8fafc; display: flex; height: 100vh; overflow: hidden; width: 100vw; }
+        body { background-color: #f1f5f9; display: flex; height: 100vh; overflow: hidden; width: 100vw; }
         
-        /* Sidebar Layout */
+        /* 🚪 Sidebar Layout */
         .sidebar { width: 260px; background-color: #1e293b; color: white; display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
-        .sidebar h2 { text-align: center; padding: 25px 0; background-color: #0f172a; font-size: 20px; margin: 0; font-weight: 700; }
+        .sidebar h2 { text-align: center; padding: 25px 0; background-color: #0f172a; font-size: 20px; font-weight: 700; }
         .nav-links { list-style: none; }
         .nav-links a { display: block; padding: 16px 24px; color: #94a3b8; text-decoration: none; border-left: 4px solid transparent; font-weight: 500; }
         .nav-links a:hover, .nav-links a.active { background-color: #334155; color: white; border-left-color: #f59e0b; }
 
-        /* Main Workspace Container */
-        .main-content { flex: 1; padding: 20px 30px; display: flex; flex-direction: column; gap: 15px; min-width: 0; height: 100vh; overflow-y: auto; }
-        .header-box { background: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border-left: 5px solid #3498db; }
+        /* 📊 Main Workspace Split Layout (As Per Image) */
+        .workspace { flex: 1; display: flex; height: 100vh; overflow: hidden; }
         
-        .room-container { display: flex; gap: 12px; }
-        .room-card { padding: 12px 24px; background: white; border: 2px solid #cbd5e1; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; color: #475569; }
-        .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25); }
+        /* Left Side Form & Excel Section */
+        .left-panel { flex: 7; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100vh; }
+        
+        /* Right Side Shareable Receipt Card */
+        .right-panel { flex: 3; padding: 20px; background: #ffffff; border-left: 3px solid #cbd5e1; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
 
-        /* 🔥 SECTION 1: REGISTRATION COMPONENT DESIGN (सबसे पहले यह दिखेगा) */
-        .reg-card { background: #ffffff; padding: 22px 30px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border-top: 6px solid #3498db; }
+        .header-box { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #3498db; }
         
-        /* 🔥 SECTION 2: MONTHLY LEDGER MATRIX (इसके बाद हिसाब चालू होगा) */
-        .khata-card { background: white; padding: 22px 30px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border-top: 6px solid #f59e0b; }
+        .room-container { display: flex; gap: 10px; }
+        .room-card { padding: 10px 20px; background: white; border: 2px solid #cbd5e1; border-radius: 6px; font-weight: 700; cursor: pointer; color: #475569; }
+        .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; }
+
+        /* 📋 Card Containers */
+        .card { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+        .reg-card { border-top: 5px solid #3498db; }
+        .excel-card { border-top: 5px solid #f59e0b; }
         
-        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 12px; }
+        /* Locked Overlay Status UI */
+        .locked-status { background: #fee2e2; color: #ef4444; padding: 8px 15px; border-radius: 5px; font-weight: 700; font-size: 13px; margin-bottom: 10px; display: none; text-align: center; border: 1px solid #fca5a5; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
+        @media (max-width: 1400px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
+        
         .form-group { display: flex; flex-direction: column; gap: 4px; }
-        .form-group label { font-size: 13px; font-weight: 700; color: #34495e; }
-        .form-group input, .form-group select { padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 7px; font-size: 15px; font-weight: 600; outline: none; background: #f8fafc; color: #1e293b; }
+        .form-group label { font-size: 12px; font-weight: 700; color: #475569; }
+        .form-group input, .form-group select { padding: 8px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 600; outline: none; background: #f8fafc; }
         .form-group input:focus { border-color: #3498db; background: white; }
-        
-        .auto-calc { background: #ebf5fb !important; font-weight: 700; color: #2980b9; }
-        .total-payable-box { background: #e8f8f5 !important; font-weight: 800; color: #27ae60; }
-        .remainder-box { background: #fdf2e9 !important; font-weight: 800; color: #e74c3c; font-size: 18px !important; }
-        
-        .action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 15px; border-top: 2px solid #f1f5f9; padding-top: 10px; }
-        .btn { padding: 10px 24px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-size: 14px; }
-        .btn-reg { background: #3498db; color: white; }
-        .btn-save { background: #2ecc71; color: white; }
-        .btn-lock { background: #e74c3c; color: white; }
+        .form-group input:disabled, .form-group select:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
 
-        /* Tables History UI Layout */
-        .diary-table-title { font-size: 16px; font-weight: 800; color: #1e293b; margin-top: 10px; }
-        .diary-table-wrapper { width: 100%; overflow-x: auto; overflow-y: auto; max-height: 220px; background: white; border-radius: 8px; border: 2px solid #cbd5e1; }
-        .diary-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
-        .diary-table th, .diary-table td { border: 2px solid #cbd5e1; padding: 12px 14px; white-space: nowrap; }
-        .diary-table th { background: #2c3e50; color: white; position: sticky; top: 0; z-index: 10; }
-        .diary-table tr:nth-child(even) { background: #f8fafc; }
-        .badge-left { background: #d63031; color: white; padding: 4px 8px; border-radius: 4px; font-weight: 700; }
+        /* Excel Matrix Fields Configuration */
+        .auto-calc { background: #ebf5fb !important; color: #2980b9; font-weight: 700; }
+        .total-box { background: #e8f8f5 !important; color: #27ae60; font-weight: 800; }
+        .dues-box { background: #fdf2e9 !important; color: #e74c3c; font-weight: 800; }
 
-        @media (max-width: 1400px) {
-            .form-grid { grid-template-columns: repeat(2, 1fr); }
-        }
+        /* 🧾 Premium WhatsApp Receipt Styling */
+        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.5; }
+        .receipt-header { text-align: center; font-weight: bold; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; font-family: 'Poppins', sans-serif; }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        
+        /* 🕹️ Buttons Control Engine */
+        .btn { padding: 10px 20px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-size: 13px; transition: 0.2s; text-align: center; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-blue { background: #3498db; color: white; width: 100%; margin-top: 10px; }
+        .btn-green { background: #2ecc71; color: white; }
+        .btn-red { background: #e74c3c; color: white; }
+        .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: auto; padding: 12px; }
+
+        /* History Folder Table Component */
+        .archive-title { font-size: 14px; font-weight: 800; color: #475569; margin-top: 10px; }
+        .table-wrapper { width: 100%; overflow-x: auto; background: white; border-radius: 6px; border: 2px solid #cbd5e1; max-height: 160px; }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; font-weight: 600; }
+        .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 10px; white-space: nowrap; }
+        .excel-table th { background: #334155; color: white; position: sticky; top: 0; }
     </style>
 </head>
 <body>
@@ -73,203 +87,198 @@
         </ul>
     </aside>
 
-    <div class="main-content">
-        <div class="header-box">
-            <h2>📋 TANGENT DIGITAL KHATA & REGISTRATION MANAGEMENT</h2>
+    <div class="workspace">
+        
+        <div class="left-panel">
+            <div class="header-box">
+                <h2 style="font-size: 20px; font-weight: 800; color: #1e293b;">📋 AUTOMATED EXCEL ACCOUNTING MATRIX</h2>
+            </div>
+
+            <div class="room-container">
+                <div class="room-card selected-room" onclick="switchRoom('Room 101', this)">Room 101</div>
+                <div class="room-card" onclick="switchRoom('Room 102', this)">Room 102</div>
+                <div class="room-card" onclick="switchRoom('Room 103', this)">Room 103</div>
+                <div class="room-card" onclick="switchRoom('Room 104', this)">Room 104</div>
+                <div class="room-card" onclick="switchRoom('Room 105', this)">Room 105</div>
+            </div>
+
+            <div class="card reg-card">
+                <div class="locked-status" id="regLockStatus">🔒 REGISTRATION LOCKED: Active Tenant Profile Is Frozen</div>
+                <h3 style="font-size: 14px; font-weight: 800; color: #2c3e50;">📝 STEP 1: ADD ROOM TANGENT REGISTRATION PROFILE</h3>
+                <form id="regForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>1. Tenant Name *</label>
+                            <input type="text" id="tName" placeholder="Enter Full Name" required oninput="updateLiveReceipt()">
+                        </div>
+                        <div class="form-group">
+                            <label>2. Father Name *</label>
+                            <input type="text" id="tFatherName" placeholder="Enter Father Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>3. Mobile No. *</label>
+                            <input type="text" id="tMobile" placeholder="10 Digit Number" required oninput="updateLiveReceipt()">
+                        </div>
+                        <div class="form-group">
+                            <label>4. Room Rent Start Date *</label>
+                            <input type="date" id="rentStartDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>5. Electricity Unit Rate *</label>
+                            <input type="number" id="unitRate" value="9" required oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>6. Family Members *</label>
+                            <input type="number" id="familyMembers" value="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>7. Aadhar No *</label>
+                            <input type="text" id="tAadhar" placeholder="xxxx xxxx xxxx" required>
+                        </div>
+                        <div class="form-group">
+                            <label>8. Job Status / Student *</label>
+                            <select id="jobStatus">
+                                <option value="Student">Student</option>
+                                <option value="Job Holder">Job Holder</option>
+                                <option value="Business">Business</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" id="btnRegister" class="btn btn-blue" onclick="saveRegistration()">🔒 Save & Lock Registration Profile</button>
+                </form>
+            </div>
+
+            <div class="card excel-card" id="excelSection">
+                <h3 style="font-size: 14px; font-weight: 800; color: #2c3e50; margin-bottom: 10px;">📊 STEP 2: ACTIVE MONTHLY ACCOUNT SHEET MATRIX (EXCEL GRID)</h3>
+                <form id="ledgerForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Balance Opening (Old Dues)</label>
+                            <input type="number" id="balanceOpening" value="0" oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Monthly Room Rent</label>
+                            <input type="number" id="monthlyRent" value="0" oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Rent Due</label>
+                            <input type="number" id="totalRentDue" class="auto-calc" readonly value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Previous Unit Reading</label>
+                            <input type="number" id="prevUnit" value="0" oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Current Unit Reading</label>
+                            <input type="number" id="currUnit" value="0" oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Unit Consumption</label>
+                            <input type="number" id="totalConsumption" class="auto-calc" readonly value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Electricity Bill</label>
+                            <input type="number" id="totalElecBill" class="auto-calc" readonly value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Water / Other Charges</label>
+                            <input type="number" id="waterCharges" value="0" oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Amount Payable</label>
+                            <input type="number" id="totalPayable" class="total-box" readonly value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Amount Received</label>
+                            <input type="number" id="amtReceived" value="0" oninput="runLiveCalculations()">
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Mode</label>
+                            <select id="paymentMode" onchange="runLiveCalculations()">
+                                <option value="Unpaid">Unpaid</option>
+                                <option value="Cash">Cash</option>
+                                <option value="UPI/Online">UPI/Online</option>
+                                <option value="Check">Check</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Remainder Balance (Baki Dues)</label>
+                            <input type="number" id="remainderBalance" class="dues-box" readonly value="0">
+                        </div>
+                    </div>
+                    
+                    <div class="action-bar" style="margin-top: 15px; display: flex; justify-content: space-between;">
+                        <button type="button" class="btn btn-red" onclick="terminateTenant()">🚪 Leave Room & Archive History</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button type="button" class="btn btn-green" onclick="saveProgress(false)">💾 Save Monthly Progress</button>
+                            <button type="button" class="btn btn-blue" style="background:#8e44ad; width:auto; margin:0;" onclick="saveProgress(true)">🔒 Lock & Close Ledger Month</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="archive-title">📂 CURRENT ROOM CLOSED/LOCKED MONTHLY LOGS</div>
+            <div class="table-wrapper">
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th>Lock Date</th><th>Net Payable</th><th>Amt Received</th><th>Mode</th><th>Dues Forwarded</th>
+                        </tr>
+                    </thead>
+                    <tbody id="diaryHistoryTableBody">
+                        <tr><td colspan="5" style="color: #94a3b8; padding:10px;">No locked month rows found.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        <div class="room-container">
-            <div class="room-card selected-room" onclick="switchRoom('Room 101', this)">Room 101</div>
-            <div class="room-card" onclick="switchRoom('Room 102', this)">Room 102</div>
-            <div class="room-card" onclick="switchRoom('Room 103', this)">Room 103</div>
-            <div class="room-card" onclick="switchRoom('Room 104', this)">Room 104</div>
-            <div class="room-card" onclick="switchRoom('Room 105', this)">Room 105</div>
-        </div>
-
-        <!-- 1️⃣ NEW PROFILE REGISTRATION COMPONENT MATRIX (🔥 FIRST VIEW ON PAGE LOAD) -->
-        <div class="reg-card" id="registrationSection">
-            <h3 style="color:#2c3e50; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-weight: 800; font-size: 15px;">📝 Step 1: Add Room Tangent Detail (किरायेदार पंजीकरण फॉर्म)</h3>
-            <form id="regForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>1. Name *</label>
-                        <input type="text" id="tName" placeholder="Enter Full Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>2. Father Name *</label>
-                        <input type="text" id="tFatherName" placeholder="Enter Father Name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>3. Mobile No. *</label>
-                        <input type="text" id="tMobile" placeholder="10 Digit Mobile No" required>
-                    </div>
-                    <div class="form-group">
-                        <label>4. Room Rent Start Date *</label>
-                        <input type="date" id="rentStartDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>5. Electricity Unit Rate *</label>
-                        <input type="number" id="unitRate" value="9" oninput="runLiveCalculations()" required>
-                    </div>
-                    <div class="form-group">
-                        <label>6. Family Members *</label>
-                        <input type="number" id="familyMembers" placeholder="Total Members Count" required>
-                    </div>
-                    <div class="form-group">
-                        <label>7. Aadhar No *</label>
-                        <input type="text" id="tAadhar" placeholder="Enter Aadhar Number" required>
-                    </div>
-                    <div class="form-group">
-                        <label>8. Job Status / Student *</label>
-                        <select id="jobStatus">
-                            <option value="Student">Student</option>
-                            <option value="Job Holder">Job Holder</option>
-                            <option value="Business">Business</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <input type="hidden" id="tEmail" value="guest@tenant.com">
+        <div class="right-panel">
+            <h3 style="font-size: 15px; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px;">🧾 LIVE DIGITAL RECEIPT</h3>
+            <p style="font-size: 11px; color:#64748b; font-weight: 600;">As you type inside the spreadsheet, the invoice layout auto-updates live:</p>
+            
+            <div class="receipt-box" id="whatsappReceiptLayout">
                 </div>
-                <div class="action-bar">
-                    <button type="button" class="btn btn-reg" onclick="saveData(false)">📝 Confirm & Register Tenant</button>
-                </div>
-            </form>
+
+            <button class="btn btn-whatsapp" onclick="sendToWhatsApp()">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.736 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
+                Share Invoice To WhatsApp
+            </button>
         </div>
 
-        <!-- 2️⃣ MONTHLY TRANSACTION LEDGER GRIDS (पंजीकरण होने के बाद हिसाब के लिए इस्तेमाल होगा) -->
-        <div class="khata-card" id="ledgerSection" style="margin-top: 5px;">
-            <h3 style="color:#2c3e50; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-weight: 800; font-size: 15px;" id="currentRoomTitle">Room 101 Monthly Accounts</h3>
-            <form id="ledgerForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Balance (Opening / Old Dues)</label>
-                        <input type="number" id="balanceOpening" value="0" oninput="runLiveCalculations()">
-                    </div>
-                    <div class="form-group">
-                        <label>Monthly Rent</label>
-                        <input type="number" id="monthlyRent" value="0" oninput="runLiveCalculations()">
-                    </div>
-                    <div class="form-group">
-                        <label>Total Rent Due</label>
-                        <input type="number" id="totalRentDue" class="auto-calc" readonly value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Previous Unit Reading</label>
-                        <input type="number" id="prevUnit" value="0" oninput="runLiveCalculations()">
-                    </div>
-                    <div class="form-group">
-                        <label>Current Unit Reading</label>
-                        <input type="number" id="currUnit" value="0" oninput="runLiveCalculations()">
-                    </div>
-                    <div class="form-group">
-                        <label>Total Unit Consumption</label>
-                        <input type="number" id="totalConsumption" class="auto-calc" readonly value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Total Electricity Bill</label>
-                        <input type="number" id="totalElecBill" class="auto-calc" readonly value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Water / Other Maintenance Charges</label>
-                        <input type="number" id="waterCharges" value="0" oninput="runLiveCalculations()">
-                    </div>
-                    <div class="form-group">
-                        <label>Total Amount Payable</label>
-                        <input type="number" id="totalPayable" class="total-payable-box" readonly value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Amount Received</label>
-                        <input type="number" id="amtReceived" value="0" oninput="runLiveCalculations()">
-                    </div>
-                    <div class="form-group">
-                        <label>Payment Mode</label>
-                        <select id="paymentMode">
-                            <option value="Unpaid">Unpaid</option>
-                            <option value="Cash">Cash</option>
-                            <option value="UPI/Online">UPI/Online</option>
-                            <option value="Check">Check</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Remainder Balance (Baki Dues)</label>
-                        <input type="number" id="remainderBalance" class="remainder-box" readonly value="0">
-                    </div>
-                    <div class="form-group" style="display:none;">
-                        <label>Room Status</label>
-                        <select id="roomStatus">
-                            <option value="Active" selected>Active Tenant</option>
-                            <option value="Left">Left Room</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="action-bar">
-                    <button type="button" class="btn btn-save" onclick="saveData(false)">💾 Save Progress</button>
-                    <button type="button" class="btn btn-lock" onclick="saveData(true)">🔒 Lock Ledger Month</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- 📖 CURRENT LOG HISTORICAL RENDERS -->
-        <div class="diary-table-title">📖 Current Tenant Running History (चालू महीने का इतिहास)</div>
-        <div class="diary-table-wrapper">
-            <table class="diary-table">
-                <thead>
-                    <tr>
-                        <th>Saved Date</th><th>Tenant Name</th><th>Rent Due</th><th>Prev Unit</th><th>Curr Unit</th><th>Units Used</th><th>Light Bill</th><th>Other</th><th>Net Payable</th><th>Amt Rec.</th><th>Pay Mode</th><th>Balance</th><th>Invoice Target</th>
-                    </tr>
-                </thead>
-                <tbody id="diaryHistoryTableBody">
-                    <tr><td colspan="13" style="text-align:center; color:#64748b; padding: 15px;">कोई लॉक डेटा उपलब्ध नहीं है।</td></tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- 📂 PERMANENT HISTORY ARChIVE FOLDER -->
-        <div class="diary-table-title" style="color: #e74c3c;">📂 PERMANENT HISTORY FOLDER (कमरा छोड़ चुके किरायेदारों का सिस्टेमेटिक आर्काइव)</div>
-        <div class="diary-table-wrapper history-folder-card">
-            <table class="diary-table">
-                <thead>
-                    <tr style="background:#5d6d7e;">
-                        <th>Leave Date</th><th>Room No</th><th>Tenant Name</th><th>Mobile No</th><th>Last Left Balance</th><th>Final Payment Mode</th><th>Archive Receipt</th>
-                    </tr>
-                </thead>
-                <tbody id="folderHistoryTableBody">
-                    <tr><td colspan="7" style="text-align:center; color:#64748b; padding: 15px;">इतिहास फ़ोल्डर खाली है।</td></tr>
-                </tbody>
-            </table>
-        </div>
     </div>
 
     <script>
         let activeRoom = 'Room 101';
         const ownerEmail = localStorage.getItem('brokerEmail');
+        let isCurrentTenantActive = false;
 
         function runLiveCalculations() {
             const opBal = Number(document.getElementById('balanceOpening').value || 0);
             const mRent = Number(document.getElementById('monthlyRent').value || 0);
-            const rentDue = opBal + mRent;
-            document.getElementById('totalRentDue').value = rentDue;
+            document.getElementById('totalRentDue').value = opBal + mRent;
 
             const prev = Number(document.getElementById('prevUnit').value || 0);
             const curr = Number(document.getElementById('currUnit').value || 0);
             const consumed = Math.max(0, curr - prev);
             document.getElementById('totalConsumption').value = consumed;
 
-            const rate = Number(document.getElementById('unitRate').value || 0);
+            const rate = Number(document.getElementById('unitRate').value || 9);
             const eBill = consumed * rate;
             document.getElementById('totalElecBill').value = eBill;
 
             const other = Number(document.getElementById('waterCharges').value || 0);
-            const payable = rentDue + eBill + other;
+            const payable = (opBal + mRent) + eBill + other;
             document.getElementById('totalPayable').value = payable;
 
             const rec = Number(document.getElementById('amtReceived').value || 0);
             document.getElementById('remainderBalance').value = payable - rec;
+
+            updateLiveReceipt();
         }
 
         function switchRoom(roomName, element) {
             activeRoom = roomName;
-            document.getElementById('currentRoomTitle').innerText = `${roomName} Monthly Accounts`;
             if(element) {
                 document.querySelectorAll('.room-card').forEach(c => c.classList.remove('selected-room'));
                 element.classList.add('selected-room');
@@ -282,110 +291,153 @@
                 const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
                 const result = await res.json();
                 
-                // Reset Reg Form
-                document.getElementById('tName').value = '';
-                document.getElementById('tFatherName').value = '';
-                document.getElementById('tMobile').value = '';
-                document.getElementById('rentStartDate').value = '';
-                document.getElementById('familyMembers').value = '';
-                document.getElementById('tAadhar').value = '';
-                document.getElementById('jobStatus').value = 'Student';
-                
-                // Reset Monthly Form
+                // Form Fields Reset UI
+                document.getElementById('regForm').reset();
                 document.getElementById('ledgerForm').reset();
-                document.getElementById('diaryHistoryTableBody').innerHTML = '<tr><td colspan="13" style="text-align:center; color:#64748b; padding: 15px;">कोई लॉक डेटा उपलब्ध नहीं है।</td></tr>';
-                runLiveCalculations();
+                document.getElementById('diaryHistoryTableBody').innerHTML = '<tr><td colspan="5" style="color: #94a3b8; padding:10px;">No locked month rows found.</td></tr>';
+                
+                toggleFormState(false); // Enable for fresh registration
+                isCurrentTenantActive = false;
 
                 if (result.success && result.data && result.data.length > 0) {
                     const roomRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom);
                     
                     if (roomRecords.length > 0) {
-                        const latestRecord = roomRecords[0]; 
-                        document.getElementById('tName').value = latestRecord.tenantName || '';
-                        document.getElementById('tFatherName').value = latestRecord.tenantFatherName || '';
-                        document.getElementById('tMobile').value = latestRecord.mobileNo || '';
-                        document.getElementById('rentStartDate').value = latestRecord.joiningDate || '';
-                        document.getElementById('familyMembers').value = latestRecord.familyMembers || '';
-                        document.getElementById('tAadhar').value = latestRecord.aadharNumber || '';
-                        document.getElementById('jobStatus').value = latestRecord.jobStatus || 'Student';
+                        const latest = roomRecords[0];
+                        
+                        // Load Tenant Info Profile
+                        document.getElementById('tName').value = latest.tenantName || '';
+                        document.getElementById('tFatherName').value = latest.tenantFatherName || '';
+                        document.getElementById('tMobile').value = latest.mobileNo || '';
+                        document.getElementById('rentStartDate').value = latest.joiningDate || '';
+                        document.getElementById('unitRate').value = latest.unitRate || 9;
+                        document.getElementById('familyMembers').value = latest.familyMembers || 1;
+                        document.getElementById('tAadhar').value = latest.aadharNumber || '';
+                        document.getElementById('jobStatus').value = latest.jobStatus || 'Student';
 
-                        const activeRecord = roomRecords.find(t => t.isLocked === false);
-                        if(activeRecord) {
-                            document.getElementById('balanceOpening').value = activeRecord.balanceOpening || 0;
-                            document.getElementById('monthlyRent').value = activeRecord.monthlyRent || 0;
-                            document.getElementById('prevUnit').value = activeRecord.previousUnitReading || 0;
-                            document.getElementById('currUnit').value = activeRecord.currentUnitReading || 0;
-                            document.getElementById('unitRate').value = activeRecord.unitRate || 9;
-                            document.getElementById('waterCharges').value = activeRecord.waterOrOtherCharges || 0;
-                            document.getElementById('amtReceived').value = activeRecord.amountReceived || 0;
-                            document.getElementById('paymentMode').value = activeRecord.paymentMode || 'Unpaid';
+                        const activeRow = roomRecords.find(t => t.status === 'Active');
+                        if (activeRow) {
+                            isCurrentTenantActive = true;
+                            toggleFormState(true); // Lock profile inputs, activate spreadsheet
+
+                            const unLockedRow = roomRecords.find(t => t.isLocked === false && t.status === 'Active');
+                            if (unLockedRow) {
+                                document.getElementById('balanceOpening').value = unLockedRow.balanceOpening || 0;
+                                document.getElementById('monthlyRent').value = unLockedRow.monthlyRent || 0;
+                                document.getElementById('prevUnit').value = unLockedRow.previousUnitReading || 0;
+                                document.getElementById('currUnit').value = unLockedRow.currentUnitReading || 0;
+                                document.getElementById('waterCharges').value = unLockedRow.waterOrOtherCharges || 0;
+                                document.getElementById('amtReceived').value = unLockedRow.amountReceived || 0;
+                                document.getElementById('paymentMode').value = unLockedRow.paymentMode || 'Unpaid';
+                            }
                         }
-                        runLiveCalculations();
                     }
 
-                    const activeLockedRecords = result.data.filter(t => t.roomOrFlatNo === activeRoom && t.isLocked === true && t.status !== 'Left');
-                    if(activeLockedRecords.length > 0) {
+                    // Render Log History Table Rows
+                    const lockedRows = result.data.filter(t => t.roomOrFlatNo === activeRoom && t.isLocked === true && t.status === 'Active');
+                    if (lockedRows.length > 0) {
                         const tbody = document.getElementById('diaryHistoryTableBody');
                         tbody.innerHTML = '';
-                        activeLockedRecords.forEach(rec => {
-                            const date = new Date(rec.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                            const generatedSrvName = `Rent Invoice (${rec.roomOrFlatNo}) - ${rec.tenantName}`;
-                            const mockTxn = 'INV_' + rec.roomOrFlatNo.replace(/\s+/g, '') + '_' + rec._id.substring(18).toUpperCase();
-                            const invoiceUrl = `receipt.html?txn=${mockTxn}&service=${encodeURIComponent(generatedSrvName)}&amount=${rec.amountReceived}`;
-
-                            tbody.innerHTML += `
-                                <tr>
-                                    <td><strong>${date}</strong></td>
-                                    <td style="font-weight: 700; color: #2c3e50;">${rec.tenantName}</td>
-                                    <td style="font-weight: 700;">₹${rec.totalRentDue}</td>
-                                    <td>${rec.previousUnitReading}</td>
-                                    <td>${rec.currentUnitReading}</td>
-                                    <td style="color:#2980b9; font-weight:bold;">${rec.totalUnitConsumption}</td>
-                                    <td>₹${rec.totalElectricityBill}</td>
-                                    <td>₹${rec.waterOrOtherCharges}</td>
-                                    <td style="color:#27ae60; font-weight:bold;">₹${rec.totalAmountPayable}</td>
-                                    <td style="color:#16a34a;">₹${rec.amountReceived}</td>
-                                    <td><span style="color:#475569; font-weight:bold;">${rec.paymentMode}</span></td>
-                                    <td style="color:#e74c3c; font-weight:bold;">₹${rec.remainderBalance}</td>
-                                    <td><a href="${invoiceUrl}" target="_blank" style="background: #9b59b6; color: white; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">🖨️ View Invoice</a></td>
-                                </tr>`;
+                        lockedRows.forEach(row => {
+                            const date = new Date(row.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+                            tbody.innerHTML += `<tr>
+                                <td><strong>${date}</strong></td>
+                                <td style="color:#27ae60;">₹${row.totalAmountPayable}</td>
+                                <td style="color:#16a34a;">₹${row.amountReceived}</td>
+                                <td>${row.paymentMode}</td>
+                                <td style="color:#e74c3c;">₹${row.remainderBalance}</td>
+                            </tr>`;
                         });
-                    }
-                    
-                    const permanentlyLeftTenants = result.data.filter(t => t.status === 'Left');
-                    const folderTbody = document.getElementById('folderHistoryTableBody');
-                    if(permanentlyLeftTenants.length > 0) {
-                        folderTbody.innerHTML = '';
-                        permanentlyLeftTenants.forEach(rec => {
-                            const date = new Date(rec.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-                            const generatedSrvName = `Rent Invoice (${rec.roomOrFlatNo}) - ${rec.tenantName} (Left)`;
-                            const mockTxn = 'INV_LEFT_' + rec._id.substring(18).toUpperCase();
-                            const invoiceUrl = `receipt.html?txn=${mockTxn}&service=${encodeURIComponent(generatedSrvName)}&amount=${rec.amountReceived}`;
-
-                            folderTbody.innerHTML += `
-                                <tr>
-                                    <td><strong>${date}</strong></td>
-                                    <td style="font-weight: 800; color: #e74c3c;">${rec.roomOrFlatNo}</td>
-                                    <td>${rec.tenantName}</td>
-                                    <td>${rec.mobileNo || 'N/A'}</td>
-                                    <td style="color:#e74c3c; font-weight:bold;">₹${rec.remainderBalance}</td>
-                                    <td><span style="color:#7f8c8d; font-weight:bold;">${rec.paymentMode}</span></td>
-                                    <td><a href="${invoiceUrl}" target="_blank" style="background: #e67e22; color: white; text-decoration: none; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">📜 Left Archive Bill</a></td>
-                                </tr>`;
-                        });
-                    } else {
-                        folderTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding: 15px;">इतिहास फ़ोल्डर खाली है (No archived records).</td></tr>';
                     }
                 }
+                runLiveCalculations();
             } catch (e) { console.error(e); }
         }
 
-        async function saveData(shouldLock) {
+        function toggleFormState(isRegistered) {
+            const regInputs = document.querySelectorAll('#regForm input, #regForm select');
+            const excelInputs = document.querySelectorAll('#ledgerForm input, #ledgerForm select, #ledgerForm button');
+            const lockStatus = document.getElementById('regLockStatus');
+            const btnReg = document.getElementById('btnRegister');
+
+            if (isRegistered) {
+                regInputs.forEach(i => i.disabled = true);
+                excelInputs.forEach(i => i.disabled = false);
+                lockStatus.style.display = 'block';
+                btnReg.style.display = 'none';
+            } else {
+                regInputs.forEach(i => i.disabled = false);
+                excelInputs.forEach(i => i.disabled = true);
+                lockStatus.style.display = 'none';
+                btnReg.style.display = 'block';
+            }
+        }
+
+        function updateLiveReceipt() {
+            const name = document.getElementById('tName').value || '----------';
+            const mobile = document.getElementById('tMobile').value || '----------';
+            const rent = document.getElementById('monthlyRent').value || '0';
+            const consumed = document.getElementById('totalConsumption').value || '0';
+            const elec = document.getElementById('totalElecBill').value || '0';
+            const other = document.getElementById('waterCharges').value || '0';
+            const total = document.getElementById('totalPayable').value || '0';
+            const rec = document.getElementById('amtReceived').value || '0';
+            const baki = document.getElementById('remainderBalance').value || '0';
+            const mode = document.getElementById('paymentMode').value;
+
+            const htmlContent = `
+<div class="receipt-header">BHOPAL PROPERTIES<br>RENT INVOICE</div>
+<b>Room/Flat:</b> ${activeRoom}
+<b>Tenant:</b> ${name}
+<b>Mobile:</b> ${mobile}
+--------------------------
+• Monthly Rent   : ₹${rent}
+• Power Units Used: ${consumed}
+• Light Bill     : ₹${elec}
+• Other Charges  : ₹${other}
+--------------------------
+<b>TOTAL PAYABLE  : ₹${total}</b>
+<b>AMOUNT RECEIVED: ₹${rec} (${mode})</b>
+<span style="color:#e74c3c;"><b>REMAINDER DUES : ₹${baki}</b></span>
+--------------------------
+Thank you for your stay!`;
+            document.getElementById('whatsappReceiptLayout').innerHTML = htmlContent;
+        }
+
+        async function saveRegistration() {
+            const name = document.getElementById('tName').value;
+            if(!name) { alert("Please input tenant profile metadata name!"); return; }
+            await sendPayloadToServer(false);
+        }
+
+        async function saveProgress(shouldLock) {
+            await sendPayloadToServer(shouldLock);
+        }
+
+        async function terminateTenant() {
+            if(confirm("🔑 ALERT: Are you sure this tenant is vacating the room? Progress layout profile will be archived permanently!")) {
+                const payload = {
+                    ownerEmail, roomOrFlatNo: activeRoom,
+                    tenantName: document.getElementById('tName').value,
+                    tenantEmail: 'guest@tenant.com', status: 'Left'
+                };
+                try {
+                    const res = await fetch('/api/owner/upsert-tenant-ledger', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const d = await res.json();
+                    alert(d.message);
+                    fetchRoomData();
+                } catch(e) { alert("Error terminating session."); }
+            }
+        }
+
+        async function sendPayloadToServer(lockRecord) {
             const payload = {
-                ownerEmail,
-                roomOrFlatNo: activeRoom,
+                ownerEmail, roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
-                tenantEmail: document.getElementById('tEmail').value.trim(),
                 tenantFatherName: document.getElementById('tFatherName').value,
                 mobileNo: document.getElementById('tMobile').value,
                 joiningDate: document.getElementById('rentStartDate').value,
@@ -393,7 +445,8 @@
                 familyMembers: document.getElementById('familyMembers').value,
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
-                
+                tenantEmail: 'guest@tenant.com',
+
                 balanceOpening: document.getElementById('balanceOpening').value,
                 monthlyRent: document.getElementById('monthlyRent').value,
                 previousUnitReading: document.getElementById('prevUnit').value,
@@ -401,14 +454,8 @@
                 waterOrOtherCharges: document.getElementById('waterCharges').value,
                 amountReceived: document.getElementById('amtReceived').value,
                 paymentMode: document.getElementById('paymentMode').value,
-                status: document.getElementById('roomStatus').value,
-                lockRecord: shouldLock
+                status: 'Active', lockRecord
             };
-
-            if(!payload.tenantName || !payload.joiningDate || !payload.tenantFatherName) {
-                alert("कृपया पहले किरायेदार पंजीकरण फॉर्म की सभी आवश्यक फ़ील्ड्स भरें!");
-                return;
-            }
 
             try {
                 const res = await fetch('/api/owner/upsert-tenant-ledger', {
@@ -416,10 +463,20 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                alert(data.message);
+                const d = await res.json();
+                alert(d.message);
                 fetchRoomData();
-            } catch(e) { alert("Save failed."); }
+            } catch(e) { alert("Sync failed."); }
+        }
+
+        function sendToWhatsApp() {
+            const name = document.getElementById('tName').value;
+            const mobile = document.getElementById('tMobile').value;
+            const text = document.getElementById('whatsappReceiptLayout').innerText;
+            if(!name || mobile === '----------') { alert("No active data to share!"); return; }
+            
+            const url = `https://api.whatsapp.com/send?phone=${mobile}&text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
         }
 
         window.onload = () => switchRoom('Room 101');
