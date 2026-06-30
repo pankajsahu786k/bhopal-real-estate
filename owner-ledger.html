@@ -9,14 +9,12 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background-color: #f1f5f9; display: flex; height: 100vh; overflow: hidden; width: 100vw; }
         
-        /* Sidebar Layout */
         .sidebar { width: 260px; background-color: #1e293b; color: white; display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
         .sidebar h2 { text-align: center; padding: 25px 0; background-color: #0f172a; font-size: 20px; font-weight: 700; }
         .nav-links { list-style: none; }
         .nav-links a { display: block; padding: 16px 24px; color: #94a3b8; text-decoration: none; border-left: 4px solid transparent; font-weight: 500; }
         .nav-links a:hover, .nav-links a.active { background-color: #334155; color: white; border-left-color: #f59e0b; }
 
-        /* Main Screen Layout Split */
         .workspace { flex: 1; display: flex; height: 100vh; overflow: hidden; }
         .left-panel { flex: 7.2; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100vh; }
         .right-panel { flex: 2.8; padding: 20px; background: #ffffff; border-left: 3px solid #cbd5e1; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
@@ -27,17 +25,15 @@
         .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; }
         .btn-add-room { background: #2c3e50; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
 
-        /* Cards Layout */
         .card { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         .reg-card { border-top: 5px solid #3498db; position: relative; }
-        .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.85); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #ef4444; }
+        .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #ef4444; }
 
         .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: 12px; font-weight: 700; color: #475569; }
         .form-group input, .form-group select { padding: 8px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 600; outline: none; background: #f8fafc; }
 
-        /* 📊 PURE EDITABLE EXCEL SPREADSHEET MATRIX DESIGN */
         .excel-container { background: white; border-radius: 8px; border: 2px solid #cbd5e1; overflow: auto; flex-grow: 1; min-height: 350px; }
         .excel-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 8px 10px; }
@@ -46,15 +42,13 @@
         .excel-table td input:focus { background: #e0f2fe; }
         .read-only-cell { background: #f8fafc; color: #475569; }
 
-        /* Buttons Styling */
         .btn { padding: 10px 20px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-size: 13px; }
         .btn-blue { background: #3498db; color: white; }
         .btn-green { background: #2ecc71; color: white; }
         .btn-red { background: #e74c3c; color: white; }
         .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; margin-top: auto; border-radius: 8px; }
 
-        /* Receipt Box UI */
-        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.5; }
+        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.5; min-height: 250px; }
         .receipt-header { text-align: center; font-weight: bold; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; font-family: 'Poppins', sans-serif; }
     </style>
 </head>
@@ -73,13 +67,11 @@
 
     <div class="workspace">
         
-        <!-- LEFT PANEL: REGISTRATION & AS-IT-IS EXCEL GRID -->
         <div class="left-panel">
             <div class="header-box">
                 <h2 style="font-weight: 800;">📋 TANGENT DIGITAL KHATA & REGISTRATION MANAGEMENT</h2>
             </div>
 
-            <!-- Rooms Controller Group Bar -->
             <div class="room-container" id="roomContainer">
                 <div class="room-card selected-room" onclick="switchRoom('Room 101', this)">Room 101</div>
                 <button class="btn-add-room" onclick="addNewRoomButton()">➕ Add Room</button>
@@ -111,7 +103,7 @@
                 </form>
             </div>
 
-            <!-- STEP 2: AS-IT-IS IMAGE EXCEL FILE SPREADSHEET MATRIX -->
+            <!-- STEP 2: ACCOUNT EXCEL MATRIX -->
             <h3 style="font-size: 14px; font-weight: 800; color: #2c3e50;">📊 Step 2: Excel Spreadsheet Account Grid</h3>
             <div class="excel-container">
                 <table class="excel-table">
@@ -127,23 +119,22 @@
                         </tr>
                     </thead>
                     <tbody id="excelGridBody">
-                        <!-- Dynamic Excel Rows matching Image specs exactly -->
+                        <!-- Spreadsheet rows generated dynamically -->
                     </tbody>
                 </table>
             </div>
             
             <div style="display:flex; justify-content: space-between; margin-top: 5px;">
                 <button type="button" class="btn btn-red" onclick="triggerLeaveRoom()">🚪 LEAVE ROOM (Save to Permanent Archive Database)</button>
-                <button type="button" class="btn btn-green" onclick="saveExcelRowData()">💾 Save Current Excel Progress Row</button>
+                <button type="button" class="btn btn-green" id="btnSaveRow" disabled onclick="saveExcelRowData()">💾 Save Current Excel Progress Row</button>
             </div>
         </div>
 
-        <!-- RIGHT PANEL: LIVE SIDE-PANEL TOTAL RECEIPT (SHAREABLE WHATSAPP EFFECT) -->
         <div class="right-panel">
             <h3 style="font-size: 15px; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px;">🧾 LIVE TOTAL RECEIPT</h3>
             
             <div class="receipt-box" id="liveReceiptView">
-                <!-- Text elements synchronized with the active row entries -->
+                <div style="text-align: center; color: #94a3b8; margin-top: 100px;">कृपया हिसाब अपडेट करें...</div>
             </div>
 
             <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">
@@ -156,11 +147,10 @@
 
     <script>
         let activeRoom = 'Room 101';
-        const ownerEmail = localStorage.getItem('brokerEmail');
+        const ownerEmail = localStorage.getItem('brokerEmail') || 'owner@test.com';
         let isRegistered = false;
         let activeRowIdx = 0;
 
-        // Mock fixed structural rows sequence matching user paper diary image perfectly
         const datesArray = [
             "15/09/2025", "15/10/2025", "15/11/2025", "15/12/2025",
             "15/01/2026", "15/02/2026", "15/03/2026", "15/04/2026",
@@ -189,11 +179,8 @@
             activeRowIdx = idx;
             const rent = Number(document.getElementById(`rent_${idx}`).value || 0);
             const currentUnits = Number(document.getElementById(`elecUnit_${idx}`).value || 0);
-            
-            // Auto calculate consumption step mapping base rate
             const rate = Number(document.getElementById('unitRate').value || 9);
             
-            // Direct Multiplication Simplicity logic mapping
             const prevUnits = idx === 0 ? 0 : Number(document.getElementById(`elecUnit_${idx-1}`).value || 0);
             const unitsConsumed = Math.max(0, currentUnits - prevUnits);
             const elecBill = unitsConsumed * rate;
@@ -246,6 +233,7 @@
                 document.getElementById('regForm').reset();
                 buildExcelGridUI();
                 document.getElementById('regOverlay').style.display = 'none';
+                document.getElementById('btnSaveRow').disabled = true;
                 isRegistered = false;
 
                 if(result.success && result.data) {
@@ -253,6 +241,7 @@
                     if(activeTenant) {
                         isRegistered = true;
                         document.getElementById('regOverlay').style.display = 'flex';
+                        document.getElementById('btnSaveRow').disabled = false;
                         
                         document.getElementById('tName').value = activeTenant.tenantName || '';
                         document.getElementById('tFatherName').value = activeTenant.tenantFatherName || '';
@@ -263,7 +252,7 @@
                         document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
                         document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
 
-                        // Fill first spreadsheet row configuration index maps safely
+                        // Database se data load karke grid cells me restore karein
                         document.getElementById('rent_0').value = activeTenant.monthlyRent || 0;
                         document.getElementById('elecUnit_0').value = activeTenant.currentUnitReading || 0;
                         document.getElementById('waterBill_0').value = activeTenant.waterOrOtherCharges || 0;
@@ -275,27 +264,34 @@
 
         async function confirmAndRegister() {
             if(!document.getElementById('tName').value || !document.getElementById('tMobile').value) {
-                alert("Please add tenant metadata profile entries first!");
+                alert("कृपया पहले किरायेदार का नाम और मोबाइल नंबर भरें!");
                 return;
             }
+            
+            // Registration details data ko lock karne ke liye pehla dummy sync hit
+            await sendPayloadToServer(false);
             isRegistered = true;
             document.getElementById('regOverlay').style.display = 'flex';
-            alert("🔒 Registration Data Fixed and Locked into current room matrix!");
-            calculateExcelRow(0);
+            document.getElementById('btnSaveRow').disabled = false;
+            alert("🔒 किरायेदार का प्रोफाइल फिक्स हो गया और डेटाबेस में सुरक्षित हो गया है!");
         }
 
         async function saveExcelRowData() {
-            if(!isRegistered) { alert("Please complete Step 1 registration first!"); return; }
-            
+            if(!isRegistered) { alert("कृपया पहले पंजीकरण करें!"); return; }
+            await sendPayloadToServer(false);
+        }
+
+        async function sendPayloadToServer(lockRecord) {
             const idx = activeRowIdx;
             const payload = {
-                ownerEmail, roomOrFlatNo: activeRoom,
+                ownerEmail,
+                roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
                 tenantFatherName: document.getElementById('tFatherName').value,
                 mobileNo: document.getElementById('tMobile').value,
                 joiningDate: document.getElementById('rentStartDate').value,
-                unitRate: document.getElementById('unitRate').value,
-                familyMembers: document.getElementById('familyMembers').value,
+                unitRate: Number(document.getElementById('unitRate').value || 9),
+                familyMembers: Number(document.getElementById('familyMembers').value || 1),
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
                 tenantEmail: 'guest@tenant.com',
@@ -303,8 +299,11 @@
                 monthlyRent: Number(document.getElementById(`rent_${idx}`).value || 0),
                 currentUnitReading: Number(document.getElementById(`elecUnit_${idx}`).value || 0),
                 waterOrOtherCharges: Number(document.getElementById(`waterBill_${idx}`).value || 0),
+                balanceOpening: idx === 0 ? 0 : Number(document.getElementById(`total_${idx-1}`).innerText || 0),
                 amountReceived: Number(document.getElementById(`total_${idx}`).innerText || 0),
-                paymentMode: 'UPI/Online', status: 'Active', lockRecord: false
+                paymentMode: 'UPI/Online',
+                status: 'Active',
+                lockRecord: lockRecord
             };
 
             try {
@@ -315,12 +314,13 @@
                 });
                 const data = await res.json();
                 alert(data.message);
-            } catch(e) { alert("Spreadsheet Row Sync Failed."); }
+                loadRoomConfigurationData();
+            } catch(e) { alert("डेटाबेस सिंक फेल हुआ।"); }
         }
 
         async function triggerLeaveRoom() {
             if(!isRegistered) return;
-            if(!confirm("🚪 Are you sure you want to mark this room as Left? All logs will be archived permanently!")) return;
+            if(!confirm("🚪 क्या आप निश्चित रूप से कमरा खाली करना चाहते हैं? इतिहास को हमेशा के लिए सुरक्षित कर दिया जाएगा।")) return;
 
             const payload = {
                 ownerEmail, roomOrFlatNo: activeRoom,
@@ -334,9 +334,9 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                alert("🚪 Room Vacated successfully! Cleaned and ready for next tenant allocation.");
+                alert("🚪 कमरा खाली हो चुका है! अब यह नए किरायेदार के आवंटन के लिए तैयार है।");
                 loadRoomConfigurationData();
-            } catch(e) { alert("Error archving ledger."); }
+            } catch(e) { alert("एरर आया।"); }
         }
 
         function addNewRoomButton() {
@@ -355,7 +355,7 @@
         function shareToWhatsAppMessenger() {
             const mobile = document.getElementById('tMobile').value;
             const txt = document.getElementById('liveReceiptView').innerText;
-            if(mobile === '----------' || !txt) { alert("No invoice generated to share!"); return; }
+            if(mobile === '----------' || !txt) { alert("शेयर करने के लिए कोई रसीद नहीं है!"); return; }
             window.open(`https://api.whatsapp.com/send?phone=${mobile}&text=${encodeURIComponent(txt)}`, '_blank');
         }
 
