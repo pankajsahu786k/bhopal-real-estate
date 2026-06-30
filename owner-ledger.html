@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tenant Ledger - Bhopal Properties</title>
+    <title>Tenant Registration & Ledger - Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
@@ -16,7 +16,7 @@
         .nav-links a { display: block; padding: 16px 24px; color: #94a3b8; text-decoration: none; border-left: 4px solid transparent; font-weight: 500; }
         .nav-links a:hover, .nav-links a.active { background-color: #334155; color: white; border-left-color: #f59e0b; }
 
-        /* Main Context Area */
+        /* Main Workspace Container */
         .main-content { flex: 1; padding: 20px 30px; display: flex; flex-direction: column; gap: 15px; min-width: 0; height: 100vh; overflow-y: auto; }
         .header-box { background: white; padding: 12px 25px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.04); border-left: 5px solid #3498db; }
         
@@ -24,10 +24,10 @@
         .room-card { padding: 12px 24px; background: white; border: 2px solid #cbd5e1; border-radius: 8px; font-weight: 800; font-size: 15px; cursor: pointer; color: #475569; }
         .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25); }
 
-        /* 📝 STEP 1: REGISTRATION CARD DESIGN (Premium 4-Column Grid) */
-        .reg-card { background: #ffffff; padding: 22px 30px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border-top: 6px solid #3498db; margin-bottom: 5px; }
+        /* 🔥 SECTION 1: REGISTRATION COMPONENT DESIGN (सबसे पहले यह दिखेगा) */
+        .reg-card { background: #ffffff; padding: 22px 30px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border-top: 6px solid #3498db; }
         
-        /* 💵 STEP 2: MONTHLY LEDGER MATRIX */
+        /* 🔥 SECTION 2: MONTHLY LEDGER MATRIX (इसके बाद हिसाब चालू होगा) */
         .khata-card { background: white; padding: 22px 30px; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border-top: 6px solid #f59e0b; }
         
         .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 12px; }
@@ -40,12 +40,13 @@
         .total-payable-box { background: #e8f8f5 !important; font-weight: 800; color: #27ae60; }
         .remainder-box { background: #fdf2e9 !important; font-weight: 800; color: #e74c3c; font-size: 18px !important; }
         
-        .action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 15px; border-top: 2px solid #f1f5f9; padding-top: 15px; }
+        .action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 15px; border-top: 2px solid #f1f5f9; padding-top: 10px; }
         .btn { padding: 10px 24px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-size: 14px; }
+        .btn-reg { background: #3498db; color: white; }
         .btn-save { background: #2ecc71; color: white; }
         .btn-lock { background: #e74c3c; color: white; }
 
-        /* Tables layout UI */
+        /* Tables History UI Layout */
         .diary-table-title { font-size: 16px; font-weight: 800; color: #1e293b; margin-top: 10px; }
         .diary-table-wrapper { width: 100%; overflow-x: auto; overflow-y: auto; max-height: 220px; background: white; border-radius: 8px; border: 2px solid #cbd5e1; }
         .diary-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
@@ -74,7 +75,7 @@
 
     <div class="main-content">
         <div class="header-box">
-            <h2>📋 TANGENT DIGITAL KHATA MANAGEMENT FORM</h2>
+            <h2>📋 TANGENT DIGITAL KHATA & REGISTRATION MANAGEMENT</h2>
         </div>
 
         <div class="room-container">
@@ -85,54 +86,59 @@
             <div class="room-card" onclick="switchRoom('Room 105', this)">Room 105</div>
         </div>
 
-        <!-- 1️⃣ ROOM TANGENT DETAIL REGISTRATION FORM -->
-        <div class="reg-card">
+        <!-- 1️⃣ NEW PROFILE REGISTRATION COMPONENT MATRIX (🔥 FIRST VIEW ON PAGE LOAD) -->
+        <div class="reg-card" id="registrationSection">
             <h3 style="color:#2c3e50; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-weight: 800; font-size: 15px;">📝 Step 1: Add Room Tangent Detail (किरायेदार पंजीकरण फॉर्म)</h3>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>1. Tenant Name *</label>
-                    <input type="text" id="tName" placeholder="Enter Full Name" required>
+            <form id="regForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>1. Name *</label>
+                        <input type="text" id="tName" placeholder="Enter Full Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>2. Father Name *</label>
+                        <input type="text" id="tFatherName" placeholder="Enter Father Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>3. Mobile No. *</label>
+                        <input type="text" id="tMobile" placeholder="10 Digit Mobile No" required>
+                    </div>
+                    <div class="form-group">
+                        <label>4. Room Rent Start Date *</label>
+                        <input type="date" id="rentStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>5. Electricity Unit Rate *</label>
+                        <input type="number" id="unitRate" value="9" oninput="runLiveCalculations()" required>
+                    </div>
+                    <div class="form-group">
+                        <label>6. Family Members *</label>
+                        <input type="number" id="familyMembers" placeholder="Total Members Count" required>
+                    </div>
+                    <div class="form-group">
+                        <label>7. Aadhar No *</label>
+                        <input type="text" id="tAadhar" placeholder="Enter Aadhar Number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>8. Job Status / Student *</label>
+                        <select id="jobStatus">
+                            <option value="Student">Student</option>
+                            <option value="Job Holder">Job Holder</option>
+                            <option value="Business">Business</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="tEmail" value="guest@tenant.com">
                 </div>
-                <div class="form-group">
-                    <label>2. Father's Name *</label>
-                    <input type="text" id="tFatherName" placeholder="Enter Father's Name" required>
+                <div class="action-bar">
+                    <button type="button" class="btn btn-reg" onclick="saveData(false)">📝 Confirm & Register Tenant</button>
                 </div>
-                <div class="form-group">
-                    <label>3. Mobile No. *</label>
-                    <input type="text" id="tMobile" placeholder="10 Digit Mobile No" required>
-                </div>
-                <div class="form-group">
-                    <label>4. Room Rent Start Date *</label>
-                    <input type="date" id="rentStartDate" required>
-                </div>
-                <div class="form-group">
-                    <label>5. Electricity Unit Rate (₹) *</label>
-                    <input type="number" id="unitRate" value="9" oninput="runLiveCalculations()" required>
-                </div>
-                <div class="form-group">
-                    <label>6. Family Members *</label>
-                    <input type="number" id="familyMembers" placeholder="Total Members Count" required>
-                </div>
-                <div class="form-group">
-                    <label>7. Aadhaar No. *</label>
-                    <input type="text" id="tAadhar" placeholder="xxxx xxxx xxxx" required>
-                </div>
-                <div class="form-group">
-                    <label>8. Job Status / Student *</label>
-                    <select id="jobStatus">
-                        <option value="Student">Student</option>
-                        <option value="Job Holder">Job Holder</option>
-                        <option value="Business">Business</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <input type="hidden" id="tEmail" value="guest@tenant.com">
-            </div>
+            </form>
         </div>
 
-        <!-- 2️⃣ MONTHLY TRANSACTION LEDGER MATRIX -->
-        <div class="khata-card">
-            <h3 style="color:#2c3e50; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-weight: 800; font-size: 15px;" id="currentRoomTitle">Room 101 Monthly Ledger</h3>
+        <!-- 2️⃣ MONTHLY TRANSACTION LEDGER GRIDS (पंजीकरण होने के बाद हिसाब के लिए इस्तेमाल होगा) -->
+        <div class="khata-card" id="ledgerSection" style="margin-top: 5px;">
+            <h3 style="color:#2c3e50; border-bottom: 2px solid #cbd5e1; padding-bottom: 4px; font-weight: 800; font-size: 15px;" id="currentRoomTitle">Room 101 Monthly Accounts</h3>
             <form id="ledgerForm">
                 <div class="form-grid">
                     <div class="form-group">
@@ -189,10 +195,10 @@
                         <input type="number" id="remainderBalance" class="remainder-box" readonly value="0">
                     </div>
                     <div class="form-group" style="display:none;">
-                        <label>Room Allocation Status</label>
+                        <label>Room Status</label>
                         <select id="roomStatus">
-                            <option value="Active" selected>🟢 Active Tenant</option>
-                            <option value="Left">🔴 Left Room</option>
+                            <option value="Active" selected>Active Tenant</option>
+                            <option value="Left">Left Room</option>
                         </select>
                     </div>
                 </div>
@@ -203,7 +209,7 @@
             </form>
         </div>
 
-        <!-- 📖 RUNNING LOG HISTORY -->
+        <!-- 📖 CURRENT LOG HISTORICAL RENDERS -->
         <div class="diary-table-title">📖 Current Tenant Running History (चालू महीने का इतिहास)</div>
         <div class="diary-table-wrapper">
             <table class="diary-table">
@@ -218,7 +224,7 @@
             </table>
         </div>
 
-        <!-- 📂 HISTORY FOLDER ARCHIVE -->
+        <!-- 📂 PERMANENT HISTORY ARChIVE FOLDER -->
         <div class="diary-table-title" style="color: #e74c3c;">📂 PERMANENT HISTORY FOLDER (कमरा छोड़ चुके किरायेदारों का सिस्टेमेटिक आर्काइव)</div>
         <div class="diary-table-wrapper history-folder-card">
             <table class="diary-table">
@@ -263,7 +269,7 @@
 
         function switchRoom(roomName, element) {
             activeRoom = roomName;
-            document.getElementById('currentRoomTitle').innerText = `${roomName} Monthly Ledger`;
+            document.getElementById('currentRoomTitle').innerText = `${roomName} Monthly Accounts`;
             if(element) {
                 document.querySelectorAll('.room-card').forEach(c => c.classList.remove('selected-room'));
                 element.classList.add('selected-room');
@@ -276,6 +282,7 @@
                 const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
                 const result = await res.json();
                 
+                // Reset Reg Form
                 document.getElementById('tName').value = '';
                 document.getElementById('tFatherName').value = '';
                 document.getElementById('tMobile').value = '';
@@ -284,6 +291,7 @@
                 document.getElementById('tAadhar').value = '';
                 document.getElementById('jobStatus').value = 'Student';
                 
+                // Reset Monthly Form
                 document.getElementById('ledgerForm').reset();
                 document.getElementById('diaryHistoryTableBody').innerHTML = '<tr><td colspan="13" style="text-align:center; color:#64748b; padding: 15px;">कोई लॉक डेटा उपलब्ध नहीं है।</td></tr>';
                 runLiveCalculations();
@@ -385,6 +393,7 @@
                 familyMembers: document.getElementById('familyMembers').value,
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
+                
                 balanceOpening: document.getElementById('balanceOpening').value,
                 monthlyRent: document.getElementById('monthlyRent').value,
                 previousUnitReading: document.getElementById('prevUnit').value,
@@ -396,8 +405,8 @@
                 lockRecord: shouldLock
             };
 
-            if(!payload.tenantName || !payload.tenantEmail || !payload.joiningDate) {
-                alert("कृपया किरायेदार का नाम, ईमेल और रूम रेंट स्टार्ट डेट अनिवार्य रूप से भरें!");
+            if(!payload.tenantName || !payload.joiningDate || !payload.tenantFatherName) {
+                alert("कृपया पहले किरायेदार पंजीकरण फॉर्म की सभी आवश्यक फ़ील्ड्स भरें!");
                 return;
             }
 
