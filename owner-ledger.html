@@ -29,7 +29,8 @@
         .reg-card { border-top: 5px solid #3498db; position: relative; }
         .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #ef4444; }
 
-        .form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 10px; }
+        /* Modified to 3 columns to easily accommodate 9 inputs elegantly */
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: 12px; font-weight: 700; color: #475569; }
         .form-group input, .form-group select { padding: 8px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 600; outline: none; background: #f8fafc; }
@@ -48,7 +49,7 @@
         .btn-red { background: #e74c3c; color: white; }
         .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; margin-top: auto; border-radius: 8px; }
 
-        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.5; min-height: 250px; }
+        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.5; min-height: 270px; }
         .receipt-header { text-align: center; font-weight: bold; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; font-family: 'Poppins', sans-serif; }
     </style>
 </head>
@@ -86,10 +87,10 @@
                         <div class="form-group"><label>1. Name *</label><input type="text" id="tName" required></div>
                         <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" required></div>
                         <div class="form-group"><label>3. Mobile No. *</label><input type="text" id="tMobile" required></div>
-                        <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required></div>
-                        <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="9" required></div>
+                        <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required onchange="handleStartDateChange()"></div>
+                        <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="10" required></div>
                         <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" value="1" required></div>
-                        <div class="form-group"><label>7. Aadhar No *</label><input type="text" id="tAadhar" placeholder="Enter Aadhar" required></div>
+                        <div class="form-group"><label>7. Aadhar No *</label><input type="text" id="tAadhar" placeholder="Enter Aadhar Number" required></div>
                         <div class="form-group">
                             <label>8. Job Status / Student *</label>
                             <select id="jobStatus">
@@ -98,6 +99,8 @@
                                 <option value="Business">Business</option>
                             </select>
                         </div>
+                        <!-- 🔥 NEW FIELD: ADVANCE SECURITY DEPOSIT -->
+                        <div class="form-group"><label>9. Advance Amount (Security Deposit) *</label><input type="number" id="advanceDeposit" value="0" required oninput="runLiveCalculations()"></div>
                     </div>
                     <button type="button" class="btn btn-blue" style="width:100%; margin-top:12px;" onclick="confirmAndRegister()">🔒 Confirm & Register Tenant</button>
                 </form>
@@ -119,7 +122,7 @@
                         </tr>
                     </thead>
                     <tbody id="excelGridBody">
-                        <!-- Spreadsheet rows generated dynamically -->
+                        <!-- Generated Dynamically -->
                     </tbody>
                 </table>
             </div>
@@ -150,21 +153,46 @@
         const ownerEmail = localStorage.getItem('brokerEmail') || 'owner@test.com';
         let isRegistered = false;
         let activeRowIdx = 0;
+        let activeDynamicDates = [];
 
-        const datesArray = [
-            "15/09/2025", "15/10/2025", "15/11/2025", "15/12/2025",
-            "15/01/2026", "15/02/2026", "15/03/2026", "15/04/2026",
-            "15/05/2026", "15/06/2026", "15/07/2026", "15/08/2026"
-        ];
+        function generateDynamicDates(startDateStr) {
+            activeDynamicDates = [];
+            if (!startDateStr) return;
+            
+            let parts = startDateStr.split('-');
+            let baseDate = new Date(parts[0], parts[1] - 1, parts[2]); 
+            
+            let day = String(baseDate.getDate()).padStart(2, '0');
+            
+            for (let i = 0; i < 12; i++) {
+                let currentMonthDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
+                let month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
+                let year = currentMonthDate.getFullYear();
+                activeDynamicDates.push(`${day}/${month}/${year}`);
+            }
+        }
+
+        function handleStartDateChange() {
+            const chosenDate = document.getElementById('rentStartDate').value;
+            if (chosenDate) {
+                generateDynamicDates(chosenDate);
+                buildExcelGridUI();
+            }
+        }
 
         function buildExcelGridUI() {
             const tbody = document.getElementById('excelGridBody');
             tbody.innerHTML = '';
             
-            datesArray.forEach((dateStr, idx) => {
+            if (activeDynamicDates.length === 0) {
+                // Default fallback if no date is loaded
+                generateDynamicDates("2026-01-15");
+            }
+
+            activeDynamicDates.forEach((dateStr, idx) => {
                 tbody.innerHTML += `
                     <tr id="row_${idx}">
-                        <td class="read-only-cell">${dateStr}</td>
+                        <td class="read-only-cell" id="dateCell_${idx}">${dateStr}</td>
                         <td><input type="number" id="rent_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
                         <td><input type="number" id="elecUnit_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
                         <td id="elecBill_${idx}" class="read-only-cell">0</td>
@@ -179,7 +207,7 @@
             activeRowIdx = idx;
             const rent = Number(document.getElementById(`rent_${idx}`).value || 0);
             const currentUnits = Number(document.getElementById(`elecUnit_${idx}`).value || 0);
-            const rate = Number(document.getElementById('unitRate').value || 9);
+            const rate = Number(document.getElementById('unitRate').value || 10);
             
             const prevUnits = idx === 0 ? 0 : Number(document.getElementById(`elecUnit_${idx-1}`).value || 0);
             const unitsConsumed = Math.max(0, currentUnits - prevUnits);
@@ -197,18 +225,21 @@
         function updateLiveReceiptView(idx, rent, units, elec, water, total) {
             const name = document.getElementById('tName').value || '----------';
             const mobile = document.getElementById('tMobile').value || '----------';
+            const advance = document.getElementById('advanceDeposit').value || '0';
+            const currentDateStr = activeDynamicDates[idx] || '----------';
             
             document.getElementById('liveReceiptView').innerHTML = `
                 <div class="receipt-header">TANGENT DIGITAL KHATA</div>
                 <b>Room No:</b> ${activeRoom}<br>
                 <b>Tenant:</b> ${name}<br>
                 <b>Mobile:</b> ${mobile}<br>
-                <b>Billing Date:</b> ${datesArray[idx]}<br>
+                <b>Billing Date:</b> ${currentDateStr}<br>
                 --------------------------<br>
-                • Room Rent    : ₹${rent}<br>
-                • Power Units  : ${units}<br>
-                • Light Bill   : ₹${elec}<br>
-                • Water Bill   : ₹${water}<br>
+                • Advance (Security): ₹${advance}<br>
+                • Room Rent         : ₹${rent}<br>
+                • Power Units Added : ${units}<br>
+                • Light Bill Total  : ₹${elec}<br>
+                • Water Bill Charges: ₹${water}<br>
                 --------------------------<br>
                 <b style="font-size:15px; color:#27ae60;">NET PAYABLE  : ₹${total}</b><br>
                 --------------------------<br>
@@ -231,6 +262,7 @@
                 const result = await res.json();
                 
                 document.getElementById('regForm').reset();
+                activeDynamicDates = [];
                 buildExcelGridUI();
                 document.getElementById('regOverlay').style.display = 'none';
                 document.getElementById('btnSaveRow').disabled = true;
@@ -246,13 +278,23 @@
                         document.getElementById('tName').value = activeTenant.tenantName || '';
                         document.getElementById('tFatherName').value = activeTenant.tenantFatherName || '';
                         document.getElementById('tMobile').value = activeTenant.mobileNo || '';
-                        document.getElementById('rentStartDate').value = activeTenant.joiningDate || '';
-                        document.getElementById('unitRate').value = activeTenant.unitRate || 9;
+                        
+                        // Set start date and regenerate layout dates
+                        if (activeTenant.joiningDate) {
+                            document.getElementById('rentStartDate').value = activeTenant.joiningDate;
+                            generateDynamicDates(activeTenant.joiningDate);
+                            buildExcelGridUI();
+                        }
+                        
+                        document.getElementById('unitRate').value = activeTenant.unitRate || 10;
                         document.getElementById('familyMembers').value = activeTenant.familyMembers || 1;
                         document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
                         document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
+                        
+                        // Restore advance field from database placeholder mapping
+                        document.getElementById('advanceDeposit').value = activeTenant.balanceOpening || 0;
 
-                        // Database se data load karke grid cells me restore karein
+                        // Load Grid row index zero fields safely
                         document.getElementById('rent_0').value = activeTenant.monthlyRent || 0;
                         document.getElementById('elecUnit_0').value = activeTenant.currentUnitReading || 0;
                         document.getElementById('waterBill_0').value = activeTenant.waterOrOtherCharges || 0;
@@ -263,12 +305,11 @@
         }
 
         async function confirmAndRegister() {
-            if(!document.getElementById('tName').value || !document.getElementById('tMobile').value) {
-                alert("कृपया पहले किरायेदार का नाम और मोबाइल नंबर भरें!");
+            if(!document.getElementById('tName').value || !document.getElementById('tMobile').value || !document.getElementById('rentStartDate').value) {
+                alert("कृपया पहले किरायेदार का नाम, मोबाइल नंबर और रूम रेंट स्टार्ट डेट भरें!");
                 return;
             }
             
-            // Registration details data ko lock karne ke liye pehla dummy sync hit
             await sendPayloadToServer(false);
             isRegistered = true;
             document.getElementById('regOverlay').style.display = 'flex';
@@ -283,14 +324,16 @@
 
         async function sendPayloadToServer(lockRecord) {
             const idx = activeRowIdx;
+            const chosenStartDate = document.getElementById('rentStartDate').value;
+            
             const payload = {
                 ownerEmail,
                 roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
                 tenantFatherName: document.getElementById('tFatherName').value,
                 mobileNo: document.getElementById('tMobile').value,
-                joiningDate: document.getElementById('rentStartDate').value,
-                unitRate: Number(document.getElementById('unitRate').value || 9),
+                joiningDate: chosenStartDate, 
+                unitRate: Number(document.getElementById('unitRate').value || 10),
                 familyMembers: Number(document.getElementById('familyMembers').value || 1),
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
@@ -299,7 +342,7 @@
                 monthlyRent: Number(document.getElementById(`rent_${idx}`).value || 0),
                 currentUnitReading: Number(document.getElementById(`elecUnit_${idx}`).value || 0),
                 waterOrOtherCharges: Number(document.getElementById(`waterBill_${idx}`).value || 0),
-                balanceOpening: idx === 0 ? 0 : Number(document.getElementById(`total_${idx-1}`).innerText || 0),
+                balanceOpening: Number(document.getElementById('advanceDeposit').value || 0), // Mapping advance box to opening field block
                 amountReceived: Number(document.getElementById(`total_${idx}`).innerText || 0),
                 paymentMode: 'UPI/Online',
                 status: 'Active',
@@ -314,8 +357,12 @@
                 });
                 const data = await res.json();
                 alert(data.message);
-                loadRoomConfigurationData();
-            } catch(e) { alert("डेटाबेस सिंक फेल हुआ।"); }
+                
+                // Keep the dynamic state stable after update sync completes
+                if (chosenStartDate) {
+                    generateDynamicDates(chosenStartDate);
+                }
+            } catch(e) { alert("ড্রেটাবেস সিঙ্ক ফেল হয়েছে।"); }
         }
 
         async function triggerLeaveRoom() {
