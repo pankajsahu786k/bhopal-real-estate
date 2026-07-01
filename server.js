@@ -132,187 +132,73 @@ const universalReceiptSchema = new mongoose.Schema({
 }, { timestamps: true });
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 
-// ==========================================
-// 🏠 FRESH TENANT LEDGER SCHEMA (🔥 RESET COLLECTION TO FIX ERRORS)
-// ==========================================
+// =========================================================================
+// 🏠 NEW FRESH TENANT LEDGER SCHEMA (🔥 RESET COLLECTION TO FIX ERRORS)
+// =========================================================================
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
     roomOrFlatNo: { type: String, required: true },
     
-    tenantName: { type: String, required: true },
-    tenantFatherName: { type: String, default: '' },
-    mobileNo: { type: String, default: '' },
-    joiningDate: { type: String, default: '' }, 
-    unitRate: { type: Number, default: 10 },      
-    familyMembers: { type: Number, default: 1 },
-    aadharNumber: { type: String, default: '' }, 
-    jobStatus: { type: String, default: 'Student' }, 
-    tenantEmail: { type: String, default: '' }, // Removed duplicate key uniqueness
+    tenantName: String,
+    tenantFatherName: String,
+    mobileNo: String,
+    joiningDate: String, 
+    unitRate: Number,      
+    familyMembers: Number,
+    aadharNumber: String, 
+    jobStatus: String, 
+    tenantEmail: String, 
 
-    balanceOpening: { type: Number, default: 0 }, 
-    monthlyRent: { type: Number, default: 0 },
-    totalRentDue: { type: Number, default: 0 }, 
-    previousUnitReading: { type: Number, default: 0 },
-    currentUnitReading: { type: Number, default: 0 },
-    totalUnitConsumption: { type: Number, default: 0 }, 
-    totalElectricityBill: { type: Number, default: 0 }, 
-    waterOrOtherCharges: { type: Number, default: 0 }, 
-    totalAmountPayable: { type: Number, default: 0 }, 
-    amountReceived: { type: Number, default: 0 },
-    paymentMode: { type: String, enum: ['Cash', 'UPI/Online', 'Check', 'Unpaid'], default: 'Unpaid' }, 
-    remainderBalance: { type: Number, default: 0 }, 
-    
-    status: { type: String, enum: ['Active', 'Left'], default: 'Active' }, 
-    isLocked: { type: Boolean, default: false }, 
-    lastUpdated: { type: Date, default: Date.now }
+    // ✅ FIXED: Array-based storage to prevent data overwrite
+    monthlyEntries: [{
+        monthDate: String,
+        rent: Number,
+        electricityUnit: Number,
+        billAmount: Number,
+        waterBill: Number,
+        total: Number,
+        isLocked: { type: Boolean, default: false }
+    }],
+    status: { type: String, enum: ['Active', 'Left'], default: 'Active' }
 }, { 
     timestamps: true,
-    collection: 'bhopal_active_tenants_v2' // Magic Fix: Start completely fresh to bypass MongoDB constraints
+    collection: 'bhopal_active_tenants_v3' 
 });
 
 const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedger', TenantLedgerSchema);
 
-// ==========================================
 // 🚀 MASTER API ROUTE: UPSERT ENGINE
-// ==========================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
-        const {
-            ownerEmail, roomOrFlatNo, tenantName, tenantFatherName, mobileNo,
-            joiningDate, unitRate, familyMembers, aadharNumber, jobStatus,
-            balanceOpening, monthlyRent, previousUnitReading, currentUnitReading,
-            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord
-        } = req.body;
-
-        const rentOpening = Number(balanceOpening || 0);
-        const rentMon = Number(monthlyRent || 0);
-        const totalRentDue = rentOpening + rentMon;
-        const prevRead = Number(previousUnitReading || 0);
-        const currRead = Number(currentUnitReading || 0);
-        const totalUnitConsumption = Math.max(0, currRead - prevRead);
-        const rate = Number(unitRate || 10);
-        const totalElectricityBill = totalUnitConsumption * rate;
-        const other = Number(waterOrOtherCharges || 0);
-        const totalAmountPayable = totalRentDue + totalElectricityBill + other;
-        const recAmount = Number(amountReceived || 0);
-        const remainderBalance = totalAmountPayable - recAmount;
-
-        let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
-
-        if (tenant) {
-            if (status === 'Left') {
-                tenant.status = 'Left';
-                tenant.isLocked = true;
-                tenant.remainderBalance = remainderBalance;
-                tenant.amountReceived = recAmount;
-                tenant.paymentMode = paymentMode;
-                await tenant.save();
-
-                const invoiceTxnId = 'INV_LEFT_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                const leaveReceipt = new UniversalReceipt({
-                    userEmail: ownerEmail.toLowerCase().trim(),
-                    serviceName: `Rent Invoice (Left) Room ${roomOrFlatNo} - ${tenant.tenantName}`,
-                    transactionId: invoiceTxnId,
-                    amountPaid: recAmount,
-                    paymentStatus: paymentMode !== 'Unpaid' ? 'Paid' : 'Unpaid'
-                });
-                await leaveReceipt.save();
-
-                return res.json({ success: true, message: '🚪 किरायेदार ने कमरा खाली कर दिया है! इनका पूरा डेटाबेस इतिहास फ़ोल्डर में आर्काइव हो गया है।' });
-            }
-
-            if (tenant.isLocked && lockRecord !== true) {
-                return res.status(403).json({ success: false, message: '❌ सुरक्षा लॉक: यह डेटा लॉक हो चुका है।' });
-            }
-
-            tenant.tenantName = tenantName || tenant.tenantName;
-            tenant.tenantFatherName = tenantFatherName || tenant.tenantFatherName;
-            tenant.mobileNo = mobileNo || tenant.mobileNo;
-            tenant.joiningDate = joiningDate || tenant.joiningDate;
-            tenant.unitRate = Number(unitRate || tenant.unitRate);
-            tenant.familyMembers = Number(familyMembers || tenant.familyMembers);
-            tenant.aadharNumber = aadharNumber || tenant.aadharNumber;
-            tenant.jobStatus = jobStatus || tenant.jobStatus;
-
-            tenant.balanceOpening = rentOpening;
-            tenant.monthlyRent = rentMon;
-            tenant.totalRentDue = totalRentDue;
-            tenant.previousUnitReading = prevRead;
-            tenant.currentUnitReading = currRead;
-            tenant.totalUnitConsumption = totalUnitConsumption;
-            tenant.totalElectricityBill = totalElectricityBill;
-            tenant.waterOrOtherCharges = other;
-            tenant.totalAmountPayable = totalAmountPayable;
-            tenant.amountReceived = recAmount;
-            tenant.paymentMode = paymentMode;
-
-            if (lockRecord === true) {
-                tenant.isLocked = true;
-                await tenant.save();
-
-                const invoiceTxnId = 'INV_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                const newInvoiceReceipt = new UniversalReceipt({
-                    userEmail: ownerEmail.toLowerCase().trim(),
-                    serviceName: `Rent Invoice (${roomOrFlatNo}) - ${tenant.tenantName}`,
-                    transactionId: invoiceTxnId,
-                    amountPaid: recAmount,
-                    paymentStatus: paymentMode !== 'Unpaid' ? 'Paid' : 'Unpaid'
-                });
-                await newInvoiceReceipt.save();
-
-                const nextMonthRow = new TenantLedger({
-                    ownerEmail, roomOrFlatNo, 
-                    tenantName: tenant.tenantName, tenantFatherName: tenant.tenantFatherName,
-                    mobileNo: tenant.mobileNo, joiningDate: tenant.joiningDate,
-                    unitRate: tenant.unitRate, familyMembers: tenant.familyMembers,
-                    aadharNumber: tenant.aadharNumber, jobStatus: tenant.jobStatus, tenantEmail: '',
-                    balanceOpening: remainderBalance, monthlyRent: rentMon, totalRentDue: remainderBalance + rentMon,
-                    previousUnitReading: currRead, currentUnitReading: 0, totalUnitConsumption: 0,
-                    totalElectricityBill: 0, waterOrOtherCharges: other,
-                    totalAmountPayable: remainderBalance + rentMon + other, amountReceived: 0, paymentMode: 'Unpaid', status: 'Active',
-                    isLocked: false
-                });
-                await nextMonthRow.save();
-            } else {
-                await tenant.save();
-            }
-
-        } else {
-            tenant = new TenantLedger({
-                ownerEmail, roomOrFlatNo, tenantName, tenantFatherName, mobileNo,
-                joiningDate, unitRate: Number(unitRate || 10), familyMembers: Number(familyMembers || 1),
-                aadharNumber, jobStatus, tenantEmail: '',
-                balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
-                previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
-                totalElectricityBill, waterOrOtherCharges: other, totalAmountPayable,
-                amountReceived: recAmount, paymentMode, status: 'Active', isLocked: false
-            });
-            await tenant.save();
-        }
-
-        res.json({ success: true, message: lockRecord ? '🔒 महीना लॉक हो गया!' : '✅ प्रोग्रेस सुरक्षित डेटाबेस में सेव हो गया है!' });
-
+        const { ownerEmail, roomOrFlatNo, monthlyEntries, ...tenantDetails } = req.body;
+        
+        await TenantLedger.updateOne(
+            { ownerEmail, roomOrFlatNo, status: 'Active' },
+            { 
+                $set: { 
+                    ...tenantDetails, 
+                    monthlyEntries: monthlyEntries 
+                } 
+            },
+            { upsert: true }
+        );
+        res.json({ success: true, message: "✅ डेटा सफलतापूर्ण सेव हो गया!" });
     } catch (error) {
-        console.error("Upsert Ledger Error:", error);
+        console.error("Database Save Error:", error);
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
 
 // ==========================================
-// 3️⃣ OTHER API ROUTES (Kept Exactly As Is from your file)
+// 3️⃣ OTHER API ROUTES (Old Functions Preserved)
 // ==========================================
 app.post('/api/save-rent-agreement', async (req, res) => {
     try {
         const { userEmail, agreementData } = req.body;
-        const newAgreement = new RentAgreement({
-            userEmail: userEmail.toLowerCase().trim(),
-            ...agreementData
-        });
+        const newAgreement = new RentAgreement({ userEmail: userEmail.toLowerCase().trim(), ...agreementData });
         await newAgreement.save();
         res.json({ success: true, message: '✅ Rent Agreement safely archived!' });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
 app.get('/api/user/my-verifications', async (req, res) => {
@@ -321,9 +207,7 @@ app.get('/api/user/my-verifications', async (req, res) => {
         if (!email) return res.status(400).json({ success: false, message: "Email parameter missing" });
         const data = await Verification.find({ userEmail: email.toLowerCase().trim() }).sort({ createdAt: -1 });
         res.json({ success: true, data: data });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
+    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
 app.post('/api/save-receipt', async (req, res) => {
@@ -331,16 +215,12 @@ app.post('/api/save-receipt', async (req, res) => {
         const { userEmail, serviceName, transactionId, amountPaid, paymentStatus } = req.body;
         const newReceipt = new UniversalReceipt({
             userEmail: userEmail.toLowerCase().trim(),
-            serviceName,
-            transactionId,
-            amountPaid,
+            serviceName, transactionId, amountPaid,
             paymentStatus: paymentStatus || 'Paid'
         });
         await newReceipt.save();
         res.json({ success: true, message: "Receipt generated automatically!" });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 app.get('/api/my-receipts', async (req, res) => {
@@ -349,62 +229,41 @@ app.get('/api/my-receipts', async (req, res) => {
         if (!email) return res.status(400).json({ success: false, message: "Email required" });
         const receipts = await UniversalReceipt.find({ userEmail: email.toLowerCase().trim() }).sort({ createdAt: -1 });
         res.json({ success: true, receipts });
-    } catch (e) {
-        res.status(500).json({ success: false });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/track-service/:serviceName', async (req, res) => {
     try {
         const serviceName = req.params.serviceName;
-        await ServiceAnalytics.findOneAndUpdate(
-            { serviceName: serviceName },
-            { $inc: { clicks: 1 } },
-            { new: true, upsert: true }
-        );
+        await ServiceAnalytics.findOneAndUpdate({ serviceName: serviceName }, { $inc: { clicks: 1 } }, { new: true, upsert: true });
         res.json({ success: true });
-    } catch(e) {
-        res.status(500).json({ success: false });
-    }
+    } catch(e) { res.status(500).json({ success: false }); }
 });
 
 app.get('/api/admin/service-analytics', async (req, res) => {
     try {
         const analytics = await ServiceAnalytics.find({}).sort({ clicks: -1 });
         res.json({ success: true, data: analytics });
-    } catch(e) {
-        res.status(500).json({ success: false });
-    }
+    } catch(e) { res.status(500).json({ success: false }); }
 });
 
 app.get('/api/payment-status', async (req, res) => {
     try {
         const bypassConfig = await Config.findOne({ key: 'bypassPayment' });
-        const isBypassed = bypassConfig ? bypassConfig.value : false;
-        res.json({ success: true, isPaymentBypassed: isBypassed });
-    } catch (e) {
-        res.status(500).json({ success: false, isPaymentBypassed: false });
-    }
+        res.json({ success: true, isPaymentBypassed: bypassConfig ? bypassConfig.value : false });
+    } catch (e) { res.status(500).json({ success: false, isPaymentBypassed: false }); }
 });
 
 app.post('/api/admin/toggle-payment', async (req, res) => {
     try {
         const { bypass } = req.body;
-        await Config.findOneAndUpdate(
-            { key: 'bypassPayment' },
-            { value: bypass },
-            { new: true, upsert: true }
-        );
+        await Config.findOneAndUpdate({ key: 'bypassPayment' }, { value: bypass }, { new: true, upsert: true });
         res.json({ success: true, message: bypass ? "Payment BYPASSED (Free Mode Active) 🔓" : "Payment ENABLED (Paid Mode Active) 💳" });
-    } catch (e) {
-        res.status(500).json({ success: false });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/submit-verification', upload.fields([
-    { name: 'tenantPhoto', maxCount: 1 },
-    { name: 'aadharFront', maxCount: 1 },
-    { name: 'aadharBack', maxCount: 1 }
+    { name: 'tenantPhoto', maxCount: 1 }, { name: 'aadharFront', maxCount: 1 }, { name: 'aadharBack', maxCount: 1 }
 ]), async (req, res) => {
     try {
         const tenantPhotoUrl = req.files && req.files['tenantPhoto'] ? req.files['tenantPhoto'][0].path : 'https://placehold.co/150x150?text=No+Photo';
@@ -414,12 +273,7 @@ app.post('/api/submit-verification', upload.fields([
         const targetTxn = req.body.transactionId || 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
 
         const verificationData = { 
-            ...req.body, 
-            tenantPhoto: tenantPhotoUrl,
-            aadharFrontPhoto: aadharFrontUrl,
-            aadharBackPhoto: aadharBackUrl,
-            status: 'Pending', 
-            transactionId: targetTxn
+            ...req.body, tenantPhoto: tenantPhotoUrl, aadharFrontPhoto: aadharFrontUrl, aadharBackPhoto: aadharBackUrl, status: 'Pending', transactionId: targetTxn
         };
 
         const newRequest = new Verification(verificationData);
@@ -427,19 +281,12 @@ app.post('/api/submit-verification', upload.fields([
 
         const latestProfile = await BrokerProfile.findOne({}).sort({ updatedAt: -1 });
         let activeAgentPhone = "919575611622"; 
-
         if (latestProfile && latestProfile.phone) {
             activeAgentPhone = latestProfile.phone.replace(/\D/g, '');
-            if (activeAgentPhone.length === 10) {
-                activeAgentPhone = "91" + activeAgentPhone;
-            }
+            if (activeAgentPhone.length === 10) activeAgentPhone = "91" + activeAgentPhone;
         }
 
-        res.json({ 
-            success: true, 
-            message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!',
-            agentPhone: activeAgentPhone 
-        });
+        res.json({ success: true, message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!', agentPhone: activeAgentPhone });
     } catch (error) { 
         console.error("Verification error:", error);
         res.status(500).json({ success: false, message: 'Server Error' }); 
@@ -459,7 +306,6 @@ app.delete('/api/user/delete-property/:id', async (req, res) => {
     try {
         const property = await Property.findById(req.params.id);
         if (!property) return res.status(404).json({ success: false, message: 'Property not found' });
-
         if (property.images && property.images.length > 0) {
             for (const imgUrl of property.images) {
                 try {
@@ -468,12 +314,9 @@ app.delete('/api/user/delete-property/:id', async (req, res) => {
                 } catch(e) { console.log("Cloudinary image delete error:", e); }
             }
         }
-        
         await Property.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Property permanently deleted!' });
-    } catch (error) { 
-        res.status(500).json({ success: false, message: 'Server Error' }); 
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
 app.get('/api/admin/verifications', async (req, res) => {
@@ -485,33 +328,18 @@ app.get('/api/admin/verifications', async (req, res) => {
 
 app.post('/api/admin/upload-verification-doc/:id', pdfUpload.single('verificationDoc'), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
-        }
-
+        if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
         const uploadResult = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: 'bhopal_properties_docs',
-                    resource_type: 'auto',
-                    format: 'pdf',          
-                    public_id: `Verification_${req.params.id}_${Date.now()}`
-                },
-                (error, result) => {
-                    if (error) return reject(error);
-                    resolve(result);
-                }
+                { folder: 'bhopal_properties_docs', resource_type: 'auto', format: 'pdf', public_id: `Verification_${req.params.id}_${Date.now()}` },
+                (error, result) => { if (error) return reject(error); resolve(result); }
             );
             uploadStream.end(req.file.buffer);
         });
-
         const docUrl = uploadResult.secure_url || uploadResult.url;
         await Verification.findByIdAndUpdate(req.params.id, { status: 'Complete', documentUrl: docUrl });
         res.json({ success: true, message: '✅ PDF Uploaded and Status marked as Complete!' });
-    } catch (error) { 
-        console.error("Cloudinary Upload Error:", error);
-        res.status(500).json({ success: false, message: 'Server Error' }); 
-    }
+    } catch (error) { console.error("Cloudinary Upload Error:", error); res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
 app.post('/api/admin/change-verification-status/:id', async (req, res) => {
@@ -555,15 +383,10 @@ app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (r
 
 app.post('/api/rk-upload-image', upload.single('rkImage'), (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ success: false, message: 'No file uploaded' });
-        }
+        if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
         const uploadedUrl = req.file.path || req.file.url;
         return res.json({ success: true, url: uploadedUrl });
-    } catch (error) {
-        console.error("Cloudinary upload error:", error);
-        return res.status(500).json({ success: false, message: 'Server Error' });
-    }
+    } catch (error) { console.error("Cloudinary upload error:", error); return res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
 app.post('/api/rk-add-package', async (req, res) => {
@@ -572,10 +395,7 @@ app.post('/api/rk-add-package', async (req, res) => {
         packageData.status = 'published'; 
         await mongoose.connection.db.collection(`${category}_cards`).insertOne(packageData);
         res.json({ success: true, message: 'Package uploaded successfully to local db!' });
-    } catch (error) {
-        console.error("DB Save Error:", error);
-        res.status(500).json({ success: false, message: 'Database Save Failed' });
-    }
+    } catch (error) { console.error("DB Save Error:", error); res.status(500).json({ success: false, message: 'Database Save Failed' }); }
 });
 
 app.get('/api/rk-get-packages/:category', async (req, res) => {
@@ -583,39 +403,25 @@ app.get('/api/rk-get-packages/:category', async (req, res) => {
         const { category } = req.params;
         const items = await mongoose.connection.db.collection(`${category}_cards`).find({}).sort({ id: -1 }).toArray();
         res.json({ success: true, data: items });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Fetch Failed' });
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Fetch Failed' }); }
 });
 
 app.put('/api/rk-edit-package', async (req, res) => {
     try {
         const { category, id, updateData } = req.body;
         const { ObjectId } = require('mongodb');
-        await mongoose.connection.db.collection(`${category}_cards`).updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updateData }
-        );
+        await mongoose.connection.db.collection(`${category}_cards`).updateOne({ _id: new ObjectId(id) }, { $set: updateData });
         res.json({ success: true, message: 'Package updated successfully!' });
-    } catch (error) {
-        console.error("DB Update Error:", error);
-        res.status(500).json({ success: false, message: 'Edit Process Failed' });
-    }
+    } catch (error) { console.error("DB Update Error:", error); res.status(500).json({ success: false, message: 'Edit Process Failed' }); }
 });
 
 app.post('/api/rk-toggle-status', async (req, res) => {
     try {
         const { category, id, status } = req.body;
         const { ObjectId } = require('mongodb');
-        await mongoose.connection.db.collection(`${category}_cards`).updateOne(
-            { _id: new ObjectId(id) },
-            { $set: { status: status } }
-        );
+        await mongoose.connection.db.collection(`${category}_cards`).updateOne({ _id: new ObjectId(id) }, { $set: { status: status } });
         res.json({ success: true, message: 'Status switched successfully!' });
-    } catch (error) {
-        console.error("Status Toggle Error:", error);
-        res.status(500).json({ success: false });
-    }
+    } catch (error) { console.error("Status Toggle Error:", error); res.status(500).json({ success: false }); }
 });
 
 app.delete('/api/rk-delete-package/:category/:id', async (req, res) => {
@@ -624,10 +430,7 @@ app.delete('/api/rk-delete-package/:category/:id', async (req, res) => {
         const { ObjectId } = require('mongodb');
         await mongoose.connection.db.collection(`${category}_cards`).deleteOne({ _id: new ObjectId(id) });
         res.json({ success: true, message: 'Package deleted successfully from local db!' });
-    } catch (error) {
-        console.error("DB Delete Error:", error);
-        res.status(500).json({ success: false, message: 'Delete Operation Failed' });
-    }
+    } catch (error) { console.error("DB Delete Error:", error); res.status(500).json({ success: false, message: 'Delete Operation Failed' }); }
 });
 
 app.get('/api/get-properties', async(req, res) => {
@@ -689,7 +492,6 @@ app.post('/api/signup', async (req, res) => {
         await PendingUser.deleteMany({ email: emailLower });
         const newPendingUser = new PendingUser({ name, email: emailLower, password, otp });
         await newPendingUser.save();
-        console.log(`🔑 OTP for ${emailLower} is: [ ${otp} ]`);
         res.json({ success: true, requireOtp: true, generatedOtp: otp });
     } catch (error) { res.status(500).json({ success: false }); }
 });
@@ -719,22 +521,12 @@ app.post('/api/login', async (req, res) => {
             if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
             return res.json({ success: true, name: user.name, email: user.email, role: actualRole });
         }
-
         const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
         if (tenant) {
-            return res.json({ 
-                success: true, 
-                name: tenant.tenantName, 
-                email: tenant.tenantEmail, 
-                role: 'tenant',
-                tenantData: tenant 
-            });
+            return res.json({ success: true, name: tenant.tenantName, email: tenant.tenantEmail, role: 'tenant', tenantData: tenant });
         }
-
         return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड!' });
-    } catch (error) { 
-        res.status(500).json({ success: false, message: 'Server Error' }); 
-    }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
 app.get('/api/admin/all-data', async (req, res) => {

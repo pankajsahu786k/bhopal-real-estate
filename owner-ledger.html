@@ -308,35 +308,32 @@
         }
 
         async function saveExcelRowData() {
-            if(!isRegistered) { alert("कृपया पहले पंजीकरण करें!"); return; }
-            await sendPayloadToServer(false);
-        }
+    let entries = [];
+    for(let i = 0; i < 12; i++) {
+        entries.push({
+            monthDate: document.getElementById(`dateCell_${i}`).innerText,
+            rent: Number(document.getElementById(`rent_${i}`).value || 0),
+            electricityUnit: Number(document.getElementById(`elecUnit_${i}`).value || 0),
+            billAmount: Number(document.getElementById(`elecBill_${i}`).innerText || 0),
+            waterBill: Number(document.getElementById(`waterBill_${i}`).value || 0),
+            total: Number(document.getElementById(`total_${i}`).innerText || 0)
+        });
+    }
 
-        async function sendPayloadToServer(lockRecord) {
-            const idx = activeRowIdx;
-            const chosenStartDate = document.getElementById('rentStartDate').value;
+    const payload = {
+        ownerEmail: localStorage.getItem('brokerEmail'),
+        roomOrFlatNo: activeRoom,
+        tenantName: document.getElementById('tName').value,
+        monthlyEntries: entries
+    };
 
-            const payload = {
-                ownerEmail,
-                roomOrFlatNo: activeRoom,
-                tenantName: document.getElementById('tName').value,
-                tenantFatherName: document.getElementById('tFatherName').value,
-                mobileNo: document.getElementById('tMobile').value,
-                joiningDate: chosenStartDate, 
-                unitRate: Number(document.getElementById('unitRate').value || 10),
-                familyMembers: Number(document.getElementById('familyMembers').value || 1),
-                aadharNumber: document.getElementById('tAadhar').value,
-                jobStatus: document.getElementById('jobStatus').value,
-
-                monthlyRent: Number(document.getElementById(`rent_${idx}`).value || 0),
-                currentUnitReading: Number(document.getElementById(`elecUnit_${idx}`).value || 0),
-                waterOrOtherCharges: Number(document.getElementById(`waterBill_${idx}`).value || 0),
-                balanceOpening: Number(document.getElementById('advanceDeposit').value || 0),
-                amountReceived: Number(document.getElementById(`total_${idx}`).innerText || 0),
-                paymentMode: 'UPI/Online',
-                status: 'Active',
-                lockRecord: lockRecord
-            };
+    const res = await fetch('/api/owner/upsert-tenant-ledger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    alert("✅ डेटा सेव हो गया!");
+}
 
             try {
                 const res = await fetch('/api/owner/upsert-tenant-ledger', {
@@ -358,7 +355,7 @@
             } catch(e) { 
                 alert("डेटाबेस सिंक फेल हुआ। कृपया सुनिश्चित करें कि बैकएंड लाइव है।"); 
             }
-        }
+        
 
         async function triggerLeaveRoom() {
             if(!isRegistered) return;
