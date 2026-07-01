@@ -22,7 +22,6 @@ cloudinary.config({
     api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
 });
 
-// 📷 Images ke liye normal Cloudinary Storage setup
 const imageStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
@@ -31,8 +30,6 @@ const imageStorage = new CloudinaryStorage({
     }
 });
 const upload = multer({ storage: imageStorage });
-
-// 📄 PDFs ke liye Memory Storage setup taaki binary buffer direct upload ho sake
 const pdfUpload = multer({ storage: multer.memoryStorage() });
 
 // ==========================================
@@ -136,49 +133,46 @@ const universalReceiptSchema = new mongoose.Schema({
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 
 // ==========================================
-// 🏠 UPGRADED TENANT LEDGER SCHEMA (As Per Your Paper & Excel Design)
+// 🏠 UPGRADED TENANT LEDGER SCHEMA (🔥 FIXED & ALIGNED)
 // ==========================================
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
     roomOrFlatNo: { type: String, required: true },
     
-    // 📝 Step 1: Fix Registration Details (केवल पहली बार भरी जाएंगी)
+    // 📝 Step 1: Fixed Registration Details
     tenantName: { type: String, required: true },
     tenantFatherName: { type: String, default: '' },
     mobileNo: { type: String, default: '' },
-    joiningDate: { type: String, default: '' }, // Room Rent Start Date
-    unitRate: { type: Number, default: 9 },      // Electricity Unit Rate
+    joiningDate: { type: String, default: '' }, 
+    unitRate: { type: Number, default: 10 },      
     familyMembers: { type: Number, default: 1 },
-    aadharNumber: { type: String, default: '' }, // Securely Redacted Placeholder Handling
-    jobStatus: { type: String, default: 'Student' }, // Job Status / Student
+    aadharNumber: { type: String, default: '' }, 
+    jobStatus: { type: String, default: 'Student' }, 
     tenantEmail: { type: String, default: 'guest@tenant.com' },
 
     // 📊 Step 2: Excel Grid Rows (मासिक कैलकुलेशन डेटा)
-    balanceOpening: { type: Number, default: 0 }, 
+    balanceOpening: { type: Number, default: 0 }, // Used for Advance Deposit storage maps too
     monthlyRent: { type: Number, default: 0 },
     totalRentDue: { type: Number, default: 0 }, 
     previousUnitReading: { type: Number, default: 0 },
     currentUnitReading: { type: Number, default: 0 },
     totalUnitConsumption: { type: Number, default: 0 }, 
     totalElectricityBill: { type: Number, default: 0 }, 
-    waterOrOtherCharges: { type: Number, default: 0 }, // Water bill / Other charges
+    waterOrOtherCharges: { type: Number, default: 0 }, 
     totalAmountPayable: { type: Number, default: 0 }, 
     amountReceived: { type: Number, default: 0 },
     paymentMode: { type: String, enum: ['Cash', 'UPI/Online', 'Check', 'Unpaid'], default: 'Unpaid' }, 
     remainderBalance: { type: Number, default: 0 }, 
     
-    // 🔒 Lifecycle & Re-Allotment Pipeline
     status: { type: String, enum: ['Active', 'Left'], default: 'Active' }, 
-    isLocked: { type: Boolean, default: false }, // true होने पर रजिस्ट्रेशन और पुराना महीना पूरी तरह लॉक
+    isLocked: { type: Boolean, default: false }, 
     lastUpdated: { type: Date, default: Date.now }
 }, { timestamps: true });
 
-// Old indices cleanup to prevent compilation or runtime duplicate key crash
 const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedger', TenantLedgerSchema);
 
-
 // ==========================================
-// 🚀 NEW: TENANT LEDGER & SYSTEMATIC RE-ALLOTMENT PIPELINE API
+// 🚀 MASTER API ROUTE: UPSERT ENGINE (🔥 FIXED DUPES REMOVED)
 // ==========================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
@@ -191,25 +185,22 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 
         const emailLower = tenantEmail ? tenantEmail.toLowerCase().trim() : 'guest@tenant.com';
 
-        // 🧮 Excel Sheet Calculations Engine
         const rentOpening = Number(balanceOpening || 0);
         const rentMon = Number(monthlyRent || 0);
         const totalRentDue = rentOpening + rentMon;
         const prevRead = Number(previousUnitReading || 0);
         const currRead = Number(currentUnitReading || 0);
         const totalUnitConsumption = Math.max(0, currRead - prevRead);
-        const rate = Number(unitRate || 9);
+        const rate = Number(unitRate || 10);
         const totalElectricityBill = totalUnitConsumption * rate;
         const other = Number(waterOrOtherCharges || 0);
         const totalAmountPayable = totalRentDue + totalElectricityBill + other;
         const recAmount = Number(amountReceived || 0);
         const remainderBalance = totalAmountPayable - recAmount;
 
-        // कमरे में वर्तमान में रह रहे चालू (Active) किरायेदार को ढूंढें
         let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
 
         if (tenant) {
-            // अगर चालू किरायेदार पहले से लॉक है और मकान मालिक उसे "Leave Room" में डाल रहा है
             if (status === 'Left') {
                 tenant.status = 'Left';
                 tenant.isLocked = true;
@@ -218,7 +209,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 tenant.paymentMode = paymentMode;
                 await tenant.save();
 
-                // 📂 यूनिवर्सल रसीद टेबल में एक परमानेंट इनवॉइस आईडी छोड़ दें ताकि रसीद हमेशा के लिए लाइव रहे
                 const invoiceTxnId = 'INV_LEFT_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
                 const leaveReceipt = new UniversalReceipt({
                     userEmail: ownerEmail.toLowerCase().trim(),
@@ -231,16 +221,24 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 
                 return res.json({
                     success: true,
-                    message: '🚪 किरायेदार ने कमरा खाली कर दिया है! इनका पूरा डेटाबेस हिस्ट्री फोल्डर में सिस्टेमेटिक ढंग से सेफ हो गया है और यह रूम अब नए किरायेदार के लिए खाली है।'
+                    message: '🚪 किरायेदार ने कमरा खाली कर दिया है! इनका पूरा डेटाबेस इतिहास फ़ोल्डर में आर्काइव हो गया है।'
                 });
             }
 
-            // अगर सिर्फ सामान्य मासिक प्रोग्रेस या लॉकिंग हो रही है
             if (tenant.isLocked && lockRecord !== true) {
-                return res.status(403).json({ success: false, message: '❌ सुरक्षा लॉक: यह डेटा लॉक हो चुका है। अगला हिसाब करने के लिए महीना लॉक दबाएं।' });
+                return res.status(403).json({ success: false, message: '❌ सुरक्षा लॉक: यह डेटा लॉक हो चुका है।' });
             }
 
-            // एक्सेल ग्रिड की लाइव डेटा एंट्री अपडेट करें (रजिस्ट्रेशन डिटेल्स फिक्स रहेंगी)
+            // Sync structural parameters elegantly
+            tenant.tenantName = tenantName || tenant.tenantName;
+            tenant.tenantFatherName = tenantFatherName || tenant.tenantFatherName;
+            tenant.mobileNo = mobileNo || tenant.mobileNo;
+            tenant.joiningDate = joiningDate || tenant.joiningDate;
+            tenant.unitRate = Number(unitRate || tenant.unitRate);
+            tenant.familyMembers = Number(familyMembers || tenant.familyMembers);
+            tenant.aadharNumber = aadharNumber || tenant.aadharNumber;
+            tenant.jobStatus = jobStatus || tenant.jobStatus;
+
             tenant.balanceOpening = rentOpening;
             tenant.monthlyRent = rentMon;
             tenant.totalRentDue = totalRentDue;
@@ -253,12 +251,10 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             tenant.amountReceived = recAmount;
             tenant.paymentMode = paymentMode;
 
-            // 🔒 अगर ओनर ने "Lock Ledger Month" दबाया (महीना क्लोज हुआ)
             if (lockRecord === true) {
                 tenant.isLocked = true;
                 await tenant.save();
 
-                // व्हाट्सएप पर शेयर करने के लिए परमानेंट डिजिटल रसीद ट्रैक इंजन चालू करें
                 const invoiceTxnId = 'INV_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
                 const newInvoiceReceipt = new UniversalReceipt({
                     userEmail: ownerEmail.toLowerCase().trim(),
@@ -269,7 +265,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 });
                 await newInvoiceReceipt.save();
 
-                // 🔄 AUTO ROLLOVER MATRIX: अगले महीने की नई रो बनाएं, रजिस्ट्रेशन डिटेल्स को बिल्कुल FIX (कॉपी) रखें
                 const nextMonthRow = new TenantLedger({
                     ownerEmail, roomOrFlatNo, 
                     tenantName: tenant.tenantName, tenantFatherName: tenant.tenantFatherName,
@@ -288,10 +283,9 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             }
 
         } else {
-            // 📝 FRESH INITIALIZATION: कमरे में कोई एक्टिव किरायेदार नहीं है, बिल्कुल नया रजिस्ट्रेशन करें!
             tenant = new TenantLedger({
                 ownerEmail, roomOrFlatNo, tenantName, tenantFatherName, mobileNo,
-                joiningDate, unitRate: Number(unitRate || 9), familyMembers: Number(familyMembers || 1),
+                joiningDate, unitRate: Number(unitRate || 10), familyMembers: Number(familyMembers || 1),
                 aadharNumber, jobStatus, tenantEmail: emailLower,
                 balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
                 previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
@@ -304,19 +298,19 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.json({ 
             success: true, 
             message: lockRecord 
-                ? '🔒 महीना लॉक हो गया है और व्हाट्सएप शेयरिंग रसीद लिंक परमानेंटली जेनरेट हो गई है!' 
-                : '✅ प्रोग्रेस डेटा सुरक्षित एक्सेल शीट में सेव हो गया है!' 
+                ? '🔒 महीना लॉक हो गया और अगले महीने का खाता चालू हो गया है!' 
+                : '✅ प्रोग्रेस डेटा सुरक्षित डेटाबेस में सेव हो गया है!' 
         });
 
     } catch (error) {
-        console.error("Upsert Ledger Engine Error:", error);
-        res.status(500).json({ success: false, message: 'Server Side Database Sync Error.' });
+        console.error("Upsert Ledger Operational Error Log:", error);
+        res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
-// ==========================================
-// 3️⃣ API ROUTES
-// ==========================================
 
+// ==========================================
+// 3️⃣ OTHER API ROUTES
+// ==========================================
 app.post('/api/save-rent-agreement', async (req, res) => {
     try {
         const { userEmail, agreementData } = req.body;
@@ -662,7 +656,6 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// RAZORPAY SETUP
 const razorpay = new Razorpay({ key_id: 'rzp_test_T3oTzNzTDvWgUL', key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2' });
 app.post('/api/create-order', async (req, res) => {
     try {
@@ -813,121 +806,6 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// ==========================================
-// 🏠 TENANT LEDGER: DIRECT RECEIPT GENERATOR & ARCHIVE MATRIX (🔥 FIXED & SIMPLIFIED MODE)
-// ==========================================
-app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
-    try {
-        const {
-            ownerEmail, roomOrFlatNo, tenantEmail, tenantName, mobileNo,
-            balanceOpening, monthlyRent, previousUnitReading, currentUnitReading, unitRate, 
-            waterOrOtherCharges, amountReceived, paymentMode, status, lockRecord,
-            joiningDate, billingDate
-        } = req.body;
-
-        const emailLower = tenantEmail ? tenantEmail.toLowerCase().trim() : 'guest@tenant.com';
-
-        // 🧮 Simple Calculations
-        const rentOpening = Number(balanceOpening || 0);
-        const rentMon = Number(monthlyRent || 0);
-        const totalRentDue = rentOpening + rentMon;
-        const prevRead = Number(previousUnitReading || 0);
-        const currRead = Number(currentUnitReading || 0);
-        const totalUnitConsumption = Math.max(0, currRead - prevRead);
-        const rate = Number(unitRate || 0);
-        const totalElectricityBill = totalUnitConsumption * rate;
-        const other = Number(waterOrOtherCharges || 0);
-        const totalAmountPayable = totalRentDue + totalElectricityBill + other;
-        const recAmount = Number(amountReceived || 0);
-        const remainderBalance = totalAmountPayable - recAmount;
-
-        // Find active record configuration
-        let tenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, isLocked: false });
-
-        if (tenant) {
-            if (tenant.isLocked) {
-                return res.status(403).json({ success: false, message: '❌ Record already locked!' });
-            }
-
-            tenant.tenantName = tenantName;
-            tenant.tenantEmail = emailLower;
-            tenant.mobileNo = mobileNo;
-            tenant.joiningDate = joiningDate || tenant.joiningDate;
-            tenant.billingDate = billingDate || tenant.billingDate;
-            tenant.balanceOpening = rentOpening;
-            tenant.monthlyRent = rentMon;
-            tenant.totalRentDue = totalRentDue;
-            tenant.previousUnitReading = prevRead;
-            tenant.currentUnitReading = currRead;
-            tenant.totalUnitConsumption = totalUnitConsumption;
-            tenant.unitRate = rate;
-            tenant.totalElectricityBill = totalElectricityBill;
-            tenant.waterOrOtherCharges = other;
-            tenant.totalAmountPayable = totalAmountPayable;
-            tenant.amountReceived = recAmount;
-            tenant.paymentMode = paymentMode;
-            tenant.status = status;
-
-            if (lockRecord === true || status === 'Left') {
-                tenant.isLocked = true;
-                await tenant.save();
-                
-                // 🧾 Generate dynamic unique trace keys for UniversalReceipt schema object
-                const invoiceTxnId = 'INV_' + roomOrFlatNo.replace(/\s+/g, '') + '_' + Math.random().toString(36).substring(2, 8).toUpperCase();
-                
-                const newInvoiceReceipt = new UniversalReceipt({
-                    userEmail: ownerEmail.toLowerCase().trim(),
-                    serviceName: `Rent Invoice (${roomOrFlatNo}) - ${tenantName}`,
-                    transactionId: invoiceTxnId,
-                    amountPaid: recAmount,
-                    paymentStatus: paymentMode !== 'Unpaid' ? 'Paid' : 'Unpaid'
-                });
-                await newInvoiceReceipt.save();
-
-                // 🔄 AUTO ROLLOVER: Next month creation map block
-                if (status !== 'Left') {
-                    const nextMonthRow = new TenantLedger({
-                        ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
-                        joiningDate: joiningDate || '',
-                        billingDate: '',
-                        balanceOpening: remainderBalance, monthlyRent: rentMon, totalRentDue: remainderBalance + rentMon,
-                        previousUnitReading: currRead, currentUnitReading: 0, totalUnitConsumption: 0,
-                        unitRate: rate, totalElectricityBill: 0, waterOrOtherCharges: other,
-                        totalAmountPayable: remainderBalance + rentMon + other, amountReceived: 0, paymentMode: 'Unpaid', status: 'Active',
-                        isLocked: false
-                    });
-                    await nextMonthRow.save();
-                }
-            } else {
-                await tenant.save();
-            }
-        } else {
-            // Fresh allocation deployment initialization block
-            tenant = new TenantLedger({
-                ownerEmail, roomOrFlatNo, tenantEmail: emailLower, tenantName, mobileNo,
-                joiningDate: joiningDate || '',
-                billingDate: billingDate || '',
-                balanceOpening: rentOpening, monthlyRent: rentMon, totalRentDue,
-                previousUnitReading: prevRead, currentUnitReading: currRead, totalUnitConsumption,
-                unitRate: rate, totalElectricityBill, waterOrOtherCharges: other,
-                totalAmountPayable, amountReceived: recAmount, paymentMode, status, isLocked: lockRecord || false
-            });
-            await tenant.save();
-        }
-
-        res.json({ 
-            success: true, 
-            message: lockRecord 
-                ? '🔒 महीना लॉक हो गया! अगले महीने की पुरानी रीडिंग अपने आप अपडेट हो गई है।' 
-                : '✅ प्रोग्रेस डेटा सुरक्षित सेव हो गया है!' 
-        });
-
-    } catch (error) {
-        console.error("Upsert Ledger Operational Error Log:", error);
-        res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
-    }
-});
-
 app.get('/api/owner/my-tenants', async (req, res) => {
     try {
         const { email } = req.query;
@@ -949,7 +827,7 @@ app.post('/api/tenant/login', async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: 'लॉगिन सफल!',
+            message: 'लॉगิน सफल!',
             role: 'tenant',
             tenantData: tenant
         });
@@ -962,7 +840,7 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
     try {
         const { email } = req.query;
         const ledger = await TenantLedger.findOne({ tenantEmail: email });
-        if (!ledger) return res.status(404).json({ success: false, message: 'कोई记录 नहीं मिला।' });
+        if (!ledger) return res.status(404).json({ success: false, message: 'कोई रिकॉर्ड नहीं मिला।' });
         res.json({ success: true, data: ledger });
     } catch (error) {
         res.status(500).json({ success: false });
