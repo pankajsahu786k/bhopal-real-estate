@@ -29,7 +29,6 @@
         .reg-card { border-top: 5px solid #3498db; position: relative; }
         .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #ef4444; }
 
-        /* Modified to 3 columns to easily accommodate 9 inputs elegantly */
         .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: 12px; font-weight: 700; color: #475569; }
@@ -75,6 +74,8 @@
 
             <div class="room-container" id="roomContainer">
                 <div class="room-card selected-room" onclick="switchRoom('Room 101', this)">Room 101</div>
+                <div class="room-card" onclick="switchRoom('Room 102', this)">Room 102</div>
+                <div class="room-card" onclick="switchRoom('Room 103', this)">Room 103</div>
                 <button class="btn-add-room" onclick="addNewRoomButton()">➕ Add Room</button>
             </div>
 
@@ -99,7 +100,6 @@
                                 <option value="Business">Business</option>
                             </select>
                         </div>
-                        <!-- 🔥 NEW FIELD: ADVANCE SECURITY DEPOSIT -->
                         <div class="form-group"><label>9. Advance Amount (Security Deposit) *</label><input type="number" id="advanceDeposit" value="0" required oninput="runLiveCalculations()"></div>
                     </div>
                     <button type="button" class="btn btn-blue" style="width:100%; margin-top:12px;" onclick="confirmAndRegister()">🔒 Confirm & Register Tenant</button>
@@ -141,7 +141,7 @@
             </div>
 
             <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.736 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.733 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
                 Share Invoice To WhatsApp
             </button>
         </div>
@@ -161,7 +161,6 @@
             
             let parts = startDateStr.split('-');
             let baseDate = new Date(parts[0], parts[1] - 1, parts[2]); 
-            
             let day = String(baseDate.getDate()).padStart(2, '0');
             
             for (let i = 0; i < 12; i++) {
@@ -185,7 +184,6 @@
             tbody.innerHTML = '';
             
             if (activeDynamicDates.length === 0) {
-                // Default fallback if no date is loaded
                 generateDynamicDates("2026-01-15");
             }
 
@@ -279,7 +277,6 @@
                         document.getElementById('tFatherName').value = activeTenant.tenantFatherName || '';
                         document.getElementById('tMobile').value = activeTenant.mobileNo || '';
                         
-                        // Set start date and regenerate layout dates
                         if (activeTenant.joiningDate) {
                             document.getElementById('rentStartDate').value = activeTenant.joiningDate;
                             generateDynamicDates(activeTenant.joiningDate);
@@ -290,11 +287,8 @@
                         document.getElementById('familyMembers').value = activeTenant.familyMembers || 1;
                         document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
                         document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
-                        
-                        // Restore advance field from database placeholder mapping
                         document.getElementById('advanceDeposit').value = activeTenant.balanceOpening || 0;
 
-                        // Load Grid row index zero fields safely
                         document.getElementById('rent_0').value = activeTenant.monthlyRent || 0;
                         document.getElementById('elecUnit_0').value = activeTenant.currentUnitReading || 0;
                         document.getElementById('waterBill_0').value = activeTenant.waterOrOtherCharges || 0;
@@ -311,10 +305,6 @@
             }
             
             await sendPayloadToServer(false);
-            isRegistered = true;
-            document.getElementById('regOverlay').style.display = 'flex';
-            document.getElementById('btnSaveRow').disabled = false;
-            alert("🔒 किरायेदार का प्रोफाइल फिक्स हो गया और डेटाबेस में सुरक्षित हो गया है!");
         }
 
         async function saveExcelRowData() {
@@ -326,6 +316,9 @@
             const idx = activeRowIdx;
             const chosenStartDate = document.getElementById('rentStartDate').value;
             
+            // 🔥 UNIQUE ROOM GUEST EMAIL GENERATOR TO BYPASS OLD DB INDEX CONSTRAINTS
+            const uniqueRoomEmail = `guest_${activeRoom.replace(/\s+/g, '').toLowerCase()}@tenant.com`;
+
             const payload = {
                 ownerEmail,
                 roomOrFlatNo: activeRoom,
@@ -337,12 +330,12 @@
                 familyMembers: Number(document.getElementById('familyMembers').value || 1),
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
-                tenantEmail: 'guest@tenant.com',
+                tenantEmail: uniqueRoomEmail,
 
                 monthlyRent: Number(document.getElementById(`rent_${idx}`).value || 0),
                 currentUnitReading: Number(document.getElementById(`elecUnit_${idx}`).value || 0),
                 waterOrOtherCharges: Number(document.getElementById(`waterBill_${idx}`).value || 0),
-                balanceOpening: Number(document.getElementById('advanceDeposit').value || 0), // Mapping advance box to opening field block
+                balanceOpening: Number(document.getElementById('advanceDeposit').value || 0),
                 amountReceived: Number(document.getElementById(`total_${idx}`).innerText || 0),
                 paymentMode: 'UPI/Online',
                 status: 'Active',
@@ -356,23 +349,30 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                alert(data.message);
                 
-                // Keep the dynamic state stable after update sync completes
-                if (chosenStartDate) {
-                    generateDynamicDates(chosenStartDate);
+                if(data.success) {
+                    alert("🔒 डेटाबेस में डेटा सफलतापूर्वक परमानेंट सेफ हो गया है!");
+                    isRegistered = true;
+                    document.getElementById('regOverlay').style.display = 'flex';
+                    document.getElementById('btnSaveRow').disabled = false;
+                    loadRoomConfigurationData();
+                } else {
+                    alert("त्रुटि: " + data.message);
                 }
-            } catch(e) { alert("ড্রেটাবেস সিঙ্ক ফেল হয়েছে।"); }
+            } catch(e) { 
+                alert("डेटाबेस सिंक फेल हुआ। कृपया सुनिश्चित करें कि बैकएंड लाइव है।"); 
+            }
         }
 
         async function triggerLeaveRoom() {
             if(!isRegistered) return;
             if(!confirm("🚪 क्या आप निश्चित रूप से कमरा खाली करना चाहते हैं? इतिहास को हमेशा के लिए सुरक्षित कर दिया जाएगा।")) return;
 
+            const uniqueRoomEmail = `guest_${activeRoom.replace(/\s+/g, '').toLowerCase()}@tenant.com`;
             const payload = {
                 ownerEmail, roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
-                tenantEmail: 'guest@tenant.com', status: 'Left'
+                tenantEmail: uniqueRoomEmail, status: 'Left'
             };
 
             try {
@@ -388,7 +388,8 @@
 
         function addNewRoomButton() {
             const container = document.getElementById('roomContainer');
-            const roomCount = container.querySelectorAll('.room-card').length + 101;
+            const roomCards = container.querySelectorAll('.room-card');
+            const roomCount = roomCards.length + 101;
             const newRoomName = `Room ${roomCount}`;
             
             const newTab = document.createElement('div');
