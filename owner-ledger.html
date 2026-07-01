@@ -315,9 +315,6 @@
         async function sendPayloadToServer(lockRecord) {
             const idx = activeRowIdx;
             const chosenStartDate = document.getElementById('rentStartDate').value;
-            
-            // 🔥 UNIQUE ROOM GUEST EMAIL GENERATOR TO BYPASS OLD DB INDEX CONSTRAINTS
-            const uniqueRoomEmail = `guest_${activeRoom.replace(/\s+/g, '').toLowerCase()}@tenant.com`;
 
             const payload = {
                 ownerEmail,
@@ -330,7 +327,6 @@
                 familyMembers: Number(document.getElementById('familyMembers').value || 1),
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
-                tenantEmail: uniqueRoomEmail,
 
                 monthlyRent: Number(document.getElementById(`rent_${idx}`).value || 0),
                 currentUnitReading: Number(document.getElementById(`elecUnit_${idx}`).value || 0),
