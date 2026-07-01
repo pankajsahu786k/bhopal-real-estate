@@ -9,21 +9,18 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background-color: #f1f5f9; display: flex; height: 100vh; overflow: hidden; width: 100vw; }
         
-        /* Sidebar Styling */
         .sidebar { width: 260px; background-color: #1e293b; color: white; display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
         .sidebar h2 { text-align: center; padding: 25px 0; background-color: #0f172a; font-size: 20px; font-weight: 700; }
         .nav-links { list-style: none; }
         .nav-links a { display: block; padding: 16px 24px; color: #94a3b8; text-decoration: none; border-left: 4px solid transparent; font-weight: 500; }
         .nav-links a:hover, .nav-links a.active { background-color: #334155; color: white; border-left-color: #f59e0b; }
 
-        /* Workspace & Panels */
         .workspace { flex: 1; display: flex; height: 100vh; overflow: hidden; }
         .left-panel { flex: 7.2; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100vh; }
         .right-panel { flex: 2.8; padding: 20px; background: #ffffff; border-left: 3px solid #cbd5e1; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
 
-        .header-box { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #3498db; }
+        .header-box { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #3498db; display: flex; justify-content: space-between; align-items: center; }
         
-        /* 🚀 Room Tabs UI (Jitne add karu utne aaye) */
         .room-container { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .room-card { padding: 10px 20px; background: white; border: 2px solid #cbd5e1; border-radius: 6px; font-weight: 700; cursor: pointer; color: #475569; transition: 0.2s; }
         .room-card:hover { border-color: #3498db; }
@@ -31,11 +28,9 @@
         .btn-add-room { background: #2c3e50; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .btn-add-room:hover { background: #1a252f; transform: scale(1.05); }
 
-        /* Registration Form UI */
         .card { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         .reg-card { border-top: 5px solid #3498db; position: relative; }
         
-        /* 🔒 Lock Overlay for Registration */
         .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.92); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #ef4444; border: 2px dashed #ef4444; }
 
         .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
@@ -44,7 +39,6 @@
         .form-group input, .form-group select { padding: 10px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 600; outline: none; background: #f8fafc; transition: 0.2s; }
         .form-group input:focus { border-color: #3498db; background: white; }
 
-        /* Excel Grid UI */
         .excel-container { background: white; border-radius: 8px; border: 2px solid #cbd5e1; overflow: auto; flex-grow: 1; min-height: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .excel-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 10px 8px; }
@@ -53,7 +47,6 @@
         .excel-table td input:focus { background: #e0f2fe; border-radius: 4px; }
         .read-only-cell { background: #f8fafc; color: #475569; font-weight: 700; }
 
-        /* Buttons */
         .btn { padding: 12px 20px; border-radius: 6px; font-weight: 800; border: none; cursor: pointer; font-size: 14px; transition: 0.2s; }
         .btn:hover { opacity: 0.9; transform: translateY(-2px); }
         .btn-blue { background: #3498db; color: white; }
@@ -61,9 +54,12 @@
         .btn-red { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231,76,60,0.3); }
         .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 15px; margin-top: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(37,211,102,0.4); }
 
-        /* Receipt Panel */
         .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 20px; background: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #2c3e50; line-height: 1.6; min-height: 300px; }
         .receipt-header { text-align: center; font-weight: 900; border-bottom: 2px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 10px; font-family: 'Poppins', sans-serif; font-size: 16px; color: #1e293b; }
+
+        /* 📜 History Modal UI */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 85%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -83,7 +79,8 @@
         
         <div class="left-panel">
             <div class="header-box">
-                <h2 style="font-weight: 800; color: #1e293b;">📋 TANGENT DIGITAL KHATA & REGISTRATION MANAGEMENT</h2>
+                <h2 style="font-weight: 800; color: #1e293b; margin: 0;">📋 TANGENT DIGITAL KHATA</h2>
+                <button class="btn btn-blue" onclick="openHistoryModal()">📜 View Archive History</button>
             </div>
 
             <div class="room-container" id="roomContainer">
@@ -133,7 +130,7 @@
                         </tr>
                     </thead>
                     <tbody id="excelGridBody">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
             
@@ -151,11 +148,35 @@
             </div>
 
             <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.736 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.733 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
                 Share Invoice To WhatsApp
             </button>
         </div>
+    </div>
 
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 15px; color: #1e293b;">📜 Archived Tenants History (पुराने किरायेदार)</h2>
+            <div class="excel-container" style="min-height: 200px;">
+                <table class="excel-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>Room No.</th>
+                            <th>Tenant Name</th>
+                            <th>Mobile No.</th>
+                            <th>Aadhar No.</th>
+                            <th>Joining Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        </tbody>
+                </table>
+            </div>
+            <div style="text-align: right; margin-top: 15px;">
+                <button class="btn btn-red" onclick="closeHistoryModal()">❌ Close History</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -163,14 +184,11 @@
         const ownerEmail = localStorage.getItem('brokerEmail') || 'owner@test.com';
         let isRegistered = false;
         let activeDynamicDates = [];
-        
-        // 🔥 JITNE ADD KARU UTNE ROOM AAYE (Saved permanently in browser LocalStorage)
         let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
 
         function initRoomTabs() {
             const container = document.getElementById('roomContainer');
             container.innerHTML = '';
-            
             savedRoomsList.forEach(roomName => {
                 const roomDiv = document.createElement('div');
                 roomDiv.className = `room-card ${roomName === activeRoom ? 'selected-room' : ''}`;
@@ -178,7 +196,6 @@
                 roomDiv.onclick = function() { switchRoom(roomName); };
                 container.appendChild(roomDiv);
             });
-
             const addBtn = document.createElement('button');
             addBtn.className = 'btn-add-room';
             addBtn.innerText = '➕ Add Room';
@@ -202,8 +219,6 @@
                 switchRoom(newRoom);
             }
         }
-
-        // ================= DATE & EXCEL GRID LOGIC =================
 
         function generateDynamicDates(startDateStr) {
             activeDynamicDates = [];
@@ -290,19 +305,14 @@
             `;
         }
 
-        // ================= DATABASE SYNC LOGIC =================
-
         async function loadRoomConfigurationData() {
             document.getElementById('regForm').reset();
             document.getElementById('regOverlay').style.display = 'none';
             document.getElementById('btnSaveRow').disabled = true;
-            
-            // UI Reset
             generateDynamicDates(""); 
             buildExcelGridUI();
             document.getElementById('liveReceiptView').innerHTML = '<div style="text-align: center; color: #94a3b8; margin-top: 120px; font-weight:600;">कृपया हिसाब अपडेट करें...</div>';
 
-            // LocalStorage Fallback for Advance (Security Deposit)
             const savedAdvance = localStorage.getItem(`adv_${ownerEmail}_${activeRoom}`);
             if(savedAdvance) document.getElementById('advanceDeposit').value = savedAdvance;
 
@@ -312,15 +322,11 @@
 
                 if (result.success && result.data) {
                     const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
-                    
                     if (activeTenant) {
                         isRegistered = true;
-                        
-                        // 🔒 लॉक स्क्रीन चालू करें
                         document.getElementById('regOverlay').style.display = 'flex';
                         document.getElementById('btnSaveRow').disabled = false;
                         
-                        // प्रोफाइल डिटेल्स भरें
                         document.getElementById('tName').value = activeTenant.tenantName || '';
                         document.getElementById('tFatherName').value = activeTenant.tenantFatherName || '';
                         document.getElementById('tMobile').value = activeTenant.mobileNo || '';
@@ -336,7 +342,6 @@
                         document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
                         document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
 
-                        // 🔥 MAP ARRAY DATA BACK INTO EXCEL GRID (Prevents Overwrite)
                         if (activeTenant.monthlyEntries && activeTenant.monthlyEntries.length > 0) {
                             activeTenant.monthlyEntries.forEach((entry, i) => {
                                 if (i < 12) {
@@ -349,8 +354,6 @@
                                 }
                             });
                         }
-                        
-                        // रसीद जनरेट करें
                         calculateExcelRow(0);
                     }
                 }
@@ -362,33 +365,32 @@
                 alert("कृपया पहले किरायेदार का नाम, मोबाइल नंबर और रूम रेंट स्टार्ट डेट भरें!");
                 return;
             }
-            
-            // Advance amount को ब्राउज़र में सुरक्षित कर लें
             localStorage.setItem(`adv_${ownerEmail}_${activeRoom}`, document.getElementById('advanceDeposit').value);
-            
             isRegistered = true;
             document.getElementById('regOverlay').style.display = 'flex';
             document.getElementById('btnSaveRow').disabled = false;
-            
             await saveExcelRowData();
         }
 
         async function saveExcelRowData() {
             if(!isRegistered) { alert("कृपया पहले पंजीकरण करें!"); return; }
-
-            // Advance amount सेव करें
             localStorage.setItem(`adv_${ownerEmail}_${activeRoom}`, document.getElementById('advanceDeposit').value);
 
             let entries = [];
             for(let i = 0; i < 12; i++) {
-                entries.push({
-                    monthDate: document.getElementById(`dateCell_${i}`).innerText,
-                    rent: Number(document.getElementById(`rent_${i}`).value || 0),
-                    electricityUnit: Number(document.getElementById(`elecUnit_${i}`).value || 0),
-                    billAmount: Number(document.getElementById(`elecBill_${i}`).innerText || 0),
-                    waterBill: Number(document.getElementById(`waterBill_${i}`).value || 0), 
-                    total: Number(document.getElementById(`total_${i}`).innerText || 0)
-                });
+                let rentVal = Number(document.getElementById(`rent_${i}`).value || 0);
+                let totalVal = Number(document.getElementById(`total_${i}`).innerText || 0);
+
+                if (totalVal > 0 || rentVal > 0) {
+                    entries.push({
+                        monthDate: document.getElementById(`dateCell_${i}`).innerText,
+                        rent: rentVal,
+                        electricityUnit: Number(document.getElementById(`elecUnit_${i}`).value || 0),
+                        billAmount: Number(document.getElementById(`elecBill_${i}`).innerText || 0),
+                        waterBill: Number(document.getElementById(`waterBill_${i}`).value || 0), 
+                        total: totalVal
+                    });
+                }
             }
 
             const payload = {
@@ -412,20 +414,17 @@
                     body: JSON.stringify(payload)
                 });
                 const data = await res.json();
-                
                 if(data.success) {
                     alert("✅ 12 महीनों की पूरी प्रोग्रेस डेटाबेस में सुरक्षित सेव हो गई है!");
                 } else {
                     alert("त्रुटि: " + data.message);
                 }
-            } catch(e) { 
-                alert("डेटाबेस सिंक फेल हुआ। कृपया सुनिश्चित करें कि बैकएंड लाइव है।"); 
-            }
+            } catch(e) { alert("डेटाबेस सिंक फेल हुआ।"); }
         }
 
         async function triggerLeaveRoom() {
             if(!isRegistered) return;
-            if(!confirm("🚪 क्या आप निश्चित रूप से कमरा खाली करना चाहते हैं? पुराना डेटा आर्काइव हो जाएगा।")) return;
+            if(!confirm("🚪 क्या आप निश्चित रूप से कमरा खाली करना चाहते हैं? पुराना डेटा 'Archive History' में चला जायेगा।")) return;
 
             const payload = {
                 ownerEmail: ownerEmail, 
@@ -440,12 +439,51 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                alert("🚪 कमरा खाली हो चुका है! अब यह रूम नए किरायेदार के लिए तैयार है।");
-                
-                // Advance Clear करें
+                alert("🚪 कमरा खाली हो चुका है! अब यह रूम नए किरायेदार के लिए तैयार है। आप पुराने किरायेदार का रिकॉर्ड 'View Archive History' में देख सकते हैं।");
                 localStorage.removeItem(`adv_${ownerEmail}_${activeRoom}`);
                 loadRoomConfigurationData();
             } catch(e) { alert("एरर आया।"); }
+        }
+
+        // 🔥 History Modal Functions
+        async function openHistoryModal() {
+            document.getElementById('historyModal').style.display = 'flex';
+            const tbody = document.querySelector('#historyTable tbody');
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px;">लोड हो रहा है... कृपया प्रतीक्षा करें।</td></tr>';
+            
+            try {
+                const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
+                const result = await res.json();
+                
+                if(result.success && result.data) {
+                    const archivedTenants = result.data.filter(t => t.status === 'Left');
+                    
+                    if(archivedTenants.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; color: #ef4444;">कोई पुराना रिकॉर्ड नहीं मिला।</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = '';
+                    archivedTenants.forEach(t => {
+                        tbody.innerHTML += `
+                            <tr style="background: #fff5f5;">
+                                <td style="font-weight: 800; color: #e74c3c;">${t.roomOrFlatNo}</td>
+                                <td>${t.tenantName}</td>
+                                <td>${t.mobileNo}</td>
+                                <td>${t.aadharNumber || 'N/A'}</td>
+                                <td>${t.joiningDate}</td>
+                                <td><span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px;">Left Room</span></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch(e) {
+                tbody.innerHTML = '<tr><td colspan="6">डेटा लोड करने में समस्या आई।</td></tr>';
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
         }
 
         function shareToWhatsAppMessenger() {
@@ -457,7 +495,6 @@
             window.open(`https://api.whatsapp.com/send?phone=${mobile}&text=${encodeURIComponent(txt)}`, '_blank');
         }
 
-        // Initialize Application
         window.onload = () => {
             initRoomTabs();
             loadRoomConfigurationData();
