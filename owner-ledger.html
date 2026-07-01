@@ -8,399 +8,151 @@
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background-color: #f1f5f9; display: flex; height: 100vh; overflow: hidden; width: 100vw; }
-        
         .sidebar { width: 260px; background-color: #1e293b; color: white; display: flex; flex-direction: column; flex-shrink: 0; height: 100vh; }
         .sidebar h2 { text-align: center; padding: 25px 0; background-color: #0f172a; font-size: 20px; font-weight: 700; }
         .nav-links { list-style: none; }
         .nav-links a { display: block; padding: 16px 24px; color: #94a3b8; text-decoration: none; border-left: 4px solid transparent; font-weight: 500; }
         .nav-links a:hover, .nav-links a.active { background-color: #334155; color: white; border-left-color: #f59e0b; }
-
         .workspace { flex: 1; display: flex; height: 100vh; overflow: hidden; }
         .left-panel { flex: 7.2; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100vh; }
         .right-panel { flex: 2.8; padding: 20px; background: #ffffff; border-left: 3px solid #cbd5e1; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
-
         .header-box { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #3498db; }
         .room-container { display: flex; gap: 10px; align-items: center; }
         .room-card { padding: 10px 20px; background: white; border: 2px solid #cbd5e1; border-radius: 6px; font-weight: 700; cursor: pointer; color: #475569; }
         .room-card.selected-room { background: #3498db; color: white; border-color: #3498db; }
         .btn-add-room { background: #2c3e50; color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: 700; cursor: pointer; }
-
         .card { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         .reg-card { border-top: 5px solid #3498db; position: relative; }
         .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.9); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #ef4444; }
-
         .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
         .form-group { display: flex; flex-direction: column; gap: 4px; }
         .form-group label { font-size: 12px; font-weight: 700; color: #475569; }
         .form-group input, .form-group select { padding: 8px 12px; border: 2px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-weight: 600; outline: none; background: #f8fafc; }
-
         .excel-container { background: white; border-radius: 8px; border: 2px solid #cbd5e1; overflow: auto; flex-grow: 1; min-height: 350px; }
         .excel-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 8px 10px; }
         .excel-table th { background: #f1f5f9; color: #334155; position: sticky; top: 0; font-weight: 700; }
         .excel-table td input { width: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 14px; font-weight: 600; color: #1e293b; }
-        .excel-table td input:focus { background: #e0f2fe; }
-        .read-only-cell { background: #f8fafc; color: #475569; }
-
         .btn { padding: 10px 20px; border-radius: 6px; font-weight: 700; border: none; cursor: pointer; font-size: 13px; }
         .btn-blue { background: #3498db; color: white; }
         .btn-green { background: #2ecc71; color: white; }
         .btn-red { background: #e74c3c; color: white; }
-        .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; margin-top: auto; border-radius: 8px; }
-
-        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.5; min-height: 270px; }
-        .receipt-header { text-align: center; font-weight: bold; border-bottom: 1px dashed #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; font-family: 'Poppins', sans-serif; }
+        .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; padding: 12px; border-radius: 8px; }
+        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 15px; background: #fafafa; min-height: 270px; }
     </style>
 </head>
 <body>
-
-    <aside class="sidebar">
-        <h2>Bhopal Properties</h2>
-        <ul class="nav-links">
-            <li><a href="dashboard.html">🏠 My Properties</a></li>
-            <li><a href="add-property.html">➕ Add New Property</a></li>
-            <li><a href="profile.html">👤 Profile Settings</a></li>
-            <li><a href="services.html">⚡ Super Services</a></li>
-            <li><a href="owner-ledger.html" class="active">📋 Tenant Ledger (खाता)</a></li>
-        </ul>
-    </aside>
-
+    <aside class="sidebar"><h2>Bhopal Properties</h2><ul class="nav-links"><li><a href="dashboard.html">🏠 My Properties</a></li><li><a href="owner-ledger.html" class="active">📋 Tenant Ledger</a></li></ul></aside>
     <div class="workspace">
-        
         <div class="left-panel">
-            <div class="header-box">
-                <h2 style="font-weight: 800;">📋 TANGENT DIGITAL KHATA & REGISTRATION MANAGEMENT</h2>
-            </div>
-
+            <div class="header-box"><h2>📋 TANGENT DIGITAL KHATA</h2></div>
             <div class="room-container" id="roomContainer">
                 <div class="room-card selected-room" onclick="switchRoom('Room 101', this)">Room 101</div>
                 <div class="room-card" onclick="switchRoom('Room 102', this)">Room 102</div>
-                <div class="room-card" onclick="switchRoom('Room 103', this)">Room 103</div>
                 <button class="btn-add-room" onclick="addNewRoomButton()">➕ Add Room</button>
             </div>
-
-            <!-- STEP 1: REGISTRATION COMPONENT -->
             <div class="card reg-card" id="regCardComponent">
-                <div class="locked-overlay" id="regOverlay">🔒 REGISTRATION LOCKED (Profile Fixed)</div>
-                <h3 style="font-size: 14px; font-weight: 800; color: #2c3e50;">📝 Step 1: Add Room Tangent Detail (किरायेदार पंजीकरण फॉर्म)</h3>
+                <div class="locked-overlay" id="regOverlay">🔒 REGISTRATION LOCKED</div>
                 <form id="regForm">
                     <div class="form-grid">
-                        <div class="form-group"><label>1. Name *</label><input type="text" id="tName" required></div>
-                        <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" required></div>
-                        <div class="form-group"><label>3. Mobile No. *</label><input type="text" id="tMobile" required></div>
-                        <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required onchange="handleStartDateChange()"></div>
-                        <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="10" required></div>
-                        <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" value="1" required></div>
-                        <div class="form-group"><label>7. Aadhar No *</label><input type="text" id="tAadhar" placeholder="Enter Aadhar Number" required></div>
-                        <div class="form-group">
-                            <label>8. Job Status / Student *</label>
-                            <select id="jobStatus">
-                                <option value="Student">Student</option>
-                                <option value="Job Holder">Job Holder</option>
-                                <option value="Business">Business</option>
-                            </select>
-                        </div>
-                        <div class="form-group"><label>9. Advance Amount (Security Deposit) *</label><input type="number" id="advanceDeposit" value="0" required oninput="runLiveCalculations()"></div>
+                        <div class="form-group"><label>1. Name</label><input type="text" id="tName"></div>
+                        <div class="form-group"><label>2. Father Name</label><input type="text" id="tFatherName"></div>
+                        <div class="form-group"><label>3. Mobile No.</label><input type="text" id="tMobile"></div>
+                        <div class="form-group"><label>4. Start Date</label><input type="date" id="rentStartDate" onchange="handleStartDateChange()"></div>
+                        <div class="form-group"><label>5. Unit Rate</label><input type="number" id="unitRate" value="10"></div>
+                        <div class="form-group"><label>6. Members</label><input type="number" id="familyMembers" value="1"></div>
+                        <div class="form-group"><label>7. Aadhar</label><input type="text" id="tAadhar"></div>
+                        <div class="form-group"><label>8. Status</label><select id="jobStatus"><option>Student</option><option>Job Holder</option></select></div>
+                        <div class="form-group"><label>9. Advance</label><input type="number" id="advanceDeposit" value="0"></div>
                     </div>
-                    <button type="button" class="btn btn-blue" style="width:100%; margin-top:12px;" onclick="confirmAndRegister()">🔒 Confirm & Register Tenant</button>
+                    <button type="button" class="btn btn-blue" style="width:100%" onclick="confirmAndRegister()">🔒 Confirm & Register</button>
                 </form>
             </div>
-
-            <!-- STEP 2: ACCOUNT EXCEL MATRIX -->
-            <h3 style="font-size: 14px; font-weight: 800; color: #2c3e50;">📊 Step 2: Excel Spreadsheet Account Grid</h3>
             <div class="excel-container">
                 <table class="excel-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 15%;">Date</th>
-                            <th style="width: 12%;">Rent</th>
-                            <th style="width: 15%;">Electricity Unit</th>
-                            <th style="width: 12%;">Bill Amount</th>
-                            <th style="width: 15%;">Water Unit</th>
-                            <th style="width: 12%;">Water Bill</th>
-                            <th style="width: 15%;">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody id="excelGridBody">
-                        <!-- Generated Dynamically -->
-                    </tbody>
+                    <thead><tr><th>Date</th><th>Rent</th><th>Unit</th><th>Bill</th><th>Water</th><th>Total</th></tr></thead>
+                    <tbody id="excelGridBody"></tbody>
                 </table>
             </div>
-            
-            <div style="display:flex; justify-content: space-between; margin-top: 5px;">
-                <button type="button" class="btn btn-red" onclick="triggerLeaveRoom()">🚪 LEAVE ROOM (Save to Permanent Archive Database)</button>
-                <button type="button" class="btn btn-green" id="btnSaveRow" disabled onclick="saveExcelRowData()">💾 Save Current Excel Progress Row</button>
+            <div style="display:flex; justify-content: space-between; margin-top: 10px;">
+                <button class="btn btn-red" onclick="triggerLeaveRoom()">🚪 LEAVE ROOM</button>
+                <button class="btn btn-green" id="btnSaveRow" onclick="saveExcelRowData()">💾 Save Progress</button>
             </div>
         </div>
-
         <div class="right-panel">
-            <h3 style="font-size: 15px; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 5px;">🧾 LIVE TOTAL RECEIPT</h3>
-            
-            <div class="receipt-box" id="liveReceiptView">
-                <div style="text-align: center; color: #94a3b8; margin-top: 100px;">कृपया हिसाब अपडेट करें...</div>
-            </div>
-
-            <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.733 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
-                Share Invoice To WhatsApp
-            </button>
+            <h3>🧾 RECEIPT</h3>
+            <div class="receipt-box" id="liveReceiptView"></div>
+            <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">WhatsApp Share</button>
         </div>
-
     </div>
 
     <script>
         let activeRoom = 'Room 101';
         const ownerEmail = localStorage.getItem('brokerEmail') || 'owner@test.com';
-        let isRegistered = false;
-        let activeRowIdx = 0;
-        let activeDynamicDates = [];
 
         function generateDynamicDates(startDateStr) {
             activeDynamicDates = [];
-            if (!startDateStr) return;
-            
-            let parts = startDateStr.split('-');
-            let baseDate = new Date(parts[0], parts[1] - 1, parts[2]); 
-            let day = String(baseDate.getDate()).padStart(2, '0');
-            
+            let [y, m, d] = startDateStr.split('-');
             for (let i = 0; i < 12; i++) {
-                let currentMonthDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
-                let month = String(currentMonthDate.getMonth() + 1).padStart(2, '0');
-                let year = currentMonthDate.getFullYear();
-                activeDynamicDates.push(`${day}/${month}/${year}`);
+                let date = new Date(y, parseInt(m) - 1 + i, d);
+                activeDynamicDates.push(`${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`);
             }
-        }
-
-        function handleStartDateChange() {
-            const chosenDate = document.getElementById('rentStartDate').value;
-            if (chosenDate) {
-                generateDynamicDates(chosenDate);
-                buildExcelGridUI();
-            }
+            buildExcelGridUI();
         }
 
         function buildExcelGridUI() {
             const tbody = document.getElementById('excelGridBody');
             tbody.innerHTML = '';
-            
-            if (activeDynamicDates.length === 0) {
-                generateDynamicDates("2026-01-15");
-            }
-
             activeDynamicDates.forEach((dateStr, idx) => {
                 tbody.innerHTML += `
-                    <tr id="row_${idx}">
-                        <td class="read-only-cell" id="dateCell_${idx}">${dateStr}</td>
-                        <td><input type="number" id="rent_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
-                        <td><input type="number" id="elecUnit_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
-                        <td id="elecBill_${idx}" class="read-only-cell">0</td>
-                        <td><input type="number" id="waterUnit_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
-                        <td><input type="number" id="waterBill_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
-                        <td id="total_${idx}" class="read-only-cell" style="font-weight:800; color:#27ae60;">0</td>
+                    <tr>
+                        <td id="dateCell_${idx}">${dateStr}</td>
+                        <td><input type="number" id="rent_${idx}" value="0"></td>
+                        <td><input type="number" id="elecUnit_${idx}" value="0"></td>
+                        <td id="elecBill_${idx}">0</td>
+                        <td><input type="number" id="waterBill_${idx}" value="0"></td>
+                        <td id="total_${idx}">0</td>
                     </tr>`;
             });
         }
 
-        function calculateExcelRow(idx) {
-            activeRowIdx = idx;
-            const rent = Number(document.getElementById(`rent_${idx}`).value || 0);
-            const currentUnits = Number(document.getElementById(`elecUnit_${idx}`).value || 0);
-            const rate = Number(document.getElementById('unitRate').value || 10);
-            
-            const prevUnits = idx === 0 ? 0 : Number(document.getElementById(`elecUnit_${idx-1}`).value || 0);
-            const unitsConsumed = Math.max(0, currentUnits - prevUnits);
-            const elecBill = unitsConsumed * rate;
-            
-            document.getElementById(`elecBill_${idx}`).innerText = elecBill;
-            
-            const waterBill = Number(document.getElementById(`waterBill_${idx}`).value || 0);
-            const netTotal = rent + elecBill + waterBill;
-            
-            document.getElementById(`total_${idx}`).innerText = netTotal;
-            updateLiveReceiptView(idx, rent, unitsConsumed, elecBill, waterBill, netTotal);
-        }
-
-        function updateLiveReceiptView(idx, rent, units, elec, water, total) {
-            const name = document.getElementById('tName').value || '----------';
-            const mobile = document.getElementById('tMobile').value || '----------';
-            const advance = document.getElementById('advanceDeposit').value || '0';
-            const currentDateStr = activeDynamicDates[idx] || '----------';
-            
-            document.getElementById('liveReceiptView').innerHTML = `
-                <div class="receipt-header">TANGENT DIGITAL KHATA</div>
-                <b>Room No:</b> ${activeRoom}<br>
-                <b>Tenant:</b> ${name}<br>
-                <b>Mobile:</b> ${mobile}<br>
-                <b>Billing Date:</b> ${currentDateStr}<br>
-                --------------------------<br>
-                • Advance (Security): ₹${advance}<br>
-                • Room Rent         : ₹${rent}<br>
-                • Power Units Added : ${units}<br>
-                • Light Bill Total  : ₹${elec}<br>
-                • Water Bill Charges: ₹${water}<br>
-                --------------------------<br>
-                <b style="font-size:15px; color:#27ae60;">NET PAYABLE  : ₹${total}</b><br>
-                --------------------------<br>
-                Status: Shareable Invoice Matrix Active
-            `;
-        }
-
-        function switchRoom(roomName, element) {
-            activeRoom = roomName;
-            if(element) {
-                document.querySelectorAll('.room-card').forEach(c => c.classList.remove('selected-room'));
-                element.classList.add('selected-room');
-            }
-            loadRoomConfigurationData();
-        }
-
-        async function loadRoomConfigurationData() {
-            try {
-                const res = await fetch(`/api/owner/my-tenants?email=${encodeURIComponent(ownerEmail)}`);
-                const result = await res.json();
-                
-                document.getElementById('regForm').reset();
-                activeDynamicDates = [];
-                buildExcelGridUI();
-                document.getElementById('regOverlay').style.display = 'none';
-                document.getElementById('btnSaveRow').disabled = true;
-                isRegistered = false;
-
-                if(result.success && result.data) {
-                    const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
-                    if(activeTenant) {
-                        isRegistered = true;
-                        document.getElementById('regOverlay').style.display = 'flex';
-                        document.getElementById('btnSaveRow').disabled = false;
-                        
-                        document.getElementById('tName').value = activeTenant.tenantName || '';
-                        document.getElementById('tFatherName').value = activeTenant.tenantFatherName || '';
-                        document.getElementById('tMobile').value = activeTenant.mobileNo || '';
-                        
-                        if (activeTenant.joiningDate) {
-                            document.getElementById('rentStartDate').value = activeTenant.joiningDate;
-                            generateDynamicDates(activeTenant.joiningDate);
-                            buildExcelGridUI();
-                        }
-                        
-                        document.getElementById('unitRate').value = activeTenant.unitRate || 10;
-                        document.getElementById('familyMembers').value = activeTenant.familyMembers || 1;
-                        document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
-                        document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
-                        document.getElementById('advanceDeposit').value = activeTenant.balanceOpening || 0;
-
-                        document.getElementById('rent_0').value = activeTenant.monthlyRent || 0;
-                        document.getElementById('elecUnit_0').value = activeTenant.currentUnitReading || 0;
-                        document.getElementById('waterBill_0').value = activeTenant.waterOrOtherCharges || 0;
-                        calculateExcelRow(0);
-                    }
-                }
-            } catch(e) { console.error(e); }
-        }
-
         async function confirmAndRegister() {
-            if(!document.getElementById('tName').value || !document.getElementById('tMobile').value || !document.getElementById('rentStartDate').value) {
-                alert("कृपया पहले किरायेदार का नाम, मोबाइल नंबर और रूम रेंट स्टार्ट डेट भरें!");
-                return;
-            }
-            
-            await sendPayloadToServer(false);
+            isRegistered = true;
+            document.getElementById('regOverlay').style.display = 'flex';
+            document.getElementById('btnSaveRow').disabled = false;
+            saveExcelRowData();
         }
 
         async function saveExcelRowData() {
-    let entries = [];
-    for(let i = 0; i < 12; i++) {
-        entries.push({
-            monthDate: document.getElementById(`dateCell_${i}`).innerText,
-            rent: Number(document.getElementById(`rent_${i}`).value || 0),
-            electricityUnit: Number(document.getElementById(`elecUnit_${i}`).value || 0),
-            billAmount: Number(document.getElementById(`elecBill_${i}`).innerText || 0),
-            waterBill: Number(document.getElementById(`waterBill_${i}`).value || 0),
-            total: Number(document.getElementById(`total_${i}`).innerText || 0)
-        });
-    }
-
-    const payload = {
-        ownerEmail: localStorage.getItem('brokerEmail'),
-        roomOrFlatNo: activeRoom,
-        tenantName: document.getElementById('tName').value,
-        monthlyEntries: entries
-    };
-
-    const res = await fetch('/api/owner/upsert-tenant-ledger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    alert("✅ डेटा सेव हो गया!");
-}
-
-            try {
-                const res = await fetch('/api/owner/upsert-tenant-ledger', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+            let entries = [];
+            for(let i = 0; i < 12; i++) {
+                entries.push({
+                    monthDate: document.getElementById(`dateCell_${i}`).innerText,
+                    rent: Number(document.getElementById(`rent_${i}`).value || 0),
+                    electricityUnit: Number(document.getElementById(`elecUnit_${i}`).value || 0),
+                    billAmount: Number(document.getElementById(`elecBill_${i}`).innerText || 0),
+                    waterBill: Number(document.getElementById(`waterBill_${i}`).value || 0),
+                    total: Number(document.getElementById(`total_${i}`).innerText || 0)
                 });
-                const data = await res.json();
-                
-                if(data.success) {
-                    alert("🔒 डेटाबेस में डेटा सफलतापूर्वक परमानेंट सेफ हो गया है!");
-                    isRegistered = true;
-                    document.getElementById('regOverlay').style.display = 'flex';
-                    document.getElementById('btnSaveRow').disabled = false;
-                    loadRoomConfigurationData();
-                } else {
-                    alert("त्रुटि: " + data.message);
-                }
-            } catch(e) { 
-                alert("डेटाबेस सिंक फेल हुआ। कृपया सुनिश्चित करें कि बैकएंड लाइव है।"); 
             }
-        
 
-        async function triggerLeaveRoom() {
-            if(!isRegistered) return;
-            if(!confirm("🚪 क्या आप निश्चित रूप से कमरा खाली करना चाहते हैं? इतिहास को हमेशा के लिए सुरक्षित कर दिया जाएगा।")) return;
-
-            const uniqueRoomEmail = `guest_${activeRoom.replace(/\s+/g, '').toLowerCase()}@tenant.com`;
             const payload = {
                 ownerEmail, roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
-                tenantEmail: uniqueRoomEmail, status: 'Left'
+                monthlyEntries: entries
             };
 
-            try {
-                await fetch('/api/owner/upsert-tenant-ledger', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                alert("🚪 कमरा खाली हो चुका है! अब यह नए किरायेदार के आवंटन के लिए तैयार है।");
-                loadRoomConfigurationData();
-            } catch(e) { alert("एरर आया।"); }
+            await fetch('/api/owner/upsert-tenant-ledger', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            alert("✅ डेटा सेव हो गया!");
         }
 
-        function addNewRoomButton() {
-            const container = document.getElementById('roomContainer');
-            const roomCards = container.querySelectorAll('.room-card');
-            const roomCount = roomCards.length + 101;
-            const newRoomName = `Room ${roomCount}`;
-            
-            const newTab = document.createElement('div');
-            newTab.className = 'room-card';
-            newTab.innerText = newRoomName;
-            newTab.onclick = function() { switchRoom(newRoomName, this); };
-            
-            container.insertBefore(newTab, container.lastElementChild);
-        }
-
-        function shareToWhatsAppMessenger() {
-            const mobile = document.getElementById('tMobile').value;
-            const txt = document.getElementById('liveReceiptView').innerText;
-            if(mobile === '----------' || !txt) { alert("शेयर करने के लिए कोई रसीद नहीं है!"); return; }
-            window.open(`https://api.whatsapp.com/send?phone=${mobile}&text=${encodeURIComponent(txt)}`, '_blank');
-        }
-
-        window.onload = () => loadRoomConfigurationData();
+        function handleStartDateChange() { generateDynamicDates(document.getElementById('rentStartDate').value); }
+        function switchRoom(room, el) { activeRoom = room; loadRoomConfigurationData(); }
+        window.onload = () => { generateDynamicDates("2026-01-15"); };
     </script>
 </body>
 </html>
