@@ -83,8 +83,10 @@
                 <button class="btn btn-blue" onclick="openHistoryModal()">📜 View Archive History</button>
             </div>
 
+            <!-- ROOM TABS DYNAMIC CONTAINER -->
             <div class="room-container" id="roomContainer">
-                </div>
+                <!-- Tabs rendered dynamically -->
+            </div>
 
             <div class="card reg-card" id="regCardComponent">
                 <div class="locked-overlay" id="regOverlay">
@@ -148,12 +150,13 @@
             </div>
 
             <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.733 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.736 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
                 Share Invoice To WhatsApp
             </button>
         </div>
     </div>
 
+    <!-- 📜 History Modal UI -->
     <div class="modal-overlay" id="historyModal">
         <div class="modal-content">
             <h2 style="margin-bottom: 15px; color: #1e293b;">📜 Archived Tenants History (पुराने किरायेदार)</h2>
@@ -170,7 +173,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        </tbody>
+                        <!-- History Data will be injected here -->
+                    </tbody>
                 </table>
             </div>
             <div style="text-align: right; margin-top: 15px;">
@@ -185,17 +189,29 @@
         let isRegistered = false;
         let activeDynamicDates = [];
         let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
+        
+        // 🔥 NEW: किरायेदार के नामों को स्टोर करने के लिए ग्लोबल मैप
+        let tenantNameMap = {};
 
         function initRoomTabs() {
             const container = document.getElementById('roomContainer');
             container.innerHTML = '';
+            
             savedRoomsList.forEach(roomName => {
                 const roomDiv = document.createElement('div');
                 roomDiv.className = `room-card ${roomName === activeRoom ? 'selected-room' : ''}`;
-                roomDiv.innerText = roomName;
+                
+                // 🔥 लॉजिक: अगर इस रूम में कोई किरायेदार है, तो टैब पर उसका नाम भी दिखाओ
+                if (tenantNameMap[roomName]) {
+                    roomDiv.innerText = `${roomName} (${tenantNameMap[roomName]})`;
+                } else {
+                    roomDiv.innerText = roomName;
+                }
+
                 roomDiv.onclick = function() { switchRoom(roomName); };
                 container.appendChild(roomDiv);
             });
+            
             const addBtn = document.createElement('button');
             addBtn.className = 'btn-add-room';
             addBtn.innerText = '➕ Add Room';
@@ -321,6 +337,16 @@
                 const result = await res.json();
 
                 if (result.success && result.data) {
+                    
+                    // 🔥 डेटाबेस से सभी एक्टिव किरायेदारों के नाम निकालें और टैब अपडेट करें
+                    tenantNameMap = {};
+                    result.data.forEach(t => {
+                        if (t.status === 'Active') {
+                            tenantNameMap[t.roomOrFlatNo] = t.tenantName;
+                        }
+                    });
+                    initRoomTabs(); // टैब्स को रीफ्रेश करें ताकि नाम दिखने लगें
+
                     const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
                     if (activeTenant) {
                         isRegistered = true;
@@ -416,6 +442,8 @@
                 const data = await res.json();
                 if(data.success) {
                     alert("✅ 12 महीनों की पूरी प्रोग्रेस डेटाबेस में सुरक्षित सेव हो गई है!");
+                    // 🔥 सेव होने के तुरंत बाद टैब का नाम अपडेट करने के लिए रीलोड करें
+                    loadRoomConfigurationData();
                 } else {
                     alert("त्रुटि: " + data.message);
                 }
