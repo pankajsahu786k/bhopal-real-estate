@@ -59,7 +59,12 @@
 
         /* 📜 History Modal UI */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 85%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 85%; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); position: relative; }
+        
+        /* 👁️ View Ledger Details Print Layout */
+        .print-header { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; }
+        .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
+        .print-grid div span { font-weight: 700; color: #475569; }
     </style>
 </head>
 <body>
@@ -84,9 +89,7 @@
             </div>
 
             <!-- ROOM TABS DYNAMIC CONTAINER -->
-            <div class="room-container" id="roomContainer">
-                <!-- Tabs rendered dynamically -->
-            </div>
+            <div class="room-container" id="roomContainer"></div>
 
             <div class="card reg-card" id="regCardComponent">
                 <div class="locked-overlay" id="regOverlay">
@@ -131,8 +134,7 @@
                             <th style="width: 15%;">Total</th>
                         </tr>
                     </thead>
-                    <tbody id="excelGridBody">
-                    </tbody>
+                    <tbody id="excelGridBody"></tbody>
                 </table>
             </div>
             
@@ -144,19 +146,17 @@
 
         <div class="right-panel">
             <h3 style="font-size: 16px; font-weight: 800; color: #1e293b; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px;">🧾 LIVE TOTAL RECEIPT</h3>
-            
             <div class="receipt-box" id="liveReceiptView">
                 <div style="text-align: center; color: #94a3b8; margin-top: 120px; font-family: 'Poppins'; font-weight: 600;">कृपया हिसाब अपडेट करें...</div>
             </div>
-
             <button class="btn btn-whatsapp" onclick="shareToWhatsAppMessenger()">
-                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.736 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 12.002-11.95 12.002-1.999-.001-3.961-.501-5.717-1.454L0 24zm6.59-4.846c1.66.986 3.296 1.489 4.919 1.49 5.361 0 9.725-4.331 9.728-9.655.002-2.578-1.002-5.001-2.83-6.829C16.634 2.332 14.21 1.33 11.633 1.33c-5.368 0-9.733 4.332-9.733 9.658-.001 1.748.497 3.41 1.442 4.832l-.994 3.633 3.702-.971z"/></svg>
                 Share Invoice To WhatsApp
             </button>
         </div>
     </div>
 
-    <!-- 📜 History Modal UI -->
+    <!-- 📜 History Modal UI (Main Table) -->
     <div class="modal-overlay" id="historyModal">
         <div class="modal-content">
             <h2 style="margin-bottom: 15px; color: #1e293b;">📜 Archived Tenants History (पुराने किरायेदार)</h2>
@@ -169,7 +169,7 @@
                             <th>Mobile No.</th>
                             <th>Aadhar No.</th>
                             <th>Joining Date</th>
-                            <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -183,15 +183,27 @@
         </div>
     </div>
 
+    <!-- 👁️ View Ledger Sub-Modal (Full PDF View) -->
+    <div class="modal-overlay" id="ledgerViewModal" style="z-index: 1010;">
+        <div class="modal-content" style="max-width: 900px;">
+            <div id="printableLedgerArea">
+                <!-- Ledger Content Injected Here -->
+            </div>
+            <div style="text-align: right; margin-top: 20px; display:flex; justify-content:flex-end; gap:10px;">
+                <button class="btn btn-blue" onclick="downloadPDF()">🖨️ Download / Save PDF</button>
+                <button class="btn btn-red" onclick="closeLedgerViewModal()">❌ Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let activeRoom = 'Room 101';
         const ownerEmail = localStorage.getItem('brokerEmail') || 'owner@test.com';
         let isRegistered = false;
         let activeDynamicDates = [];
         let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
-        
-        // 🔥 NEW: किरायेदार के नामों को स्टोर करने के लिए ग्लोबल मैप
         let tenantNameMap = {};
+        let globalArchivedData = []; // To store data for the Eye button
 
         function initRoomTabs() {
             const container = document.getElementById('roomContainer');
@@ -201,7 +213,6 @@
                 const roomDiv = document.createElement('div');
                 roomDiv.className = `room-card ${roomName === activeRoom ? 'selected-room' : ''}`;
                 
-                // 🔥 लॉजिक: अगर इस रूम में कोई किरायेदार है, तो टैब पर उसका नाम भी दिखाओ
                 if (tenantNameMap[roomName]) {
                     roomDiv.innerText = `${roomName} (${tenantNameMap[roomName]})`;
                 } else {
@@ -337,15 +348,13 @@
                 const result = await res.json();
 
                 if (result.success && result.data) {
-                    
-                    // 🔥 डेटाबेस से सभी एक्टिव किरायेदारों के नाम निकालें और टैब अपडेट करें
                     tenantNameMap = {};
                     result.data.forEach(t => {
                         if (t.status === 'Active') {
                             tenantNameMap[t.roomOrFlatNo] = t.tenantName;
                         }
                     });
-                    initRoomTabs(); // टैब्स को रीफ्रेश करें ताकि नाम दिखने लगें
+                    initRoomTabs(); 
 
                     const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
                     if (activeTenant) {
@@ -442,7 +451,6 @@
                 const data = await res.json();
                 if(data.success) {
                     alert("✅ 12 महीनों की पूरी प्रोग्रेस डेटाबेस में सुरक्षित सेव हो गई है!");
-                    // 🔥 सेव होने के तुरंत बाद टैब का नाम अपडेट करने के लिए रीलोड करें
                     loadRoomConfigurationData();
                 } else {
                     alert("त्रुटि: " + data.message);
@@ -484,15 +492,15 @@
                 const result = await res.json();
                 
                 if(result.success && result.data) {
-                    const archivedTenants = result.data.filter(t => t.status === 'Left');
+                    globalArchivedData = result.data.filter(t => t.status === 'Left');
                     
-                    if(archivedTenants.length === 0) {
+                    if(globalArchivedData.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; color: #ef4444;">कोई पुराना रिकॉर्ड नहीं मिला।</td></tr>';
                         return;
                     }
                     
                     tbody.innerHTML = '';
-                    archivedTenants.forEach(t => {
+                    globalArchivedData.forEach((t, idx) => {
                         tbody.innerHTML += `
                             <tr style="background: #fff5f5;">
                                 <td style="font-weight: 800; color: #e74c3c;">${t.roomOrFlatNo}</td>
@@ -500,7 +508,10 @@
                                 <td>${t.mobileNo}</td>
                                 <td>${t.aadharNumber || 'N/A'}</td>
                                 <td>${t.joiningDate}</td>
-                                <td><span style="background: #ef4444; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px;">Left Room</span></td>
+                                <td>
+                                    <span style="background: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px;">Left Room</span>
+                                    <button onclick="viewArchivedLedger(${idx})" style="background:#3498db; color:white; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold;">👁️ View</button>
+                                </td>
                             </tr>
                         `;
                     });
@@ -512,6 +523,95 @@
 
         function closeHistoryModal() {
             document.getElementById('historyModal').style.display = 'none';
+        }
+
+        // 🔥 NEW: View Full Ledger Detail Function
+        function viewArchivedLedger(index) {
+            const tenant = globalArchivedData[index];
+            const printableArea = document.getElementById('printableLedgerArea');
+            
+            // Build the HTML for the Profile and Excel Table
+            let tableHTML = `
+                <div class="print-header">
+                    <h2 style="text-align:center; color:#1e293b; margin:0;">TANGENT DIGITAL KHATA - ARCHIVED LEDGER</h2>
+                </div>
+                <div class="print-grid">
+                    <div><span>Room No:</span> ${tenant.roomOrFlatNo}</div>
+                    <div><span>Tenant Name:</span> ${tenant.tenantName}</div>
+                    <div><span>Father's Name:</span> ${tenant.tenantFatherName || 'N/A'}</div>
+                    <div><span>Mobile:</span> ${tenant.mobileNo}</div>
+                    <div><span>ID Number:</span> ${tenant.aadharNumber || 'N/A'}</div>
+                    <div><span>Joining Date:</span> ${tenant.joiningDate || 'N/A'}</div>
+                    <div><span>Unit Rate:</span> ₹${tenant.unitRate || 10}</div>
+                    <div><span>Family Members:</span> ${tenant.familyMembers || 1}</div>
+                </div>
+                <h3 style="margin-bottom: 10px; color:#2c3e50;">12-Month Account Statement</h3>
+                <table class="excel-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Rent (₹)</th>
+                            <th>Elec. Units</th>
+                            <th>Bill Amount (₹)</th>
+                            <th>Water Bill (₹)</th>
+                            <th>Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            if(tenant.monthlyEntries && tenant.monthlyEntries.length > 0) {
+                tenant.monthlyEntries.forEach(entry => {
+                    tableHTML += `
+                        <tr style="background:#fff;">
+                            <td>${entry.monthDate || '--/--/----'}</td>
+                            <td>${entry.rent || 0}</td>
+                            <td>${entry.electricityUnit || 0}</td>
+                            <td>${entry.billAmount || 0}</td>
+                            <td>${entry.waterBill || 0}</td>
+                            <td style="font-weight:bold; color:#27ae60;">${entry.total || 0}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tableHTML += `<tr><td colspan="6">No monthly entries found for this tenant.</td></tr>`;
+            }
+
+            tableHTML += `</tbody></table>`;
+            
+            printableArea.innerHTML = tableHTML;
+            document.getElementById('ledgerViewModal').style.display = 'flex';
+        }
+
+        function closeLedgerViewModal() {
+            document.getElementById('ledgerViewModal').style.display = 'none';
+        }
+
+        // 🔥 NEW: Print / Download PDF Logic
+        function downloadPDF() {
+            const printContent = document.getElementById('printableLedgerArea').innerHTML;
+            const printWindow = window.open('', '', 'width=900,height=700');
+            printWindow.document.write('<html><head><title>Tenant Ledger PDF</title>');
+            printWindow.document.write(`
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
+                    .print-header { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; text-align: center; }
+                    .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
+                    .print-grid div span { font-weight: 700; color: #475569; }
+                    .excel-table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: center; margin-top: 10px; }
+                    .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 10px 8px; }
+                    .excel-table th { background: #f1f5f9; color: #334155; font-weight: 800; text-transform: uppercase; font-size: 12px; }
+                </style>
+            `);
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(printContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            
+            // Allow CSS to load before printing
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
         }
 
         function shareToWhatsAppMessenger() {
