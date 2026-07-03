@@ -1,3 +1,5 @@
+require('dotenv').config(); // 🔴 SECURITY: गुप्त फाइल (.env) को पढ़ने के लिए
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -6,20 +8,35 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const Razorpay = require('razorpay');
 const crypto = require('crypto'); 
+const helmet = require('helmet'); // 🔴 SECURITY: हैकर अटैक्स रोकने के लिए
+const rateLimit = require('express-rate-limit'); // 🔴 SECURITY: स्पैम रोकने के लिए
+
 const app = express();
 
-app.use(cors());
+// ==========================================
+// 🛡️ SECURITY MIDDLEWARES
+// ==========================================
+app.use(helmet({ crossOriginResourcePolicy: false })); // बेसिक सुरक्षा
+app.use(cors()); // इसे अभी ओपन रखा है ताकि आपकी साइट न टूटे
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
+// 🔴 SECURITY: 15 मिनट में 200 से ज्यादा रिक्वेस्ट आने पर ब्लॉक (एंटी-स्पैम)
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 200, 
+    message: { success: false, message: "Too many requests, please try again later." }
+});
+app.use('/api/', apiLimiter);
+
 // ==========================================
-// ☁️ CLOUDINARY SETUP 
+// ☁️ CLOUDINARY SETUP (Keys Hidden)
 // ==========================================
 cloudinary.config({
-    cloud_name: 'duy3ipjoj',
-    api_key: '228275812572669',
-    api_secret: '0VVartpd4kavLNXs66kmCAmUeCI'
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 const imageStorage = new CloudinaryStorage({
@@ -33,11 +50,11 @@ const upload = multer({ storage: imageStorage });
 const pdfUpload = multer({ storage: multer.memoryStorage() });
 
 // ==========================================
-// 1️⃣ MONGODB DATABASE CONNECTION
+// 1️⃣ MONGODB DATABASE CONNECTION (Keys Hidden)
 // ==========================================
-const mongoURI = 'mongodb+srv://pankajsahu786k_db_user:jfijZKkfYPkRBx7w@cluster0.sfsijiz.mongodb.net/?appName=Cluster0';
+const mongoURI = process.env.MONGODB_URI;
 mongoose.connect(mongoURI, { family: 4 })
-    .then(() => console.log('✅ MongoDB Database Connected Successfully!'))
+    .then(() => console.log('✅ MongoDB Database Connected Successfully (Secured)!'))
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // ==========================================
@@ -149,7 +166,6 @@ const TenantLedgerSchema = new mongoose.Schema({
     jobStatus: String, 
     tenantEmail: String, 
 
-    // ✅ FIXED: Array-based storage to prevent data overwrite
     monthlyEntries: [{
         monthDate: String,
         rent: Number,
@@ -449,7 +465,14 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-const razorpay = new Razorpay({ key_id: 'rzp_test_T3oTzNzTDvWgUL', key_secret: '8VyNa1vXyBiGjtbp5j3DRVr2' });
+// ==========================================
+// 💳 RAZORPAY (Keys Hidden)
+// ==========================================
+const razorpay = new Razorpay({ 
+    key_id: process.env.RAZORPAY_KEY_ID, 
+    key_secret: process.env.RAZORPAY_KEY_SECRET 
+});
+
 app.post('/api/create-order', async (req, res) => {
     try {
         const orderAmount = req.body && req.body.customAmount ? req.body.customAmount : 1000; 
@@ -462,7 +485,10 @@ app.post('/api/verify-payment', (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
         const sign = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSign = crypto.createHmac("sha256", "8VyNa1vXyBiGjtbp5j3DRVr2").update(sign.toString()).digest("hex");
+        
+        // 🔴 SECURITY: Crypto signature updated to use environment variable
+        const expectedSign = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(sign.toString()).digest("hex");
+        
         if (razorpay_signature === expectedSign) return res.json({ success: true, message: "Verified!" });
         else return res.status(400).json({ success: false });
     } catch (error) { res.status(500).json({ success: false }); }
@@ -630,4 +656,4 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`));
