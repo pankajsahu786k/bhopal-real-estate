@@ -16,7 +16,10 @@ const app = express();
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
 // ==========================================
-app.use(helmet({ crossOriginResourcePolicy: false })); // बेसिक सुरक्षा
+app.use(helmet({ 
+    contentSecurityPolicy: false, 
+    crossOriginResourcePolicy: false 
+}));
 app.use(cors()); // इसे अभी ओपन रखा है ताकि आपकी साइट न टूटे
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
