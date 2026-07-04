@@ -73,53 +73,46 @@
         .bottom-nav-icon { font-size: 20px; }
 
         /* 📱 MOBILE RESPONSIVE HACK */
+        /* 📱 MOBILE RESPONSIVE HACK (PERFECT SYSTEMATIC LAYOUT) */
         @media (max-width: 768px) {
-            .sidebar { display: none !important; } /* साइडबार गायब */
-            .bottom-nav { display: flex !important; } /* नीचे का मेनू चालू */
+            /* 1. साइडबार गायब और नीचे का मेनू चालू */
+            .sidebar { display: none !important; } 
+            .bottom-nav { display: flex !important; } 
             
-            body, .main-content-wrapper { 
+            /* 2. पूरे पेज को स्क्रॉल करने लायक बनाना */
+            body { overflow: auto !important; height: auto !important; }
+            
+            /* 3. अगल-बगल वाले पैनल को एक के नीचे एक लाना */
+            .workspace { 
                 flex-direction: column !important; 
-                padding-bottom: 70px !important; /* नीचे मेनू के लिए जगह छोड़ना */
-                overflow-x: hidden;
+                height: auto !important; 
+                padding-bottom: 80px !important; /* नीचे वाले मेनू के लिए जगह */
+                overflow: visible !important;
             }
             
-            /* लेजर को पूरी स्क्रीन पर फैलाना */
-            .main-content, .ledger-container, .container { 
+            .left-panel, .right-panel { 
                 width: 100% !important; 
-                padding: 10px !important; 
-                margin: 0 !important;
-                box-sizing: border-box !important; 
+                flex: none !important; 
+                height: auto !important; 
+                border-left: none !important; /* राइट पैनल की लाइन हटाना */
+                padding: 15px !important;
+                overflow: visible !important;
             }
-        }
-        /* 📱 MOBILE RESPONSIVE DESIGN - स्क्रीन के हिसाब से एडजस्ट करने का कोड */
-@media (max-width: 768px) {
-    /* 1. मोबाइल में कंप्यूटर वाले साइडबार को पूरी तरह छुपा दें */
-    .sidebar {
-        display: none !important; 
-    }
-    
-    /* 2. पूरे पेज (बॉडी) को मोबाइल के हिसाब से सीधा (Column) कर दें */
-    body {
-        flex-direction: column !important;
-        overflow-x: hidden;
-    }
-    
-    /* 3. आपके लेजर (खाता) वाले हिस्से को 100% चौड़ाई (Width) दे दें */
-    .main-content, .main-content-wrapper, .container {
-        width: 100% !important;
-        margin-left: 0 !important;
-        padding: 10px !important;
-        box-sizing: border-box !important;
-    }
 
-    /* 4. अगर अंदर कोई बड़ी टेबल (Excel Grid) है, तो उसे मोबाइल पर खिसकाने (Scroll) लायक बना दें */
-    table, .excel-grid {
-        display: block !important;
-        overflow-x: auto !important;
-        white-space: nowrap !important;
-        width: 100% !important;
-    }
-}
+            /* 4. फॉर्म के 3 डब्बों को एक लाइन की जगह एक के नीचे एक लाना (Police Verification की तरह) */
+            .form-grid { 
+                grid-template-columns: 1fr !important; 
+                gap: 15px !important;
+            }
+
+            /* 5. रूम बटन को बीच (Center) में लाना */
+            .room-container { justify-content: center !important; }
+
+            /* 6. टेबल को मोबाइल पर खिसकाने (Scroll) लायक बनाना */
+            .excel-container { min-height: auto !important; }
+            .excel-table { display: block !important; overflow-x: auto !important; white-space: nowrap !important; }
+        }
+
     </style>
 </head>
 <body>
