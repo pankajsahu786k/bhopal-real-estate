@@ -65,9 +65,57 @@
         .print-header { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; }
         .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
         .print-grid div span { font-weight: 700; color: #475569; }
+        /* 📱 Bottom Nav Design */
+        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: #2c3e50; justify-content: space-around; align-items: center; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1500; }
+        .bottom-nav a { color: #bdc3c7; text-decoration: none; text-align: center; font-size: 11px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .bottom-nav a.active { color: #2ecc71; font-weight: bold; }
+        .bottom-nav-icon { font-size: 20px; }
+
+        /* 📱 MOBILE RESPONSIVE HACK */
+        @media (max-width: 768px) {
+            .sidebar { display: none !important; } /* साइडबार गायब */
+            .bottom-nav { display: flex !important; } /* नीचे का मेनू चालू */
+            
+            body, .main-content-wrapper { 
+                flex-direction: column !important; 
+                padding-bottom: 70px !important; /* नीचे मेनू के लिए जगह छोड़ना */
+                overflow-x: hidden;
+            }
+            
+            /* लेजर को पूरी स्क्रीन पर फैलाना */
+            .main-content, .ledger-container, .container { 
+                width: 100% !important; 
+                padding: 10px !important; 
+                margin: 0 !important;
+                box-sizing: border-box !important; 
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- 📱 Android App Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html">
+            <span class="bottom-nav-icon">🏠</span>
+            <span>Properties</span>
+        </a>
+        <a href="add-property.html">
+            <span class="bottom-nav-icon">➕</span>
+            <span>Add New</span>
+        </a>
+        <a href="owner-ledger.html" class="active" style="color: #f59e0b;">
+            <span class="bottom-nav-icon">📋</span>
+            <span>Ledger</span>
+        </a>
+        <a href="profile.html">
+            <span class="bottom-nav-icon">👤</span>
+            <span>Profile</span>
+        </a>
+        <a href="services.html">
+            <span class="bottom-nav-icon">⚡</span>
+            <span>Services</span>
+        </a>
+    </nav>
 
     <aside class="sidebar">
         <h2>Bhopal Properties</h2>
