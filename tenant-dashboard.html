@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tenant Portal - Bhopal Properties</title>
     <style>
@@ -15,6 +16,35 @@
         .highlight { color: #e74c3c; font-weight: bold; font-size: 18px; }
         .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; color: white; }
         .logout-btn { display: block; width: 100%; text-align: center; background: #e74c3c; color: white; padding: 12px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 30px; text-decoration: none; box-sizing: border-box; }
+        /* 📱 MOBILE RESPONSIVE DESIGN - स्क्रीन के हिसाब से एडजस्ट करने का कोड */
+@media (max-width: 768px) {
+    /* 1. मोबाइल में कंप्यूटर वाले साइडबार को पूरी तरह छुपा दें */
+    .sidebar {
+        display: none !important; 
+    }
+    
+    /* 2. पूरे पेज (बॉडी) को मोबाइल के हिसाब से सीधा (Column) कर दें */
+    body {
+        flex-direction: column !important;
+        overflow-x: hidden;
+    }
+    
+    /* 3. आपके लेजर (खाता) वाले हिस्से को 100% चौड़ाई (Width) दे दें */
+    .main-content, .main-content-wrapper, .container {
+        width: 100% !important;
+        margin-left: 0 !important;
+        padding: 10px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 4. अगर अंदर कोई बड़ी टेबल (Excel Grid) है, तो उसे मोबाइल पर खिसकाने (Scroll) लायक बना दें */
+    table, .excel-grid {
+        display: block !important;
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        width: 100% !important;
+    }
+}
     </style>
 </head>
 <body>
