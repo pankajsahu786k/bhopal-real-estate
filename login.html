@@ -68,6 +68,8 @@
                         localStorage.setItem('tenantEmail', data.tenantData.tenantEmail);
                         localStorage.setItem('userRole', 'tenant');
                         localStorage.setItem('brokerName', data.tenantData.tenantName);
+                        // 🔴 किरायेदार का सुरक्षित टोकन यहाँ सेव हो रहा है
+                        localStorage.setItem('authToken', data.token);
                         window.location.href = 'tenant-dashboard.html'; // सीधे रीड-ओनली खाता पोर्टल पर भेजें
                         return;
                     }
@@ -76,6 +78,8 @@
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
                     localStorage.setItem('userRole', data.role);
+                    // 🔴 एडमिन / यूजर का सुरक्षित टोकन यहाँ सेव हो रहा है
+                    localStorage.setItem('authToken', data.token);
 
                     const cleanRole = data.role ? data.role.trim() : '';
 

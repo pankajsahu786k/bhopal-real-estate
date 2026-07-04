@@ -12,6 +12,11 @@ const helmet = require('helmet'); // 🔴 SECURITY: हैकर अटैक्
 const rateLimit = require('express-rate-limit'); // 🔴 SECURITY: स्पैम रोकने के लिए
 
 const app = express();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
+// 🔴 सिक्योरिटी चाबी (इसे अपनी .env फाइल में भी डाल सकते हैं)
+const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
 
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
@@ -517,10 +522,16 @@ app.post('/api/signup', async (req, res) => {
         const emailLower = email.toLowerCase().trim();
         const existingUser = await User.findOne({ email: emailLower });
         if (existingUser) return res.status(400).json({ success: false, message: 'Email registered!' });
+
+        // 🔴 पासवर्ड को Bcrypt से एन्क्रिप्ट (Hash) करें
+        const hashedPassword = await bcrypt.hash(password, 10);
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        
         await PendingUser.deleteMany({ email: emailLower });
-        const newPendingUser = new PendingUser({ name, email: emailLower, password, otp });
+        // प्लेन पासवर्ड की जगह hashedPassword सेव करें
+        const newPendingUser = new PendingUser({ name, email: emailLower, password: hashedPassword, otp });
         await newPendingUser.save();
+        
         res.json({ success: true, requireOtp: true, generatedOtp: otp });
     } catch (error) { res.status(500).json({ success: false }); }
 });
@@ -544,16 +555,30 @@ app.post('/api/login', async (req, res) => {
         const { email, password } = req.body;
         const emailLower = email.toLowerCase().trim();
 
-        const user = await User.findOne({ email: emailLower, password });
+        const user = await User.findOne({ email: emailLower });
         if (user) {
+            // 🔴 एन्क्रिप्टेड पासवर्ड को मैच करें (पुराने प्लेन पासवर्ड्स के लिए भी फॉलबैक है)
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch && password !== user.password) {
+                return res.status(401).json({ success: false, message: 'गलत पासवर्ड!' });
+            }
+
             let actualRole = user.role || 'user';
             if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
-            return res.json({ success: true, name: user.name, email: user.email, role: actualRole });
+
+            // 🔴 यूज़र के लिए एक सुरक्षित JWT टोकन (ID Card) बनाएँ
+            const token = jwt.sign({ userId: user._id, role: actualRole, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
+
+            return res.json({ success: true, name: user.name, email: user.email, role: actualRole, token: token });
         }
+
+        // किरायेदार का लॉगिन
         const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
         if (tenant) {
-            return res.json({ success: true, name: tenant.tenantName, email: tenant.tenantEmail, role: 'tenant', tenantData: tenant });
+            const token = jwt.sign({ tenantId: tenant._id, role: 'tenant', email: tenant.tenantEmail }, JWT_SECRET, { expiresIn: '24h' });
+            return res.json({ success: true, name: tenant.tenantName, email: tenant.tenantEmail, role: 'tenant', token: token, tenantData: tenant });
         }
+
         return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड!' });
     } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
