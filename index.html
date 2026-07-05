@@ -234,20 +234,126 @@
     </footer>
 
     <script>
+      
         let allProperties = [];
 
+        // 🚀 PAGE LOAD HOTE HI AUTOMATIC CHALNE WALA CODE
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch('/api/get-properties');
                 allProperties = await response.json();
                 
                 document.getElementById('loading').style.display = 'none';
-                displayProperties(allProperties);
+                displayProperties(allProperties); // पहले सारी प्रॉपर्टी दिखा दें
+                
+                // 👉 जादू यहाँ है: पेज लोड होते ही ऑटोमैटिक लोकेशन ट्रैकर चालू कर दें
+                autoDetectAndFilterLocation(); 
+
             } catch (error) {
                 console.error("Error fetching properties:", error);
+                document.getElementById('loading').style.display = 'block';
                 document.getElementById('loading').innerText = "❌ प्रॉपर्टीज़ लोड करने में समस्या आई।";
             }
         });
+
+        // 📍 SILENT LOCATION TRACKER (Bina kisi popup / alert ke)
+        function autoDetectAndFilterLocation() {
+            if (navigator.geolocation) {
+                // ब्राउज़र से साइलेंटली लोकेशन मांगें
+                navigator.geolocation.getCurrentPosition(async function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    try {
+                        // Free Map API से Lat/Long को असली एड्रेस में बदलें
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                        const data = await response.json();
+                        
+                        let areaName = data.address.suburb || data.address.neighbourhood || data.address.city_district || "Bhopal";
+
+                        // स्मार्ट ट्रिक: ड्रॉपडाउन में इलाका मैच करें और अपने आप फिल्टर कर दें
+                        const locationDropdown = document.getElementById('searchLocation');
+                        let isMatched = false;
+                        
+                        for (let i = 0; i < locationDropdown.options.length; i++) {
+                            if (areaName.toLowerCase().includes(locationDropdown.options[i].value.toLowerCase())) {
+                                locationDropdown.selectedIndex = i;
+                                filterProperties(); // ऑटोमेटिक सर्च चला दें
+                                isMatched = true;
+                                
+                                // यूज़र को एक प्यारा सा मैसेज दिखाएं कि लोकेशन सेट हो गई है
+                                const loadingDiv = document.getElementById('loading');
+                                loadingDiv.style.display = 'block';
+                                loadingDiv.style.color = '#27ae60';
+                                loadingDiv.style.fontWeight = 'bold';
+                                loadingDiv.innerHTML = `📍 आपके वर्तमान इलाके (${areaName}) की प्रॉपर्टीज़ दिखाई जा रही हैं!`;
+                                
+                                // 4 सेकंड बाद मैसेज गायब कर दें
+                                setTimeout(() => { loadingDiv.style.display = 'none'; }, 4000);
+                                break;
+                            }
+                        }
+                    } catch(e) {
+                        console.log("साइलेंट लोकेशन API एरर", e);
+                    }
+                }, function(error) {
+                    console.log("यूज़र ने लोकेशन परमिशन नहीं दी, इसलिए सारी प्रॉपर्टीज़ ही दिखती रहेंगी।");
+                });
+            }
+        }
+
+        // 🏠 PROPERTIES RENDER KARNE WALA FUNCTION
+        function displayProperties(propertiesToShow) {
+            const container = document.getElementById('propertyList');
+            container.innerHTML = '';
+
+            if (propertiesToShow.length === 0) {
+                container.innerHTML = '<p style="text-align:center; grid-column: 1 / -1; font-size: 18px; color: #e74c3c;">इस लोकेशन के आस-पास अभी कोई प्रॉपर्टी नहीं मिली।</p>';
+                return;
+            }
+
+            propertiesToShow.forEach(prop => {
+                let propImage = 'https://placehold.co/800x450?text=No+Image';
+                if (prop.images && prop.images.length > 0 && prop.images[0].trim() !== '') {
+                    propImage = prop.images[0];
+                } else if (prop.image) {
+                    propImage = prop.image;
+                }
+
+                const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / महीना` : `₹ ${prop.price}`;
+                const badgeText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
+
+                const cardHtml = `
+                    <div class="property-card">
+                        <img src="${propImage}" class="card-img" alt="${prop.title}">
+                        <div class="card-body">
+                            <div><span class="badge">${badgeText}</span></div>
+                            <h3 class="card-title">${prop.title}</h3>
+                            <p class="card-location">📍 ${prop.location}</p>
+                            <div class="card-price">${priceText}</div>
+                            <a href="property-details.html?id=${prop._id}" class="view-btn">पूरी डिटेल्स देखें ➡️</a>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        // 🔍 MANUAL FILTER FUNCTION
+        function filterProperties() {
+            const purposeFilter = document.getElementById('searchPurpose').value;
+            const locationFilter = document.getElementById('searchLocation').value;
+
+            const filteredData = allProperties.filter(prop => {
+                const matchPurpose = purposeFilter === 'All' || prop.purpose === purposeFilter;
+                const matchLocation = locationFilter === 'All' || prop.location.toLowerCase().includes(locationFilter.toLowerCase());
+                
+                return matchPurpose && matchLocation;
+            });
+
+            displayProperties(filteredData);
+            document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
+        }
 
         function displayProperties(propertiesToShow) {
             const container = document.getElementById('propertyList');
