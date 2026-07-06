@@ -370,6 +370,26 @@
             displayProperties(filteredData);
             document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
         }
+        // 🔄 30 सेकंड वाला स्मार्ट ऑटो-रिफ्रेश (सिर्फ होमपेज के लिए)
+        setInterval(async () => {
+            try {
+                console.log("🔄 Live Data Syncing...");
+                
+                // नया डेटा लाओ (cache bypass के साथ)
+                const response = await fetch('/api/get-properties', { cache: 'no-store' });
+                const newData = await response.json();
+                
+                // अगर डेटाबेस में कोई बदलाव हुआ है, तभी स्क्रीन अपडेट करो!
+                if(JSON.stringify(newData) !== JSON.stringify(allProperties)) {
+                    allProperties = newData;
+                    updateLocationDropdown(allProperties); 
+                    filterProperties(); 
+                    console.log("✅ New data loaded and screen updated!");
+                }
+            } catch (error) {
+                console.log("Sync failed:", error);
+            }
+        }, 30000);
     </script>
 </body>
 </html>
