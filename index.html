@@ -370,7 +370,7 @@
             displayProperties(filteredData);
             document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
         }
-        // 🔄 30 सेकंड वाला स्मार्ट ऑटो-रिफ्रेश (सिर्फ होमपेज के लिए)
+        // 🔄 10 सेकंड वाला स्मार्ट ऑटो-रिफ्रेश (सिर्फ होमपेज के लिए)
         setInterval(async () => {
             try {
                 console.log("🔄 Live Data Syncing...");
@@ -389,7 +389,7 @@
             } catch (error) {
                 console.log("Sync failed:", error);
             }
-        }, 30000);
+        }, 10000);
     </script>
 </body>
 </html>
