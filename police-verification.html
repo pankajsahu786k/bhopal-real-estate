@@ -113,8 +113,8 @@
         .form-group input[type="file"] { background: #fff; padding: 8px; cursor: pointer; }
 
         /* 🔥 Dynamic Submission Call To Action Controller Button */
-        .submit-btn { width: 100%; border: none; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; transition: 0.3s ease; margin-top: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(0,0,0,0.15); }
+        .submit-btn { width: 100%; border: none; padding: 15px; border-radius: 8px; font-size: 18px; font-weight: 800; color: white; cursor: pointer; transition: 0.3s ease; margin-top: 20px; box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4); text-transform: uppercase; }
+        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 15px rgba(230, 126, 34, 0.6); }
 
         /* Tablet Menu Wrap Media Query Rule */
         @media (max-width: 1150px) {
@@ -159,6 +159,12 @@
     <div class="form-container">
         <a href="services.html" class="back-btn">← Back to Services</a>
         <h2>👮 MP Police Tenant Verification</h2>
+        
+        <!-- 🚀 Disclaimer Note for Razorpay -->
+        <p style="text-align:center; color:#e74c3c; font-weight:bold; font-size:14px; background:#fdf2e9; padding:10px; border-radius:5px; margin-bottom: 20px;">
+            ⚠️ Note: A nominal platform processing fee of ₹149 is charged for fast-track verification and platform service.
+        </p>
+
         <p class="subtitle">सिटिज़न पोर्टल के अनुसार सभी सही जानकारी भरें</p>
 
         <form id="verificationForm">
@@ -241,7 +247,8 @@
                 <input type="text" id="permanentPoliceStation" required placeholder="स्थायी थाने का नाम">
             </div>
 
-            <button type="submit" id="submitBtn" class="submit-btn">Loading Status... ⏳</button>
+            <!-- 🚀 Premium Button -->
+            <button type="submit" id="submitBtn" class="submit-btn" style="background: linear-gradient(135deg, #e67e22, #d35400);">Loading Status... ⏳</button>
         </form>
     </div>
 
@@ -267,10 +274,10 @@
         const btn = document.getElementById('submitBtn');
         if (isPaymentBypassedGlobal) {
             btn.innerText = "Submit Verification Request (FREE) 🚀";
-            btn.style.backgroundColor = "#e67e22"; 
+            btn.style.background = "#e67e22"; 
         } else {
-            btn.innerText = "Pay ₹110 & Submit Request 💳";
-            btn.style.backgroundColor = "#3498db"; 
+            btn.innerText = "Pay ₹149 & Submit Verification 🛡️";
+            btn.style.background = "linear-gradient(135deg, #e67e22, #d35400)"; 
         }
     });
 
@@ -316,10 +323,11 @@
             try {
                 btn.innerText = "Initiating Payment... 💳";
                 
+                // 🚀 ₹149 के लिए 14900 अमाउंट सेट किया गया है (Paisa में)
                 const orderRes = await fetch('/api/create-order', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customAmount: 11000 })
+                    body: JSON.stringify({ customAmount: 14900 })
                 });
                 const orderData = await orderRes.json();
                 
@@ -331,21 +339,22 @@
 
                 const options = {
                     "key": "rzp_test_T3oTzNzTDvWgUL", 
-                    "amount": 11000, 
+                    "amount": 14900, 
                     "currency": "INR",
                     "name": "Bhopal Properties",
-                    "description": "Tenant Police Verification Charges",
+                    "description": "Tenant Police Verification Fee",
                     "order_id": orderData.order.id,
                     "handler": async function (response) {
                         btn.innerText = "Payment Successful! Saving... 🚀";
-                        submitDataWithUniversalReceipt(formData, btn, originalText, response.razorpay_payment_id, 'Tenant Police Verification Premium', 110, 'Paid');
+                        // 🚀 रसीद में भी ₹149 सेव होगा
+                        submitDataWithUniversalReceipt(formData, btn, originalText, response.razorpay_payment_id, 'Tenant Police Verification Premium', 149, 'Paid');
                     },
                     "prefill": {
                         "name": localStorage.getItem('brokerName') || "User",
                         "email": userEmail,
                         "contact": document.getElementById('tenantPhone').value
                     },
-                    "theme": { "color": "#e74c3c" },
+                    "theme": { "color": "#e67e22" },
                     "modal": {
                         ondismiss: function() {
                             alert("❌ Payment Cancelled.");
@@ -405,6 +414,6 @@
         btn.innerText = text;
         btn.disabled = false;
     }
-</script>
+    </script>
 </body>
 </html>
