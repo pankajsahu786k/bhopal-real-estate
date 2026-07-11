@@ -173,6 +173,9 @@ const TenantLedgerSchema = new mongoose.Schema({
     aadharNumber: String, 
     jobStatus: String, 
     tenantEmail: String, 
+    
+    // 🔥 NEW FIELD SUCCESSFULLY ADDED IN SCHEMA
+    currentMeterReading: { type: Number, default: 0 }, 
 
     monthlyEntries: [{
         monthDate: String,
@@ -617,7 +620,7 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
         }
         await Property.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Property and photos deleted permanently!' });
-    } catch (error) { res.status(500).json({ success: false }); }
+    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
 app.delete('/api/admin/delete-user/:id', async (req, res) => {

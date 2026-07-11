@@ -73,20 +73,15 @@
         .bottom-nav-icon { font-size: 20px; }
 
         /* 📱 MOBILE RESPONSIVE HACK */
-        /* 📱 MOBILE RESPONSIVE HACK (PERFECT SYSTEMATIC LAYOUT) */
         @media (max-width: 768px) {
-            /* 1. साइडबार गायब और नीचे का मेनू चालू */
             .sidebar { display: none !important; } 
             .bottom-nav { display: flex !important; } 
-            
-            /* 2. पूरे पेज को स्क्रॉल करने लायक बनाना */
             body { overflow: auto !important; height: auto !important; }
             
-            /* 3. अगल-बगल वाले पैनल को एक के नीचे एक लाना */
             .workspace { 
                 flex-direction: column !important; 
                 height: auto !important; 
-                padding-bottom: 80px !important; /* नीचे वाले मेनू के लिए जगह */
+                padding-bottom: 80px !important; 
                 overflow: visible !important;
             }
             
@@ -94,25 +89,21 @@
                 width: 100% !important; 
                 flex: none !important; 
                 height: auto !important; 
-                border-left: none !important; /* राइट पैनल की लाइन हटाना */
+                border-left: none !important; 
                 padding: 15px !important;
                 overflow: visible !important;
             }
 
-            /* 4. फॉर्म के 3 डब्बों को एक लाइन की जगह एक के नीचे एक लाना (Police Verification की तरह) */
             .form-grid { 
                 grid-template-columns: 1fr !important; 
                 gap: 15px !important;
             }
 
-            /* 5. रूम बटन को बीच (Center) में लाना */
             .room-container { justify-content: center !important; }
 
-            /* 6. टेबल को मोबाइल पर खिसकाने (Scroll) लायक बनाना */
             .excel-container { min-height: auto !important; }
             .excel-table { display: block !important; overflow-x: auto !important; white-space: nowrap !important; }
         }
-
     </style>
 </head>
 <body>
@@ -152,7 +143,6 @@
     </aside>
 
     <div class="workspace">
-        
         <div class="left-panel">
             <div class="header-box">
                 <h2 style="font-weight: 800; color: #1e293b; margin: 0;">📋 TANGENT DIGITAL KHATA</h2>
@@ -173,10 +163,15 @@
                         <div class="form-group"><label>1. Name *</label><input type="text" id="tName" required></div>
                         <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" required></div>
                         <div class="form-group"><label>3. Mobile No. *</label><input type="text" id="tMobile" required></div>
+                        
                         <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required onchange="handleStartDateChange()"></div>
                         <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="10" required></div>
                         <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" value="1" required></div>
-                        <div class="form-group"><label>7. Aadhar No *</label><input type="text" id="tAadhar" placeholder="Enter Aadhar Number" required></div>
+                        
+                        <div class="form-group">
+                            <label>7. ID Number *</label>
+                            <input type="text" id="tAadhar" placeholder="Enter Government ID" required>
+                        </div>
                         <div class="form-group">
                             <label>8. Job Status / Student *</label>
                             <select id="jobStatus">
@@ -185,7 +180,13 @@
                                 <option value="Business">Business</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>9. Advance Amount (Security Deposit) *</label><input type="number" id="advanceDeposit" value="0" required oninput="calculateExcelRow(0)"></div>
+                        <div class="form-group"><label>9. Advance Deposit *</label><input type="number" id="advanceDeposit" value="0" required oninput="calculateExcelRow(0)"></div>
+                        
+                        <!-- 🔥 NEW FIELD: Current Meter Reading -->
+                        <div class="form-group">
+                            <label style="color:#d35400;">10. Current Meter Reading *</label>
+                            <input type="number" id="currentMeterReading" placeholder="0" required style="border-color:#e67e22; background:#fdf2e9;">
+                        </div>
                     </div>
                     <button type="button" class="btn btn-blue" style="width:100%; margin-top:20px;" onclick="confirmAndRegister()">🔒 Confirm & Register Tenant</button>
                 </form>
@@ -227,7 +228,7 @@
         </div>
     </div>
 
-    <!-- 📜 History Modal UI (Main Table) -->
+    <!-- 📜 History Modal UI -->
     <div class="modal-overlay" id="historyModal">
         <div class="modal-content">
             <h2 style="margin-bottom: 15px; color: #1e293b;">📜 Archived Tenants History (पुराने किरायेदार)</h2>
@@ -238,14 +239,12 @@
                             <th>Room No.</th>
                             <th>Tenant Name</th>
                             <th>Mobile No.</th>
-                            <th>Aadhar No.</th>
+                            <th>ID No.</th>
                             <th>Joining Date</th>
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- History Data will be injected here -->
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
             <div style="text-align: right; margin-top: 15px;">
@@ -254,12 +253,10 @@
         </div>
     </div>
 
-    <!-- 👁️ View Ledger Sub-Modal (Full PDF View) -->
+    <!-- 👁️ View Ledger Sub-Modal -->
     <div class="modal-overlay" id="ledgerViewModal" style="z-index: 1010;">
         <div class="modal-content" style="max-width: 900px;">
-            <div id="printableLedgerArea">
-                <!-- Ledger Content Injected Here -->
-            </div>
+            <div id="printableLedgerArea"></div>
             <div style="text-align: right; margin-top: 20px; display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn btn-blue" onclick="downloadPDF()">🖨️ Download / Save PDF</button>
                 <button class="btn btn-red" onclick="closeLedgerViewModal()">❌ Close</button>
@@ -274,7 +271,7 @@
         let activeDynamicDates = [];
         let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
         let tenantNameMap = {};
-        let globalArchivedData = []; // To store data for the Eye button
+        let globalArchivedData = []; 
 
         function initRoomTabs() {
             const container = document.getElementById('roomContainer');
@@ -447,6 +444,9 @@
                         document.getElementById('familyMembers').value = activeTenant.familyMembers || 1;
                         document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
                         document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
+                        
+                        // 🔥 NEW FIELD DATA LOADING
+                        document.getElementById('currentMeterReading').value = activeTenant.currentMeterReading || 0;
 
                         if (activeTenant.monthlyEntries && activeTenant.monthlyEntries.length > 0) {
                             activeTenant.monthlyEntries.forEach((entry, i) => {
@@ -499,6 +499,7 @@
                 }
             }
 
+            // 🔥 NEW FIELD PAYLOAD UPDATED FOR MONGODB
             const payload = {
                 ownerEmail: ownerEmail,
                 roomOrFlatNo: activeRoom,
@@ -510,6 +511,7 @@
                 familyMembers: Number(document.getElementById('familyMembers').value || 1),
                 aadharNumber: document.getElementById('tAadhar').value,
                 jobStatus: document.getElementById('jobStatus').value,
+                currentMeterReading: Number(document.getElementById('currentMeterReading').value || 0),
                 monthlyEntries: entries
             };
 
@@ -596,12 +598,10 @@
             document.getElementById('historyModal').style.display = 'none';
         }
 
-        // 🔥 NEW: View Full Ledger Detail Function
         function viewArchivedLedger(index) {
             const tenant = globalArchivedData[index];
             const printableArea = document.getElementById('printableLedgerArea');
             
-            // Build the HTML for the Profile and Excel Table
             let tableHTML = `
                 <div class="print-header">
                     <h2 style="text-align:center; color:#1e293b; margin:0;">TANGENT DIGITAL KHATA - ARCHIVED LEDGER</h2>
@@ -658,7 +658,6 @@
             document.getElementById('ledgerViewModal').style.display = 'none';
         }
 
-        // 🔥 NEW: Print / Download PDF Logic
         function downloadPDF() {
             const printContent = document.getElementById('printableLedgerArea').innerHTML;
             const printWindow = window.open('', '', 'width=900,height=700');
@@ -679,7 +678,6 @@
             printWindow.document.write('</body></html>');
             printWindow.document.close();
             
-            // Allow CSS to load before printing
             setTimeout(() => {
                 printWindow.print();
             }, 250);
