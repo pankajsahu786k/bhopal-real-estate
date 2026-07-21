@@ -103,6 +103,7 @@
         }
 
         // 🌟 NAYA: Copy Modal Logic with Aadhar Photos 🌟
+        // 🌟 NAYA: Copy Modal Logic with Download Buttons 🌟
         function openCopyModal(id) {
             const req = globalRequests.find(r => r._id === id);
             if(!req) return;
@@ -110,7 +111,8 @@
             const modalBody = document.getElementById('modalBody');
             modalBody.innerHTML = `
                 <div style="text-align:center; margin-bottom:15px;">
-                    <img src="${req.tenantPhoto || 'https://placehold.co/80x80'}" style="width:80px; height:80px; border-radius:8px; border:2px solid #34495e; object-fit:cover;">
+                    <img src="${req.tenantPhoto || 'https://placehold.co/80x80'}" style="width:80px; height:80px; border-radius:8px; border:2px solid #34495e; object-fit:cover;"><br>
+                    <button onclick="downloadImage('${req.tenantPhoto}', '${req.tenantName}_Photo.jpg')" style="margin-top:8px; background:#27ae60; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold; transition:0.3s;">⬇️ Download Photo</button>
                 </div>
                 
                 <h4 style="color:#e74c3c; border-bottom:1px solid #ddd; padding-bottom:4px;">मालिक (Owner)</h4>
@@ -126,16 +128,18 @@
                 ${makeCopyRow('Phone', req.tenantPhone, id, 'tphone')}
                 ${makeCopyRow('Aadhar Number', req.aadharNumber, id, 'taadhar')}
                 
-                <!-- 🌟 AADHAR PHOTOS SECTION 🌟 -->
+                <!-- 🌟 AADHAR PHOTOS SECTION WITH DOWNLOAD 🌟 -->
                 <h4 style="color:#e74c3c; border-bottom:1px solid #ddd; padding-bottom:4px; margin-top:15px;">आधार कार्ड की फोटो (Aadhar Photos)</h4>
                 <div style="display: flex; gap: 15px; margin-top: 10px; justify-content: center;">
                     <div style="text-align: center;">
                         <p style="font-size: 12px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px;">Aadhar Front</p>
-                        <img src="${req.aadharFrontPhoto || 'https://placehold.co/200x120?text=Not+Uploaded'}" alt="Front Photo" style="width: 100%; max-width: 200px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <img src="${req.aadharFrontPhoto || 'https://placehold.co/200x120?text=Not+Uploaded'}" alt="Front Photo" style="width: 100%; max-width: 200px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><br>
+                        <button onclick="downloadImage('${req.aadharFrontPhoto}', '${req.tenantName}_Aadhar_Front.jpg')" style="margin-top:8px; background:#27ae60; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">⬇️ Download Front</button>
                     </div>
                     <div style="text-align: center;">
                         <p style="font-size: 12px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px;">Aadhar Back</p>
-                        <img src="${req.aadharBackPhoto || 'https://placehold.co/200x120?text=Not+Uploaded'}" alt="Back Photo" style="width: 100%; max-width: 200px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                        <img src="${req.aadharBackPhoto || 'https://placehold.co/200x120?text=Not+Uploaded'}" alt="Back Photo" style="width: 100%; max-width: 200px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"><br>
+                        <button onclick="downloadImage('${req.aadharBackPhoto}', '${req.tenantName}_Aadhar_Back.jpg')" style="margin-top:8px; background:#27ae60; color:white; border:none; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; font-weight:bold;">⬇️ Download Back</button>
                     </div>
                 </div>
                 <!-- 🌟 END AADHAR PHOTOS SECTION 🌟 -->
@@ -147,6 +151,30 @@
             document.getElementById('copyDataModal').style.display = 'flex';
         }
 
+        // 🌟 NAYA: Force Image Download Function 🌟
+        async function downloadImage(imageUrl, fileName) {
+            if (!imageUrl || imageUrl.includes('placehold.co')) {
+                alert('Photo upload nahi hui hai!');
+                return;
+            }
+            try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } catch (error) {
+                console.error('Download failed', error);
+                // Agar fetch fail ho jaye (CORS ki wajah se), to naye tab me open kar dega
+                window.open(imageUrl, '_blank'); 
+            }
+        }
         function makeCopyRow(label, value, reqId, fieldKey) {
             const uniqueId = fieldKey + '_' + reqId;
             return `
