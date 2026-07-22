@@ -29,8 +29,8 @@ app.post('/api/payment-sms', async (req, res) => {
 // ==========================================
 const config = {
     imap: {
-        user: 'devilking786k@gmail.com',
-        password: 'fwjfxksjofqvkpil',
+        user: process.env.EMAIL,        // सीधा ईमेल लिखने के बजाय
+        password: process.env.EMAIL_PASSWORD, // सीधा पासवर्ड लिखने के बजाय
         host: 'imap.gmail.com',
         port: 993,
         tls: true,
