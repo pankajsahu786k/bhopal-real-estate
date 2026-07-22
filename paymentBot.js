@@ -3,34 +3,48 @@ const imaps = require('imap-simple');
 const { simpleParser } = require('mailparser');
 
 const app = express();
-app.use(express.json()); // SMS का डेटा पढने के लिए
+app.use(express.json()); 
+
+// 🌟 टेस्टिंग के लिए टेम्पररी डेटाबेस (पेमेंट का स्टेटस सेव करने के लिए)
+const paymentStatus = {}; 
 
 // ==========================================
-// 1. SMS RECEIVER BOT (Webhook)
+// 1. SMS RECEIVER BOT (Webhook) - MacroDroid यहाँ सिग्नल भेजेगा
 // ==========================================
-app.post('/api/payment-sms', async (req, res) => {
+app.post('/api/webhook', async (req, res) => {
     try {
-        const smsText = req.body.message; // मोबाइल ऐप से आने वाला SMS
+        const smsText = req.body.smsText || ""; // 🌟 MacroDroid वाला सही नाम
         console.log(`📱 SMS Aaya: ${smsText}`);
 
         const match = smsText.match(/(RK_BKG_\d+)/);
         if (match) {
             const uniqueTxNote = match[1];
-            await verifyPayment(uniqueTxNote, 'SMS');
+            paymentStatus[uniqueTxNote] = 'Success'; // स्टेटस अपडेट कर दिया
+            console.log(`✅ SUCCESS! Payment Confirmed for ${uniqueTxNote} via SMS 🚀`);
         }
         res.status(200).send("SMS Received by Bot");
     } catch (error) {
+        console.error("Webhook Error:", error);
         res.status(500).send("Error");
     }
 });
 
 // ==========================================
-// 2. EMAIL RECEIVER BOT (IMAP)
+// 2. CHECK PAYMENT STATUS (Polling API) - आपका पेज यहाँ से पूछेगा
+// ==========================================
+app.get('/api/check-payment-status', (req, res) => {
+    const txnId = req.query.txnId;
+    const currentStatus = paymentStatus[txnId] || 'Pending';
+    res.json({ status: currentStatus });
+});
+
+// ==========================================
+// 3. EMAIL RECEIVER BOT (IMAP) - (इसे अभी के लिए ऐसे ही रहने दें)
 // ==========================================
 const config = {
     imap: {
-        user: process.env.EMAIL,        // सीधा ईमेल लिखने के बजाय
-        password: process.env.EMAIL_PASSWORD, // सीधा पासवर्ड लिखने के बजाय
+        user: process.env.EMAIL,        
+        password: process.env.EMAIL_PASSWORD, 
         host: 'imap.gmail.com',
         port: 993,
         tls: true,
@@ -57,7 +71,8 @@ async function startEmailBot() {
                 const match = (mail.text || "").match(/(RK_BKG_\d+)/);
                 if (match) {
                     const uniqueTxNote = match[1];
-                    await verifyPayment(uniqueTxNote, 'EMAIL');
+                    paymentStatus[uniqueTxNote] = 'Success';
+                    console.log(`✅ SUCCESS! Payment Confirmed for ${uniqueTxNote} via EMAIL 🚀`);
                 }
             }
         });
@@ -66,28 +81,9 @@ async function startEmailBot() {
     }
 }
 
-// ==========================================
-// 3. COMMON PAYMENT VERIFIER (Double Check)
-// ==========================================
-async function verifyPayment(txNote, source) {
-    // Yahan hum database check karenge
-    // Maan lijiye BookingModel aapka database hai
-    
-    // Step A: Check karein ki kya payment pehle hi kisi aur source se aagayi hai?
-    // const booking = await BookingModel.findOne({ txNote: txNote });
-    
-    // if (booking.status === 'Success') {
-    //     console.log(`⏩ ${txNote} pehle hi confirm ho chuka hai. (${source} ignored)`);
-    //     return;
-    // }
-
-    // Step B: Agar confirm nahi hai, toh SUCCESS kar do
-    // await BookingModel.findOneAndUpdate({ txNote: txNote }, { status: 'Success' });
-    console.log(`✅ SUCCESS! Payment Confirmed for ${txNote} via ${source} 🚀`);
-}
-
-// Server aur Bot Start karein
-app.listen(3000, () => {
-    console.log("🚀 Server running on port 3000");
-    startEmailBot(); // Email bot background me chalega
+// Server Start
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    // startEmailBot(); // टेस्टिंग के लिए इसे अभी कमेंट रखा है
 });
