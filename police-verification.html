@@ -126,7 +126,7 @@
             .form-container { padding: 20px; margin: 15px auto; width: 95%; }
         }
     </style>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    
 </head>
 <body>
 
@@ -320,57 +320,47 @@
             submitDataWithUniversalReceipt(formData, btn, originalText, freeTxnId, 'Tenant Police Verification (FREE)', 0, 'Bypassed (Free)');
         } 
         else {
+            // ✅ आपका कस्टम पेमेंट लॉजिक (बिना Razorpay के)
             try {
-                btn.innerText = "Initiating Payment... 💳";
+                btn.innerText = "डेटा सेव हो रहा है... कृपया रुकें ⏳";
                 
-                // 🚀 ₹149 के लिए 14900 अमाउंट सेट किया गया है (Paisa में)
-                const orderRes = await fetch('/api/create-order', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ customAmount: 14900 })
-                });
-                const orderData = await orderRes.json();
+                const serviceName = 'Tenant Police Verification Premium';
+                const amount = 149; 
                 
-                if(!orderData.success) {
-                    alert("❌ Payment System Error! Order create nahi hua.");
-                    resetBtn(btn, originalText);
-                    return;
-                }
+                // 1. एक टेम्परेरी (Pending) ट्रांजैक्शन ID जनरेट करें
+                const pendingTxnId = 'PENDING_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                
+                // 2. पेमेंट पेज पर जाने से पहले फॉर्म डेटा (फोटोज़ के साथ) बैकएंड में सेव करें
+                const saveRes = await fetch('/api/submit-verification', { method: 'POST', body: formData });
+                const result = await saveRes.json();
+                
+                if (result.success) {
+                    // ऑप्शनल: पेंडिंग रसीद भी सेव कर सकते हैं, ताकि बोट बाद में इसे अपडेट कर सके
+                    const receiptData = {
+                        userEmail: localStorage.getItem('brokerEmail'),
+                        serviceName: serviceName,
+                        transactionId: pendingTxnId,
+                        amountPaid: amount,
+                        paymentStatus: 'Pending'
+                    };
+                    await fetch('/api/save-receipt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(receiptData)
+                    });
 
-                const options = {
-                    "key": "rzp_test_T3oTzNzTDvWgUL", 
-                    "amount": 14900, 
-                    "currency": "INR",
-                    "name": "Bhopal Properties",
-                    "description": "Tenant Police Verification Fee",
-                    "order_id": orderData.order.id,
-                    "handler": async function (response) {
-                        btn.innerText = "Payment Successful! Saving... 🚀";
-                        // 🚀 रसीद में भी ₹149 सेव होगा
-                        submitDataWithUniversalReceipt(formData, btn, originalText, response.razorpay_payment_id, 'Tenant Police Verification Premium', 149, 'Paid');
-                    },
-                    "prefill": {
-                        "name": localStorage.getItem('brokerName') || "User",
-                        "email": userEmail,
-                        "contact": document.getElementById('tenantPhone').value
-                    },
-                    "theme": { "color": "#e67e22" },
-                    "modal": {
-                        ondismiss: function() {
-                            alert("❌ Payment Cancelled.");
-                            resetBtn(btn, originalText);
-                        }
-                    }
-                };
-                
-                const rzp = new Razorpay(options);
-                rzp.open();
-                btn.innerText = "Waiting for Payment Completion... 💳";
-                btn.disabled = false;
+                    btn.innerText = "पेमेंट पेज पर ले जा रहे हैं... 💳";
+
+                    // 3. डेटा सेव होने के बाद, यूज़र को आपके कस्टम पेमेंट पेज पर भेजें (URL में डेटा के साथ)
+                    window.location.href = `payment.html?service=${encodeURIComponent(serviceName)}&amount=${amount}&txnId=${pendingTxnId}`;
+                } else {
+                    alert('❌ डेटा सेव करने में सर्वर एरर आया: ' + result.message);
+                    resetBtn(btn, originalText);
+                }
 
             } catch (error) {
                 console.error(error);
-                alert("❌ Payment Server Se Connect Nahi Ho Paya.");
+                alert("❌ सर्वर से जुड़ने में समस्या आई।");
                 resetBtn(btn, originalText);
             }
         }
