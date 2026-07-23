@@ -215,7 +215,34 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
+// 🌟 पेमेंट स्टेटस सेव करने के लिए 
+const paymentStatus = {}; 
 
+// 1. SMS RECEIVER BOT (Webhook)
+app.post('/api/webhook', async (req, res) => {
+    try {
+        const smsText = req.body.smsText || ""; 
+        console.log(`📱 SMS Aaya: ${smsText}`);
+
+        const match = smsText.match(/(RK_BKG_\d+)/);
+        if (match) {
+            const uniqueTxNote = match[1];
+            paymentStatus[uniqueTxNote] = 'Success'; 
+            console.log(`✅ SUCCESS! Payment Confirmed for ${uniqueTxNote} via SMS 🚀`);
+        }
+        res.status(200).send("SMS Received by Bot");
+    } catch (error) {
+        console.error("Webhook Error:", error);
+        res.status(500).send("Error");
+    }
+});
+
+// 2. CHECK PAYMENT STATUS (Polling API)
+app.get('/api/check-payment-status', (req, res) => {
+    const txnId = req.query.txnId;
+    const currentStatus = paymentStatus[txnId] || 'Pending';
+    res.json({ status: currentStatus });
+});
 // ==========================================
 // 3️⃣ OTHER API ROUTES (Old Functions Preserved)
 // ==========================================
@@ -476,13 +503,6 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// ==========================================
-// 💳 RAZORPAY (Keys Hidden)
-// ==========================================
-const razorpay = new Razorpay({ 
-    key_id: process.env.RAZORPAY_KEY_ID, 
-    key_secret: process.env.RAZORPAY_KEY_SECRET 
-});
 
 app.post('/api/create-order', async (req, res) => {
     try {
