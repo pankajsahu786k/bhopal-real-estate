@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add New Property - Bhopal Real Estate</title>
     <link rel="stylesheet" href="add-property-style.css">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <!-- 🌟 Razorpay की स्क्रिप्ट हटा दी गई है -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 </head>
 
@@ -115,6 +115,8 @@
     <script>
         let userRole = 'user'; 
         let isPaymentBypassedGlobal = false;
+        const serviceName = 'Property Listing Premium';
+        const baseAmount = 10; // प्रॉपर्टी ऐड करने का फिक्स चार्ज
 
         document.addEventListener('DOMContentLoaded', async () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -140,7 +142,7 @@
                 submitBtn.innerText = "Free Publish (Direct Live) 🚀";
                 submitBtn.style.backgroundColor = "#28a745"; 
             } else {
-                submitBtn.innerText = "Pay ₹10 & Publish 💳";
+                submitBtn.innerText = `Pay ₹${baseAmount} & Publish 💳`;
                 submitBtn.style.backgroundColor = "#3498db"; 
             }
         });
@@ -148,13 +150,9 @@
         function checkNewLocation(val) {
             const inputBox = document.getElementById('customLocation');
             if (val === 'other') {
-                inputBox.style.display = 'block'; 
-                inputBox.required = true;         
-                inputBox.focus();                
+                inputBox.style.display = 'block'; inputBox.required = true; inputBox.focus();                
             } else {
-                inputBox.style.display = 'none';  
-                inputBox.required = false;
-                inputBox.value = '';              
+                inputBox.style.display = 'none'; inputBox.required = false; inputBox.value = '';              
             }
         }
 
@@ -162,14 +160,12 @@
             event.preventDefault(); 
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerText;
-            submitBtn.innerText = "Please Wait... ⏳";
+            submitBtn.innerText = "Uploading Draft... ⏳";
             submitBtn.disabled = true;
 
             const brokerEmail = localStorage.getItem('brokerEmail');
             let finalLocation = document.getElementById('location').value;
-            if (finalLocation === 'other') {
-                finalLocation = document.getElementById('customLocation').value.trim();
-            }
+            if (finalLocation === 'other') finalLocation = document.getElementById('customLocation').value.trim();
 
             const formData = new FormData();
             formData.append('title', document.getElementById('title').value);
@@ -180,6 +176,9 @@
             formData.append('contactNumber', document.getElementById('contactNumber').value); 
             formData.append('brokerEmail', brokerEmail);
             formData.append('videoLink', document.getElementById('videoLink').value);
+            
+            // 🌟 सर्वर को बताने के लिए कि यह डेटा प्रॉपर्टी का है
+            formData.append('serviceType', 'Property');
 
             const imgInput = document.getElementById('propertyImages');
             if (imgInput.files.length > 3) {
@@ -194,85 +193,51 @@
                 }
             }
 
-            // 🔄 Check for free bypass or role bypass
-            if (isPaymentBypassedGlobal || userRole === 'employee' || userRole === 'admin') {
-                // Generate a unique dummy transaction ID for free listings
-                const freeTxnId = 'FREE_' + Math.random().toString(36).substring(2, 10).toUpperCase();
-                formData.append('transactionId', freeTxnId);
-                formData.append('amountPaid', 0);
-                formData.append('paymentStatus', 'Bypassed (Free)');
-
-                if (isPaymentBypassedGlobal) {
-                    submitBtn.innerText = "Bypass Verified! Uploading... 🔓";
-                }
-                uploadPropertyData(formData, submitBtn, originalText, freeTxnId, 'Property Listing (FREE Mode)', 0);
-            } else {
-                startRazorpayPayment(formData, submitBtn, originalText);
-            }
-        }
-
-        async function startRazorpayPayment(formData, submitBtn, originalText) {
             try {
-                submitBtn.innerText = "Initiating Payment... 💳";
-                const orderRes = await fetch('/api/create-order', { method: 'POST' });
-                const orderData = await orderRes.json();
+                // 🌟 1. डेटा को हवा (RAM Draft) में सेव करें
+                const response = await fetch('/api/submit-property-draft', { method: 'POST', body: formData });
+                const result = await response.json();
 
-                if (!orderData.success) {
-                    alert("❌ Payment System Error! Order create nahi hua.");
+                if (!result.success) {
+                    alert('❌ एरर: ' + result.message);
                     resetButton(submitBtn, originalText);
                     return;
                 }
 
-                const options = {
-                    key: 'rzp_test_T3oTzNzTDvWgUL', 
-                    amount: orderData.order.amount,
-                    currency: "INR",
-                    name: "Bhopal Properties",
-                    description: "Property Listing Charge",
-                    order_id: orderData.order.id,
-                    handler: function (response) {
-                        submitBtn.innerText = "Payment Successful! Uploading... 🚀";
-                        formData.append('transactionId', response.razorpay_payment_id);
-                        formData.append('amountPaid', 10);
-                        formData.append('paymentStatus', 'Paid');
-                        uploadPropertyData(formData, submitBtn, originalText, response.razorpay_payment_id, 'Property Listing Premium', 10);
-                    },
-                    prefill: {
-                        name: localStorage.getItem('brokerName') || "User",
-                        email: localStorage.getItem('brokerEmail') || "",
-                        contact: document.getElementById('contactNumber').value 
-                    },
-                    theme: { color: "#27ae60" },
-                    modal: {
-                        ondismiss: function() {
-                            alert("❌ Payment Cancelled.");
-                            resetButton(submitBtn, originalText);
-                        }
-                    }
-                };
+                const draftId = result.draftId;
 
-                const rzp = new Razorpay(options);
-                rzp.open();
+                // 🌟 2. Free / Bypassed फ्लो (डायरेक्ट पक्की एंट्री)
+                if (isPaymentBypassedGlobal || userRole === 'employee' || userRole === 'admin') {
+                    submitBtn.innerText = "Bypass Verified! Publishing... 🔓";
+                    const freeTxnId = 'FREE_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                    
+                    // डेटाबेस में असली सेव करें
+                    await fetch('/api/finalize-record', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ draftId: draftId, transactionId: freeTxnId, amountPaid: 0 })
+                    });
 
-            } catch (error) {
-                alert("❌ Payment Server Se Connect Nahi Ho Paya.");
-                resetButton(submitBtn, originalText);
-            }
-        }
+                    // रसीद जनरेट करें
+                    await fetch('/api/save-receipt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userEmail: brokerEmail,
+                            serviceName: 'Property Listing (FREE Mode)',
+                            transactionId: freeTxnId,
+                            amountPaid: 0,
+                            paymentStatus: 'Bypassed (Free)'
+                        })
+                    });
 
-        async function uploadPropertyData(formData, submitBtn, originalText, txnId, serviceName, amt) {
-            submitBtn.innerText = "Uploading Photos & Data... ⏳";
-            try {
-                const response = await fetch('/api/add-property', { method: 'POST', body: formData });
-                const data = await response.json();
-
-                if (data.success) {
                     alert('✅ Property Uploaded Successfully!');
-                    // Redirect to receipt directly with current txn details
-                    window.location.href = `receipt.html?txn=${txnId}&service=${encodeURIComponent(serviceName)}&amount=${amt}`; 
-                } else {
-                    alert('❌ ' + data.message);
-                    resetButton(submitBtn, originalText);
+                    window.location.href = `receipt.html?txn=${freeTxnId}&service=Property%20Listing%20(FREE)&amount=0`;
+                } 
+                // 🌟 3. Paid फ्लो (पेमेंट पेज पर भेजें)
+                else {
+                    submitBtn.innerText = "Redirecting to Payment... 💳";
+                    window.location.href = `payment.html?service=${encodeURIComponent(serviceName)}&amount=${baseAmount}&draftId=${draftId}`;
                 }
             } catch (error) {
                 alert('❌ सर्वर से जुड़ने में समस्या आई।');
@@ -280,10 +245,7 @@
             }
         }
 
-        function resetButton(btn, text) {
-            btn.innerText = text;
-            btn.disabled = false;
-        }
+        function resetButton(btn, text) { btn.innerText = text; btn.disabled = false; }
     </script>
 </body>
 </html>

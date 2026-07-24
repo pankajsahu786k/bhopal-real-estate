@@ -6,7 +6,6 @@ const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const Razorpay = require('razorpay');
 const crypto = require('crypto'); 
 const helmet = require('helmet'); // 🔴 SECURITY: हैकर अटैक्स रोकने के लिए
 const rateLimit = require('express-rate-limit'); // 🔴 SECURITY: स्पैम रोकने के लिए
@@ -442,16 +441,6 @@ app.post('/api/track-click/:id', async (req, res) => {
     try { await Property.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } }); res.json({ success: true }); } 
     catch (err) { res.status(500).json({ success: false }); }
 });
-
-app.post('/api/add-property', upload.array('propertyImages', 3), async(req, res) => {
-    try {
-        const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
-        const newProperty = new Property({ ...req.body, images: imageUrls, brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown' });
-        await newProperty.save();
-        res.json({ success: true, message: 'Uploaded Successfully' });
-    } catch (error) { res.status(500).json({ success: false }); }
-});
-
 app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (req, res) => {
     try {
         const updateData = { ...req.body };
@@ -528,29 +517,6 @@ app.get('/api/get-profile', async(req, res) => {
         res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [] });
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
-
-
-app.post('/api/create-order', async (req, res) => {
-    try {
-        const orderAmount = req.body && req.body.customAmount ? req.body.customAmount : 1000; 
-        const order = await razorpay.orders.create({ amount: orderAmount, currency: "INR", receipt: "receipt_" + Math.random().toString(36).substring(7) });
-        res.json({ success: true, order });
-    } catch (error) { res.status(500).json({ success: false }); }
-});
-
-app.post('/api/verify-payment', (req, res) => {
-    try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-        const sign = razorpay_order_id + "|" + razorpay_payment_id;
-        
-        // 🔴 SECURITY: Crypto signature updated to use environment variable
-        const expectedSign = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET).update(sign.toString()).digest("hex");
-        
-        if (razorpay_signature === expectedSign) return res.json({ success: true, message: "Verified!" });
-        else return res.status(400).json({ success: false });
-    } catch (error) { res.status(500).json({ success: false }); }
-});
-
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
         const { brokerEmail, phone } = req.body;
@@ -733,7 +699,30 @@ app.post('/api/tenant/login', async (req, res) => {
             tenantData: tenant
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Server Error' });
+        res.status(500).json({ success: 
+            false, message: 'Server Error' });
+    }
+});
+// 🌟 1. प्रॉपर्टी को ड्राफ्ट (RAM) में सेव करने वाला API
+app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async (req, res) => {
+    try {
+        const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
+        const draftId = 'DRAFT_PROP_' + Math.floor(Math.random() * 1000000);
+
+        // डेटा को हवा (RAM) में रोक लिया
+        pendingForms[draftId] = {
+            ...req.body,
+            images: imageUrls,
+            brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown',
+            status: 'pending' // पब्लिश होने के लिए पेंडिंग 
+        };
+
+        // 15 मिनट बाद ऑटो-डिलीट (Garbage Collection)
+        setTimeout(() => { delete pendingForms[draftId]; }, 15 * 60 * 1000);
+
+        res.json({ success: true, draftId: draftId });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error creating property draft' });
     }
 });
 
@@ -748,23 +737,27 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
     }
 });
 // 🌟 यह API सिर्फ तब चलेगा जब पेमेंट सक्सेसफुल हो जाएगा
+// 🌟 2. अपडेटेड Finalize Record API
 app.post('/api/finalize-record', async (req, res) => {
     try {
         const { draftId, transactionId, amountPaid } = req.body;
         
-        // चेक करेंगे कि क्या हवा (मेमोरी) में इस ड्राफ्ट का डेटा मौजूद है?
         if (pendingForms[draftId]) {
             const finalData = pendingForms[draftId];
             finalData.transactionId = transactionId;
             finalData.amountPaid = amountPaid;
             
-            // 🎯 अब फाइनली इसे MongoDB डेटाबेस में असली सेव करेंगे!
-            const newRequest = new Verification(finalData);
-            await newRequest.save();
+            // 🎯 चेक करें कि सर्विस कौन सी है?
+            if (finalData.serviceType === 'Property') {
+                const newProperty = new Property(finalData);
+                await newProperty.save();
+            } else {
+                // डिफ़ॉल्ट (Police Verification)
+                const newRequest = new Verification(finalData);
+                await newRequest.save();
+            }
             
-            // सेव होने के बाद मेमोरी से कचरा डिलीट कर देंगे
-            delete pendingForms[draftId];
-            
+            delete pendingForms[draftId]; // कचरा साफ़
             res.json({ success: true, message: "डेटाबेस में परमानेंट सेव हो गया!" });
         } else {
             res.status(400).json({ success: false, message: "टाइम आउट हो गया या फॉर्म डेटा नहीं मिला।" });
