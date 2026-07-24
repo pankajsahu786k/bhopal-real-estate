@@ -1,102 +1,84 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Payment - RK Decorators</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .payment-box { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; border-top: 5px solid #8e44ad; }
-        .amount { font-size: 32px; font-weight: bold; color: #2c3e50; margin: 10px 0; }
-        .pay-btn { display: inline-block; background-color: #8e44ad; color: white; padding: 12px 25px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; margin-top: 15px; width: 80%; transition: 0.3s; }
-        .pay-btn:hover { background-color: #732d91; }
-        .qr-image { border: 2px solid #ddd; border-radius: 8px; padding: 10px; margin-top: 15px; width: 200px; height: 200px; }
-        .instruction { font-size: 13px; color: #7f8c8d; margin-top: 10px; }
-        .status-section { margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #8e44ad; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .status-text { font-size: 15px; color: #f39c12; font-weight: bold; margin-top: 15px; }
-        .success-text { font-size: 18px; color: #27ae60; font-weight: bold; margin-top: 15px; display: none; }
-    </style>
-</head>
-<body>
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 🌟 फिक्स: dynamicAmount को वापस जोड़ दिया गया है! 
+    const dynamicAmount = urlParams.get('amount') || "500"; 
+    
+    const dynamicService = urlParams.get('service') || "Advance Booking Payment";
+    document.getElementById("serviceNameDisplay").innerText = dynamicService;
 
-    <div class="payment-box">
-        <h2 style="margin: 0; color: #2c3e50;">RK Decorators</h2>
-        <p id="serviceNameDisplay" style="color: #7f8c8d; margin-top: 5px; font-weight: 500;">Loading Service...</p>
-        
-        <div class="amount">₹<span id="amountDisplay">0</span></div>
+    // आपका असली UPI ID और बिज़नेस का नाम
+    const myUpiId = "yogitasahu777@ybl"; 
+    const myBusinessName = "Sahu Communication";
+    
+    const paymentArea = document.getElementById("paymentDynamicArea");
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-        <div id="paymentDynamicArea">
-            <p>Loading payment options... ⏳</p>
-        </div>
+    // पेज लोड होते ही सर्वर से यूनिक अमाउंट मँगवाएगा
+    async function initializePayment() {
+        try {
+            // हम सर्वर से रैंडम अमाउंट मांग रहे हैं
+            const response = await fetch('/api/create-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    userId: 'current_user_123', 
+                    baseAmount: dynamicAmount // 🌟 अब यह बिल्कुल सही काम करेगा!
+                }) 
+            });
+            const data = await response.json();
 
-        <div class="status-section" id="statusSection">
-            <div class="loader" id="loader"></div>
-            <p class="status-text" id="statusText">Waiting for payment confirmation... ⏳</p>
-            <p class="success-text" id="successText">✅ Payment Successful!</p>
-            <!-- 🌟 यहाँ पर हम Reference ID दिखाएंगे ताकि आप SMS में वो टाइप कर सकें -->
-            <p id="refIdDisplay" style="font-size: 12px; color: #aaa; margin-top: 10px;"></p>
-        </div>
-    </div>
+            if (data.success) {
+                const uniqueAmount = data.amount; // सर्वर से मिला अमाउंट (जैसे 500.45)
+                document.getElementById("amountDisplay").innerText = uniqueAmount;
+                
+                const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(myBusinessName)}&am=${uniqueAmount}&cu=INR`;
 
-    <!-- 🌟 JavaScript के लिए <script> टैग जोड़ दिए गए हैं 🌟 -->
-    <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const dynamicAmount = urlParams.get('amount') || "500.00"; 
-        const dynamicService = urlParams.get('service') || "Advance Booking Payment";
-
-        document.getElementById("amountDisplay").innerText = dynamicAmount;
-        document.getElementById("serviceNameDisplay").innerText = dynamicService;
-
-        const myUpiId = "yogitasahu777@ybl"; 
-        const myBusinessName = "Sahu Communication";
-        
-        // यह Reference ID बहुत ज़रूरी है!
-        const uniqueTxNote = "RK_BKG_" + Math.floor(Math.random() * 1000000); 
-        
-        // 🌟 टेस्टिंग के लिए स्क्रीन पर ID दिखा रहे हैं
-        document.getElementById("refIdDisplay").innerText = `Test Ref ID: ${uniqueTxNote}`;
-
-        const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(myBusinessName)}&am=${dynamicAmount}&tn=${uniqueTxNote}&cu=INR`;
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const paymentArea = document.getElementById("paymentDynamicArea");
-
-        if (isMobile) {
-            paymentArea.innerHTML = `
-                <a href="${upiLink}" class="pay-btn">🚀 Pay with PhonePe / GPay</a>
-                <p class="instruction">Click above to open UPI App directly.</p>
-            `;
-        } else {
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`;
-            paymentArea.innerHTML = `
-                <img src="${qrApiUrl}" class="qr-image" alt="Scan to Pay">
-                <p class="instruction">Scan with any UPI App from your phone.</p>
-            `;
-        }
-
-        // 🌟 URL वाले txnId की जगह, हम uniqueTxNote को चेक करेंगे!
-        const checkPaymentInterval = setInterval(async () => {
-            try {
-                // API को uniqueTxNote भेज रहे हैं
-                const response = await fetch(`/api/check-payment-status?txnId=${uniqueTxNote}`);
-                const data = await response.json();
-
-                if (data.status === 'Success' || data.status === 'Paid') {
-                    clearInterval(checkPaymentInterval); 
-                    
-                    document.getElementById('loader').style.display = 'none';
-                    document.getElementById('statusText').style.display = 'none';
-                    document.getElementById('successText').style.display = 'block';
-
-                    setTimeout(() => {
-                        window.location.href = `receipt.html?txn=${uniqueTxNote}&service=${encodeURIComponent(dynamicService)}&amount=${dynamicAmount}`;
-                    }, 2000);
+                // मोबाइल और डेस्कटॉप के लिए अलग-अलग डिस्प्ले
+                if (isMobile) {
+                    paymentArea.innerHTML = `
+                        <a href="${upiLink}" class="pay-btn">🚀 Pay with PhonePe / GPay</a>
+                        <p class="instruction" style="color:red; font-weight:bold;">कृपया एकदम सटीक ₹${uniqueAmount} ही पे करें, वर्ना पेमेंट फेल हो जाएगा (5 मिनट के अंदर)।</p>
+                    `;
+                } else {
+                    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`;
+                    paymentArea.innerHTML = `
+                        <img src="${qrApiUrl}" class="qr-image" alt="Scan to Pay">
+                        <p class="instruction" style="color:red; font-weight:bold;">कृपया स्कैन करके सटीक ₹${uniqueAmount} ही पे करें, वर्ना पेमेंट फेल हो जाएगा (5 मिनट के अंदर)।</p>
+                    `;
                 }
-            } catch (error) {
-                console.error("पेमेंट स्टेटस चेक करने में एरर:", error);
+
+                // Polling: uniqueAmount से स्टेटस चेक करेंगे!
+                const checkPaymentInterval = setInterval(async () => {
+                    try {
+                        const res = await fetch(`/api/check-payment-status?amount=${uniqueAmount}`);
+                        const statusData = await res.json();
+
+                        if (statusData.status === 'Success') {
+                            clearInterval(checkPaymentInterval); 
+                            document.getElementById('loader').style.display = 'none';
+                            document.getElementById('statusText').style.display = 'none';
+                            document.getElementById('successText').style.display = 'block';
+
+                            // 2 सेकंड बाद रसीद वाले पेज पर भेज दें
+                            setTimeout(() => {
+                                // 🌟 ध्यान दें: रसीद पेज पर अब हम txnId की जगह amount ही भेज रहे हैं
+                                window.location.href = `receipt.html?amount=${uniqueAmount}&service=${encodeURIComponent(dynamicService)}`;
+                            }, 2000);
+                        }
+                    } catch (error) {
+                        console.error("पेमेंट स्टेटस चेक करने में एरर:", error);
+                    }
+                }, 3000);
+
+            } else {
+                paymentArea.innerHTML = `<p style="color:red;">${data.message}</p>`;
             }
-        }, 3000); 
-    </script>
-</body>
-</html>
+        } catch (e) {
+            console.error("API Call Error:", e);
+            paymentArea.innerHTML = `<p style="color:red;">सर्वर से कनेक्ट नहीं हो पा रहा है।</p>`;
+        }
+    }
+
+    initializePayment();
+</script>

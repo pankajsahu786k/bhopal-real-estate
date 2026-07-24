@@ -14,6 +14,8 @@ const rateLimit = require('express-rate-limit'); // 🔴 SECURITY: स्पै�
 const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+// पेमेंट्स का रिकॉर्ड रखने के लिए (Database से पहले वाली टेम्पररी मेमोरी)
+const activePayments = {};
 
 // 🔴 सिक्योरिटी चाबी (इसे अपनी .env फाइल में भी डाल सकते हैं)
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
@@ -219,18 +221,32 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 const paymentStatus = {}; 
 
 // 1. SMS RECEIVER BOT (Webhook)
+// 1. NOTIFICATION RECEIVER BOT (Webhook - Updated for Fractional Amount)
 app.post('/api/webhook', async (req, res) => {
     try {
         const smsText = req.body.smsText || ""; 
-        console.log(`📱 SMS Aaya: ${smsText}`);
+        console.log(`📱 PhonePe Notification Aaya: ${smsText}`);
 
-        const match = smsText.match(/(RK_BKG_\d+)/);
+        // यह Regex मैसेज में से पैसे (जैसे 149.45) निकालेगा
+        const match = smsText.match(/(?:Rs|INR)?\s*(\d+\.\d{2})/i);
+
         if (match) {
-            const uniqueTxNote = match[1];
-            paymentStatus[uniqueTxNote] = 'Success'; 
-            console.log(`✅ SUCCESS! Payment Confirmed for ${uniqueTxNote} via SMS 🚀`);
+            const receivedAmount = match[1]; // ये "149.45" देगा
+            
+            // चेक करेंगे कि क्या यह अमाउंट हमारी मेमोरी में पेंडिंग है
+            if(activePayments[receivedAmount] && activePayments[receivedAmount].status === "pending") {
+                
+                // पेमेंट सक्सेसफुल! 
+                activePayments[receivedAmount].status = 'Success'; 
+                
+                console.log(`✅ SUCCESS! Payment Confirmed for Amount ₹${receivedAmount} 🚀`);
+                
+                // 💡 (भविष्य के लिए: यहाँ आप अपनी Property या UniversalReceipt DB में भी इसे सेव कर सकते हैं)
+            } else {
+                console.log(`⚠️ ₹${receivedAmount} रिसीव हुआ, पर सर्वर पर कोई यूज़र पेंडिंग नहीं था।`);
+            }
         }
-        res.status(200).send("SMS Received by Bot");
+        res.status(200).send("Webhook Processed Successfully");
     } catch (error) {
         console.error("Webhook Error:", error);
         res.status(500).send("Error");
@@ -238,10 +254,16 @@ app.post('/api/webhook', async (req, res) => {
 });
 
 // 2. CHECK PAYMENT STATUS (Polling API)
+// 2. CHECK PAYMENT STATUS (Updated for Fractional Amount)
 app.get('/api/check-payment-status', (req, res) => {
-    const txnId = req.query.txnId;
-    const currentStatus = paymentStatus[txnId] || 'Pending';
-    res.json({ status: currentStatus });
+    const checkAmount = req.query.amount; // फ्रंटएंड से अमाउंट आएगा (जैसे 500.45)
+    
+    // हम अपनी 5-मिनट वाली मेमोरी में चेक करेंगे कि इस अमाउंट का स्टेटस क्या है
+    if (activePayments[checkAmount]) {
+        res.json({ status: activePayments[checkAmount].status }); // Pending या Success भेजेगा
+    } else {
+        res.json({ status: 'Not Found' }); 
+    }
 });
 // ==========================================
 // 3️⃣ OTHER API ROUTES (Old Functions Preserved)
@@ -642,6 +664,22 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
         res.json({ success: true, message: 'Property and photos deleted permanently!' });
     } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
+// 🌟 डायनामिक अमाउंट जनरेटर API
+app.post('/api/create-payment', (req, res) => {
+    const userId = req.body.userId; 
+    
+    // 🌟 पेंच फिक्स: अब बेस अमाउंट फ्रंटएंड से आएगा। अगर नहीं आया, तो डिफ़ॉल्ट 149 मान लेगा।
+    const baseAmount = req.body.baseAmount ? parseFloat(req.body.baseAmount) : 149;
+
+    // इंजन चलाकर यूनिक अमाउंट निकाला (उदा: 500 आया तो 499.01 से 501.99 के बीच निकालेगा)
+    const finalAmount = getUniquePaymentAmount(baseAmount, userId);
+
+    if (!finalAmount) {
+        return res.status(500).json({ success: false, message: "सर्वर अभी बिजी है, 1 मिनट बाद कोशिश करें।" });
+    }
+
+    res.json({ success: true, amount: finalAmount });
+});
 
 app.delete('/api/admin/delete-user/:id', async (req, res) => {
     try {
@@ -705,6 +743,46 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+function getUniquePaymentAmount(baseAmount, userId) {
+    // रेंज: 148.01 से 150.99 (लगभग 300 यूनिक अमाउंट)
+    const min = (baseAmount - 1) * 100 + 1; // 14801 (पैसे में)
+    const max = (baseAmount + 1) * 100 + 99; // 15099 (पैसे में)
+    
+    let attempts = 0;
+    const now = Date.now();
+    const FIVE_MINUTES = 5 * 60 * 1000; // 5 मिनट को मिलीसेकंड में बदला
+
+    // हम 500 बार ट्राई करेंगे कोई खाली अमाउंट ढूँढने की
+    while (attempts < 500) {
+        let randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
+        let amount = (randomInt / 100).toFixed(2); // इसे वापस रुपये में बदला, जैसे "149.45"
+
+        // चेक 1: क्या यह अमाउंट पहले से किसी को दिया हुआ है?
+        if (activePayments[amount]) {
+            // चेक 2: अगर दिया है, तो क्या उसके 5 मिनट पूरे (Expire) हो गए हैं?
+            if (now > activePayments[amount].expiresAt) {
+                // हाँ, एक्सपायर हो गया! हम इसे पुराने यूज़र से छीन कर नए यूज़र को दे देंगे
+                activePayments[amount] = { 
+                    userId: userId, 
+                    expiresAt: now + FIVE_MINUTES, 
+                    status: "pending" 
+                };
+                return amount;
+            }
+            // अगर 5 मिनट नहीं हुए, तो लूप वापस घूमेगा और नया अमाउंट ट्राई करेगा
+        } else {
+            // यह अमाउंट एकदम फ्रेश और फ्री है!
+            activePayments[amount] = { 
+                userId: userId, 
+                expiresAt: now + FIVE_MINUTES, 
+                status: "pending" 
+            };
+            return amount;
+        }
+        attempts++;
+    }
+    return null; // अगर एक साथ 300 लोग आ गए और सब फुल हो गया (जो बहुत मुश्किल है)
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`));
