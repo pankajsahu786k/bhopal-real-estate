@@ -16,6 +16,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 // पेमेंट्स का रिकॉर्ड रखने के लिए (Database से पहले वाली टेम्पररी मेमोरी)
 const activePayments = {};
+const pendingForms = {};
 
 // 🔴 सिक्योरिटी चाबी (इसे अपनी .env फाइल में भी डाल सकते हैं)
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
@@ -346,23 +347,26 @@ app.post('/api/submit-verification', upload.fields([
         const aadharFrontUrl = req.files && req.files['aadharFront'] ? req.files['aadharFront'][0].path : '';
         const aadharBackUrl = req.files && req.files['aadharBack'] ? req.files['aadharBack'][0].path : '';
 
-        const targetTxn = req.body.transactionId || 'FREE_VERIFY_' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        // एक रैंडम ड्राफ्ट ID बनाएंगे (जैसे: DRAFT_83749)
+        const draftId = 'DRAFT_' + Math.floor(Math.random() * 1000000);
 
-        const verificationData = { 
-            ...req.body, tenantPhoto: tenantPhotoUrl, aadharFrontPhoto: aadharFrontUrl, aadharBackPhoto: aadharBackUrl, status: 'Pending', transactionId: targetTxn
+        // 🌟 डेटाबेस में सेव करने की जगह, इसे सर्वर की टेम्पररी मेमोरी में डाल दिया 
+        pendingForms[draftId] = { 
+            ...req.body, 
+            tenantPhoto: tenantPhotoUrl, 
+            aadharFrontPhoto: aadharFrontUrl, 
+            aadharBackPhoto: aadharBackUrl, 
+            status: 'Complete' 
         };
 
-        const newRequest = new Verification(verificationData);
-        await newRequest.save();
+        // 15 मिनट बाद अगर पेमेंट नहीं हुआ, तो यह हवा (मेमोरी) से भी अपने आप डिलीट (कचरा साफ़) हो जाएगा
+        setTimeout(() => { delete pendingForms[draftId]; }, 15 * 60 * 1000);
 
-        const latestProfile = await BrokerProfile.findOne({}).sort({ updatedAt: -1 });
-        let activeAgentPhone = "919575611622"; 
-        if (latestProfile && latestProfile.phone) {
-            activeAgentPhone = latestProfile.phone.replace(/\D/g, '');
-            if (activeAgentPhone.length === 10) activeAgentPhone = "91" + activeAgentPhone;
-        }
-
-        res.json({ success: true, message: '✅ आपकी रिक्वेस्ट सफलतापूर्ण सबमिट हो गई है!', agentPhone: activeAgentPhone });
+        res.json({ 
+            success: true, 
+            message: 'डेटा ड्राफ्ट में सेव हो गया, पेमेंट पेज पर जा रहे हैं...',
+            draftId: draftId // यह ID हम फ्रंटएंड को भेजेंगे
+        });
     } catch (error) { 
         console.error("Verification error:", error);
         res.status(500).json({ success: false, message: 'Server Error' }); 
@@ -741,6 +745,32 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
         res.json({ success: true, data: ledger });
     } catch (error) {
         res.status(500).json({ success: false });
+    }
+});
+// 🌟 यह API सिर्फ तब चलेगा जब पेमेंट सक्सेसफुल हो जाएगा
+app.post('/api/finalize-record', async (req, res) => {
+    try {
+        const { draftId, transactionId, amountPaid } = req.body;
+        
+        // चेक करेंगे कि क्या हवा (मेमोरी) में इस ड्राफ्ट का डेटा मौजूद है?
+        if (pendingForms[draftId]) {
+            const finalData = pendingForms[draftId];
+            finalData.transactionId = transactionId;
+            finalData.amountPaid = amountPaid;
+            
+            // 🎯 अब फाइनली इसे MongoDB डेटाबेस में असली सेव करेंगे!
+            const newRequest = new Verification(finalData);
+            await newRequest.save();
+            
+            // सेव होने के बाद मेमोरी से कचरा डिलीट कर देंगे
+            delete pendingForms[draftId];
+            
+            res.json({ success: true, message: "डेटाबेस में परमानेंट सेव हो गया!" });
+        } else {
+            res.status(400).json({ success: false, message: "टाइम आउट हो गया या फॉर्म डेटा नहीं मिला।" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error saving final record" });
     }
 });
 function getUniquePaymentAmount(baseAmount, userId) {
