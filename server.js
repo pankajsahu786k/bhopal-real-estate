@@ -747,22 +747,23 @@ app.post('/api/finalize-record', async (req, res) => {
             finalData.transactionId = transactionId;
             finalData.amountPaid = amountPaid;
             
-            // 🎯 चेक करें कि सर्विस कौन सी है?
+            // 🎯 सही सर्विस पहचान कर सही डेटाबेस टेबल में सेव करना
             if (finalData.serviceType === 'Property') {
                 const newProperty = new Property(finalData);
                 await newProperty.save();
             } else {
-                // डिफ़ॉल्ट (Police Verification)
+                // पुलिस वेरिफिकेशन या डिफ़ॉल्ट सर्विस के लिए Verification मॉडल
                 const newRequest = new Verification(finalData);
                 await newRequest.save();
             }
             
-            delete pendingForms[draftId]; // कचरा साफ़
+            delete pendingForms[draftId]; // RAM से कचरा साफ़
             res.json({ success: true, message: "डेटाबेस में परमानेंट सेव हो गया!" });
         } else {
             res.status(400).json({ success: false, message: "टाइम आउट हो गया या फॉर्म डेटा नहीं मिला।" });
         }
     } catch (error) {
+        console.error("Finalization Error:", error);
         res.status(500).json({ success: false, message: "Error saving final record" });
     }
 });

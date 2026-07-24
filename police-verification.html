@@ -240,6 +240,7 @@
             const aadharBackBase64 = await compressImage(aadharBackFile);
 
             const ramData = {
+                serviceType: 'PoliceVerification', // 🌟 यह लाइन बहुत ज़रूरी है!
                 userEmail: localStorage.getItem('brokerEmail') || 'guest@user.com',
                 ownerName: document.getElementById('ownerName').value,
                 ownerPhone: document.getElementById('ownerPhone').value,
