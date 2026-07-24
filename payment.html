@@ -16,7 +16,7 @@
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #e67e22; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .status-text { font-size: 15px; color: #f39c12; font-weight: bold; margin-top: 15px; }
-        .success-text { font-size: 18px; color: #27ae60; font-weight: bold; margin-top: 15px; display: none; }
+        .success-text { font-size: 16px; color: #27ae60; font-weight: bold; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
@@ -39,12 +39,13 @@
     </div>
 
     <script>
-        // 1. URL से डेटा निकालना
+        // 1. URL से डेटा निकालना (यहाँ draftId जोड़ना ज़रूरी था)
         const urlParams = new URLSearchParams(window.location.search);
         const dynamicAmount = urlParams.get('amount') || "149"; 
         const dynamicService = urlParams.get('service') || "Premium Service";
+        const draftId = urlParams.get('draftId'); // 🌟 यह मिसिंग था!
         
-        // 2. स्क्रीन पर सर्विस का नाम सेट करना (अगर यह एलिमेंट नहीं होगा, तो स्क्रीन ब्लैंक हो जाएगी)
+        // 2. स्क्रीन पर सर्विस का नाम सेट करना
         document.getElementById("serviceNameDisplay").innerText = dynamicService;
 
         // आपका असली UPI ID और बिज़नेस का नाम
@@ -61,19 +62,18 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        userId: 'current_user_123', 
+                        userId: draftId || 'guest_user', // 🌟 ड्राफ्ट आईडी को ही यूज़र आईडी बना दिया
                         baseAmount: dynamicAmount 
                     }) 
                 });
                 const data = await response.json();
 
                 if (data.success) {
-                    const uniqueAmount = data.amount; // सर्वर से मिला अमाउंट (जैसे 149.45)
+                    const uniqueAmount = data.amount;
                     document.getElementById("amountDisplay").innerText = uniqueAmount;
                     
                     const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(myBusinessName)}&am=${uniqueAmount}&cu=INR`;
 
-                    // मोबाइल और डेस्कटॉप के लिए डिस्प्ले
                     if (isMobile) {
                         paymentArea.innerHTML = `
                             <a href="${upiLink}" class="pay-btn">🚀 Pay with PhonePe / GPay</a>
@@ -97,11 +97,44 @@
                                 clearInterval(checkPaymentInterval); 
                                 document.getElementById('loader').style.display = 'none';
                                 document.getElementById('statusText').style.display = 'none';
+                                
+                                document.getElementById('successText').innerText = "✅ Payment Successful! Saving your data...";
                                 document.getElementById('successText').style.display = 'block';
 
-                                // पेमेंट सक्सेस होने पर रसीद पेज पर भेजना
+                                const finalTxnId = `TXN_${uniqueAmount.replace('.', '')}`;
+
+                                // 🌟 5. यह पूरा ब्लॉक मिसिंग था! (डेटाबेस में पक्का सेव करना)
+                                if (draftId) {
+                                    try {
+                                        await fetch('/api/finalize-record', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ 
+                                                draftId: draftId, 
+                                                transactionId: finalTxnId,
+                                                amountPaid: uniqueAmount 
+                                            })
+                                        });
+
+                                        await fetch('/api/save-receipt', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                userEmail: localStorage.getItem('brokerEmail') || 'guest@bhopal.com',
+                                                serviceName: dynamicService,
+                                                transactionId: finalTxnId,
+                                                amountPaid: uniqueAmount,
+                                                paymentStatus: 'Paid'
+                                            })
+                                        });
+                                    } catch (err) {
+                                        console.error("Error finalizing:", err);
+                                    }
+                                }
+
+                                // 2 सेकंड बाद रसीद पेज पर भेजना
                                 setTimeout(() => {
-                                    window.location.href = `receipt.html?amount=${uniqueAmount}&service=${encodeURIComponent(dynamicService)}`;
+                                    window.location.href = `receipt.html?amount=${uniqueAmount}&service=${encodeURIComponent(dynamicService)}&txn=${finalTxnId}`;
                                 }, 2000);
                             }
                         } catch (error) {
@@ -118,7 +151,6 @@
             }
         }
 
-        // 5. फंक्शन को चालू करना
         initializePayment();
     </script>
 </body>
