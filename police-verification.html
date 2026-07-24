@@ -202,18 +202,24 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+        const btn = document.getElementById('submitBtn');
         try {
             const res = await fetch('/api/payment-status');
             const data = await res.json();
             isPaymentBypassedGlobal = data.isPaymentBypassed;
             
-            const btn = document.getElementById('submitBtn');
             if (isPaymentBypassedGlobal) {
                 btn.innerText = "Submit Verification Request (FREE) 🚀";
                 btn.style.backgroundColor = "#e67e22"; 
+            } else {
+                // 🎯 यहाँ पुलिस वेरिफिकेशन का फिक्स अमाउंट (जैसे ₹149) बटन पर दिखने लगेगा
+                btn.innerText = "Pay ₹149 & Submit Request 💳";
+                btn.style.backgroundColor = "#3498db"; 
             }
         } catch (e) {
             console.error("Error fetching payment status:", e);
+            btn.innerText = "Pay ₹149 & Submit Request 💳";
+            btn.style.backgroundColor = "#3498db";
         }
     });
 
@@ -259,7 +265,8 @@
             if (isPaymentBypassedGlobal) {
                 window.location.href = `payment.html?service=tenant_verification&amount=0&bypassed=true`;
             } else {
-                window.location.href = `payment.html?service=tenant_verification&amount=110`;
+                // 💳 यहाँ से 149 रुपये पेमेंट पेज पर पास हो जाएंगे
+                window.location.href = `payment.html?service=tenant_verification&amount=149`;
             }
 
         } catch (error) {
