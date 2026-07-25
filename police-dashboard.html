@@ -1,5 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+    <script>
+    // 🚨 Security Patch: चेक करो कि यूज़र/एडमिन लॉग-इन है या नहीं
+    // 'authToken' की जगह वो नाम लिखो जिस नाम से तुमने लॉग-इन के टाइम डेटा सेव कराया है
+    const userToken = localStorage.getItem('authToken'); 
+
+    if (!userToken) {
+        // अगर टोकन नहीं मिला, तो तुरंत लॉग-इन पेज पर वापस फेंक दो
+        window.location.replace('/login.html'); // या जो भी तुम्हारे लॉग-इन पेज का नाम है
+    }
+</script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
