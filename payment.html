@@ -39,17 +39,18 @@
     </div>
 
     <script>
-        // 1. URL से डेटा निकालना (यहाँ draftId जोड़ना ज़रूरी था)
+        // 1. URL से डेटा निकालना 
         const urlParams = new URLSearchParams(window.location.search);
         const dynamicAmount = urlParams.get('amount') || "149"; 
         const dynamicService = urlParams.get('service') || "Premium Service";
-        const draftId = urlParams.get('draftId'); // 🌟 यह मिसिंग था!
+        const draftId = urlParams.get('draftId'); 
         
         // 2. स्क्रीन पर सर्विस का नाम सेट करना
         document.getElementById("serviceNameDisplay").innerText = dynamicService;
 
-        // आपका असली UPI ID और बिज़नेस का नाम
-        const myUpiId = "yogitasahu777@ybl"; 
+        // 🌟 दोनों UPI ID यहाँ सेट करें (नया लॉजिक)
+        const businessUpiId = "Q561781817@ybl"; // 📱 मोबाइल ऐप (बटन) के लिए
+        const personalUpiId = "yogitasahu777@ybl"; // 💻 डेस्कटॉप (QR कोड) के लिए
         const myBusinessName = "Sahu Communication";
         
         const paymentArea = document.getElementById("paymentDynamicArea");
@@ -62,7 +63,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        userId: draftId || 'guest_user', // 🌟 ड्राफ्ट आईडी को ही यूज़र आईडी बना दिया
+                        userId: draftId || 'guest_user', 
                         baseAmount: dynamicAmount 
                     }) 
                 });
@@ -72,7 +73,11 @@
                     const uniqueAmount = data.amount;
                     document.getElementById("amountDisplay").innerText = uniqueAmount;
                     
-                    const upiLink = `upi://pay?pa=${myUpiId}&pn=${encodeURIComponent(myBusinessName)}&am=${uniqueAmount}&cu=INR`;
+                    // 🌟 यह अपने आप चेक करेगा कि कौन सा UPI ID इस्तेमाल करना है
+                    const activeUpiId = isMobile ? businessUpiId : personalUpiId;
+                    
+                    // 🌟 यहाँ हमने activeUpiId का इस्तेमाल किया है
+                    const upiLink = `upi://pay?pa=${activeUpiId}&pn=${encodeURIComponent(myBusinessName)}&am=${uniqueAmount}&cu=INR`;
 
                     if (isMobile) {
                         paymentArea.innerHTML = `
@@ -103,7 +108,6 @@
 
                                 const finalTxnId = `TXN_${uniqueAmount.replace('.', '')}`;
 
-                                // 🌟 5. यह पूरा ब्लॉक मिसिंग था! (डेटाबेस में पक्का सेव करना)
                                 if (draftId) {
                                     try {
                                         await fetch('/api/finalize-record', {
