@@ -703,6 +703,39 @@ app.post('/api/tenant/login', async (req, res) => {
             false, message: 'Server Error' });
     }
 });
+// ==========================================
+// 🌟 ADMIN PAYMENTS FETCH API (NEW)
+// ==========================================
+app.get('/api/admin/get-payments', async (req, res) => {
+    try {
+        const queryDate = req.query.date; 
+        // यूनिवर्सल रसीद वाले डेटाबेस से सक्सेस पेमेंट्स निकालेंगे
+        let filter = { paymentStatus: { $in: ['Paid', 'Success'] } }; 
+
+        // अगर एडमिन ने कैलेंडर से डेट सेलेक्ट की है
+        if (queryDate) {
+            const startDate = new Date(queryDate);
+            startDate.setHours(0, 0, 0, 0);
+            
+            const endDate = new Date(queryDate);
+            endDate.setHours(23, 59, 59, 999);
+
+            filter.createdAt = { $gte: startDate, $lte: endDate };
+        }
+
+        // UniversalReceipt कलेक्शन से डेटा निकालें
+        const paymentsData = await UniversalReceipt.find(filter).sort({ createdAt: -1 }); 
+        
+        res.json({
+            success: true,
+            payments: paymentsData
+        });
+
+    } catch (error) {
+        console.error("Payment Fetch API Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
 // 🌟 1. प्रॉपर्टी को ड्राफ्ट (RAM) में सेव करने वाला API
 app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async (req, res) => {
     try {

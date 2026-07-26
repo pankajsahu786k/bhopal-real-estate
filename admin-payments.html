@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Payments - Bhopal Real Estate</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* 🌟 Sidebar Styling (From your Main Admin Panel) */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #1a252f; font-size: 18px; }
+        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
+        .nav-links a:hover, .nav-links a.active { background-color: #34495e; color: white; border-left-color: #e74c3c; }
+
+        /* 🌟 Main Content Area */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; }
+        .dashboard-container { max-width: 1000px; margin: 0 auto; width: 100%; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-top: 5px solid #2980b9; }
+        h2 { color: #2c3e50; margin-top: 0; }
+        
+        /* Filter & Summary Section */
+        .filter-section { display: flex; gap: 15px; margin-bottom: 25px; align-items: center; background: #ecf0f1; padding: 15px; border-radius: 8px; flex-wrap: wrap; }
+        .filter-section input[type="date"] { padding: 8px 12px; border: 1px solid #bdc3c7; border-radius: 5px; font-size: 15px; }
+        .btn { padding: 9px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
+        .btn-primary { background-color: #3498db; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-secondary { background-color: #95a5a6; }
+
+        .summary-cards { display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+        .card { flex: 1; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 5px solid #27ae60; text-align: center; min-width: 200px; }
+        .card h3 { margin: 0; font-size: 16px; color: #7f8c8d; }
+        .card p { margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #2c3e50; }
+
+        /* Table Design */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2c3e50; color: white; font-weight: 500; }
+        tr:hover { background-color: #f5f5f5; }
+        .status-success { color: #27ae60; font-weight: bold; background: #e8f8f5; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar added to match your admin theme -->
+    <div class="sidebar">
+        <h2>Bhopal Admin</h2>
+        <ul class="nav-links">
+            <li><a href="admin-dashboard.html">📋 All Data Summary</a></li>
+            <li><a href="police-dashboard.html">👮 Verification Agent</a></li>
+            <li><a href="admin-analytics.html">📈 Service Analytics</a></li>
+            <li><a href="admin-payments.html" class="active">💰 Live Payments</a></li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+        <div class="dashboard-container">
+            <h2>📊 Live Payment Dashboard</h2>
+
+            <div class="filter-section">
+                <label for="filterDate" style="font-weight: bold; color: #34495e;">Select Date:</label>
+                <input type="date" id="filterDate">
+                <button class="btn btn-primary" onclick="fetchPayments()">Filter Data</button>
+                <button class="btn btn-secondary" onclick="clearFilter()">Show All</button>
+            </div>
+
+            <div class="summary-cards">
+                <div class="card">
+                    <h3>Total Successful Transactions</h3>
+                    <p id="totalTransactions">0</p>
+                </div>
+                <div class="card">
+                    <h3>Total Amount Collected</h3>
+                    <p>₹<span id="totalRevenue">0</span></p>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>User ID / Email</th>
+                            <th>Transaction ID</th>
+                            <th>Service</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paymentTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px; color: #e67e22; font-weight: bold;">Loading payments data... ⏳</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Security check from your main admin panel
+        const role = localStorage.getItem('userRole');
+        if (role !== 'admin') {
+            alert("❌ एक्सेस मना है! आप एडमिन नहीं हैं।");
+            window.location.href = 'index.html'; 
+        }
+
+        async function fetchPayments() {
+            const dateFilter = document.getElementById('filterDate').value;
+            const tableBody = document.getElementById('paymentTableBody');
+            
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #e67e22; font-weight: bold;">Fetching data... ⏳</td></tr>`;
+
+            try {
+                let apiUrl = '/api/admin/get-payments';
+                if (dateFilter) apiUrl += `?date=${dateFilter}`;
+
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                if (data.success && data.payments.length > 0) {
+                    renderTable(data.payments);
+                } else {
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">No successful payments found.</td></tr>`;
+                    document.getElementById('totalTransactions').innerText = "0";
+                    document.getElementById('totalRevenue').innerText = "0";
+                }
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Failed to load data. Check server connection.</td></tr>`;
+            }
+        }
+
+        function renderTable(payments) {
+            const tableBody = document.getElementById('paymentTableBody');
+            tableBody.innerHTML = ''; 
+            let totalAmount = 0; let totalCount = 0;
+
+            payments.forEach(payment => {
+                totalCount++;
+                totalAmount += parseFloat(payment.amountPaid);
+                const paymentDate = new Date(payment.createdAt).toLocaleString('en-IN');
+
+                const row = `<tr>
+                    <td>${paymentDate}</td>
+                    <td style="font-weight:bold; color:#2980b9;">${payment.userEmail || payment.userId}</td>
+                    <td style="font-family:monospace; color:#555;">${payment.transactionId}</td>
+                    <td>${payment.serviceName || 'N/A'}</td>
+                    <td style="font-weight:bold;">₹${payment.amountPaid}</td>
+                    <td><span class="status-success">✅ ${payment.paymentStatus}</span></td>
+                </tr>`;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+
+            document.getElementById('totalTransactions').innerText = totalCount;
+            document.getElementById('totalRevenue').innerText = totalAmount.toFixed(2);
+        }
+
+        function clearFilter() {
+            document.getElementById('filterDate').value = '';
+            fetchPayments();
+        }
+
+        window.onload = fetchPayments;
+    </script>
+</body>
+</html>
