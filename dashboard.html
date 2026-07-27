@@ -350,8 +350,15 @@
 
                     if (item.status === 'Complete' || item.status === 'Done') {
                         statusBadge = `<span style="background: #eafaf1; color: #2ecc71; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 11px;">Complete ✅</span>`;
-                        // 🌟 FIX: यहाँ पर पुराने <a> लिंक की जगह नया <button> लगाया है जो फ़ोर्स डाउनलोड फंक्शन को कॉल करेगा
-                        downloadButton = `<button onclick="downloadPoliceReport('${item.documentUrl}')" style="background: #27ae60; color: white; border: none; padding: 5px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;">📥 Download PDF</button>`;
+                        
+                        // 🌟 100% MOBILE APP WORKING FIX: URL को यहीं बदल दिया
+                        let forceDownloadUrl = item.documentUrl;
+                        if (forceDownloadUrl && forceDownloadUrl.includes('cloudinary.com') && !forceDownloadUrl.includes('fl_attachment')) {
+                            forceDownloadUrl = forceDownloadUrl.replace('/upload/', '/upload/fl_attachment/');
+                        }
+
+                        // 🌟 बिना JavaScript के सीधा HTML <a> टैग इस्तेमाल किया (WebView इसे ब्लॉक नहीं कर सकता)
+                        downloadButton = `<a href="${forceDownloadUrl}" download target="_blank" style="background: #27ae60; color: white; border: none; padding: 7px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block;">📥 Download PDF</a>`;
                     }
 
                     tbody.innerHTML += `
