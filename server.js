@@ -346,26 +346,21 @@ app.post('/api/submit-verification', upload.fields([
         const aadharFrontUrl = req.files && req.files['aadharFront'] ? req.files['aadharFront'][0].path : '';
         const aadharBackUrl = req.files && req.files['aadharBack'] ? req.files['aadharBack'][0].path : '';
 
-        // एक रैंडम ड्राफ्ट ID बनाएंगे (जैसे: DRAFT_83749)
         const draftId = 'DRAFT_' + Math.floor(Math.random() * 1000000);
 
-        // 🌟 डेटाबेस में सेव करने की जगह, इसे सर्वर की टेम्पररी मेमोरी में डाल दिया 
         pendingForms[draftId] = { 
-            ...req.body, 
+            ...req.body,
+            // 🌟 FIX 1: ईमेल हर हाल में सेव होगा
+            userEmail: req.body.userEmail ? req.body.userEmail.toLowerCase().trim() : 'guest@bhopal.com',
             tenantPhoto: tenantPhotoUrl, 
             aadharFrontPhoto: aadharFrontUrl, 
             aadharBackPhoto: aadharBackUrl, 
-            status: 'Complete' 
+            status: 'Pending' // 🌟 FIX 2: इसे Pending किया ताकि एजेंट को दिखे
         };
 
-        // 15 मिनट बाद अगर पेमेंट नहीं हुआ, तो यह हवा (मेमोरी) से भी अपने आप डिलीट (कचरा साफ़) हो जाएगा
         setTimeout(() => { delete pendingForms[draftId]; }, 15 * 60 * 1000);
 
-        res.json({ 
-            success: true, 
-            message: 'डेटा ड्राफ्ट में सेव हो गया, पेमेंट पेज पर जा रहे हैं...',
-            draftId: draftId // यह ID हम फ्रंटएंड को भेजेंगे
-        });
+        res.json({ success: true, draftId: draftId });
     } catch (error) { 
         console.error("Verification error:", error);
         res.status(500).json({ success: false, message: 'Server Error' }); 
@@ -773,24 +768,27 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
 // 🌟 2. अपडेटेड Finalize Record API
 app.post('/api/finalize-record', async (req, res) => {
     try {
-        const { draftId, transactionId, amountPaid } = req.body;
+        const { draftId, transactionId, amountPaid, userEmail } = req.body;
         
         if (pendingForms[draftId]) {
             const finalData = pendingForms[draftId];
             finalData.transactionId = transactionId;
             finalData.amountPaid = amountPaid;
             
-            // 🎯 सही सर्विस पहचान कर सही डेटाबेस टेबल में सेव करना
+            // 🌟 FIX 3: अगर पहले से ईमेल नहीं था, तो पेमेंट पेज वाला ईमेल डाल दो
+            if (!finalData.userEmail && userEmail) {
+                finalData.userEmail = userEmail;
+            }
+            
             if (finalData.serviceType === 'Property') {
                 const newProperty = new Property(finalData);
                 await newProperty.save();
             } else {
-                // पुलिस वेरिफिकेशन या डिफ़ॉल्ट सर्विस के लिए Verification मॉडल
                 const newRequest = new Verification(finalData);
                 await newRequest.save();
             }
             
-            delete pendingForms[draftId]; // RAM से कचरा साफ़
+            delete pendingForms[draftId]; 
             res.json({ success: true, message: "डेटाबेस में परमानेंट सेव हो गया!" });
         } else {
             res.status(400).json({ success: false, message: "टाइम आउट हो गया या फॉर्म डेटा नहीं मिला।" });

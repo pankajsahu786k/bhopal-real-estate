@@ -153,24 +153,39 @@
                                 document.getElementById('successText').style.display = 'block';
 
                                 const finalTxnId = `TXN_${uniqueAmount.replace('.', '')}`;
+                                
+                                // यूज़र का ईमेल निकालो
+                                const activeUserEmail = localStorage.getItem('email') || localStorage.getItem('brokerEmail') || localStorage.getItem('tenantEmail') || 'guest@bhopal.com';
 
+                                // 🌟 100% SECURE: रसीद हमेशा सेव होगी (Admin Dashboard के लिए)
+                                try {
+                                    await fetch('/api/save-receipt', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                            userEmail: activeUserEmail,
+                                            serviceName: dynamicService, 
+                                            transactionId: finalTxnId, 
+                                            amountPaid: uniqueAmount, 
+                                            paymentStatus: 'Paid'
+                                        })
+                                    });
+                                } catch (err) { console.error("Receipt Save Error:", err); }
+
+                                // 🌟 100% SECURE: फॉर्म को परमानेंट सेव करना
                                 if (draftId) {
                                     try {
                                         await fetch('/api/finalize-record', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ draftId: draftId, transactionId: finalTxnId, amountPaid: uniqueAmount })
-                                        });
-
-                                        await fetch('/api/save-receipt', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({
-                                                userEmail: localStorage.getItem('brokerEmail') || 'guest@bhopal.com',
-                                                serviceName: dynamicService, transactionId: finalTxnId, amountPaid: uniqueAmount, paymentStatus: 'Paid'
+                                            body: JSON.stringify({ 
+                                                draftId: draftId, 
+                                                transactionId: finalTxnId, 
+                                                amountPaid: uniqueAmount,
+                                                userEmail: activeUserEmail // बैकअप के लिए ईमेल भी भेज रहे हैं
                                             })
                                         });
-                                    } catch (err) { console.error("Error finalizing:", err); }
+                                    } catch (err) { console.error("Finalize Error:", err); }
                                 }
 
                                 setTimeout(() => {

@@ -179,28 +179,6 @@
     <script>
     let isPaymentBypassedGlobal = false;
 
-    async function compressImage(file, maxWidth = 800) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const scaleSize = maxWidth / img.width;
-                    canvas.width = maxWidth;
-                    canvas.height = img.height * scaleSize;
-                    
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    resolve(canvas.toDataURL('image/jpeg', 0.7)); 
-                };
-            };
-            reader.onerror = error => reject(error);
-        });
-    }
-
     document.addEventListener('DOMContentLoaded', async () => {
         const btn = document.getElementById('submitBtn');
         try {
@@ -212,7 +190,6 @@
                 btn.innerText = "Submit Verification Request (FREE) 🚀";
                 btn.style.backgroundColor = "#e67e22"; 
             } else {
-                // 🎯 यहाँ पुलिस वेरिफिकेशन का फिक्स अमाउंट (जैसे ₹149) बटन पर दिखने लगेगा
                 btn.innerText = "Pay ₹149 & Submit Request 💳";
                 btn.style.backgroundColor = "#3498db"; 
             }
@@ -227,52 +204,61 @@
         e.preventDefault();
         const btn = document.getElementById('submitBtn');
         const originalText = btn.innerText;
-        btn.innerText = "Processing Data... ⏳";
+        btn.innerText = "Uploading Documents... ⏳";
         btn.disabled = true;
 
         try {
-            const tenantPhotoFile = document.getElementById('tenantPhoto').files[0];
-            const aadharFrontFile = document.getElementById('aadharFront').files[0];
-            const aadharBackFile = document.getElementById('aadharBack').files[0];
+            // 🌟 1. बैकएंड को भेजने के लिए असली FormData बनाएँ
+            const formData = new FormData();
+            
+            // 🌟 2. यूज़र का ईमेल हर हाल में भेजें (यूज़र डैशबोर्ड के लिए बहुत ज़रूरी है)
+            const activeUserEmail = localStorage.getItem('email') || localStorage.getItem('brokerEmail') || 'guest@bhopal.com';
+            formData.append('userEmail', activeUserEmail);
+            formData.append('serviceType', 'PoliceVerification');
 
-            const tenantPhotoBase64 = await compressImage(tenantPhotoFile);
-            const aadharFrontBase64 = await compressImage(aadharFrontFile);
-            const aadharBackBase64 = await compressImage(aadharBackFile);
+            // 🌟 3. टेक्स्ट डेटा को फॉर्म में जोड़ें
+            formData.append('ownerName', document.getElementById('ownerName').value);
+            formData.append('ownerPhone', document.getElementById('ownerPhone').value);
+            formData.append('propertyAddress', document.getElementById('propertyAddress').value);
+            formData.append('currentPoliceStation', document.getElementById('currentPoliceStation').value);
+            formData.append('tenantName', document.getElementById('tenantName').value);
+            formData.append('tenantFatherName', document.getElementById('tenantFatherName').value);
+            formData.append('tenantDOB', document.getElementById('tenantDOB').value);
+            formData.append('tenantPhone', document.getElementById('tenantPhone').value);
+            formData.append('aadharNumber', document.getElementById('aadharNumber').value);
+            formData.append('familyMembers', document.getElementById('familyMembers').value);
+            formData.append('tenantPermanentAddress', document.getElementById('tenantPermanentAddress').value);
+            formData.append('permanentPoliceStation', document.getElementById('permanentPoliceStation').value);
 
-            const ramData = {
-                serviceType: 'PoliceVerification', // 🌟 यह लाइन बहुत ज़रूरी है!
-                userEmail: localStorage.getItem('brokerEmail') || 'guest@user.com',
-                ownerName: document.getElementById('ownerName').value,
-                ownerPhone: document.getElementById('ownerPhone').value,
-                propertyAddress: document.getElementById('propertyAddress').value,
-                currentPoliceStation: document.getElementById('currentPoliceStation').value,
-                tenantName: document.getElementById('tenantName').value,
-                tenantFatherName: document.getElementById('tenantFatherName').value,
-                tenantDOB: document.getElementById('tenantDOB').value,
-                tenantPhone: document.getElementById('tenantPhone').value,
-                aadharNumber: document.getElementById('aadharNumber').value,
-                familyMembers: document.getElementById('familyMembers').value,
-                tenantPermanentAddress: document.getElementById('tenantPermanentAddress').value,
-                permanentPoliceStation: document.getElementById('permanentPoliceStation').value,
-                
-                tenantPhoto: tenantPhotoBase64,
-                aadharFront: aadharFrontBase64,
-                aadharBack: aadharBackBase64
-            };
+            // 🌟 4. इमेजेज (Files) को फॉर्म में जोड़ें
+            formData.append('tenantPhoto', document.getElementById('tenantPhoto').files[0]);
+            formData.append('aadharFront', document.getElementById('aadharFront').files[0]);
+            formData.append('aadharBack', document.getElementById('aadharBack').files[0]);
 
-            sessionStorage.setItem('pendingServiceData', JSON.stringify(ramData));
-            sessionStorage.setItem('pendingServiceName', 'Tenant Police Verification');
+            // 🌟 5. सीधा बैकएंड सर्वर पर भेजें ताकि draftId जनरेट हो सके
+            const response = await fetch('/api/submit-verification', {
+                method: 'POST',
+                body: formData // FormData अपने आप multipart/form-data हेडर लगा लेता है
+            });
+            
+            const data = await response.json();
 
-            if (isPaymentBypassedGlobal) {
-                window.location.href = `payment.html?service=tenant_verification&amount=0&bypassed=true`;
+            // 🌟 6. अगर सर्वर ने ड्राफ्ट बना दिया, तो URL में draftId लगाकर पेमेंट पेज पर भेजें
+            if (data.success && data.draftId) {
+                if (isPaymentBypassedGlobal) {
+                    window.location.href = `payment.html?service=tenant_verification&amount=0&bypassed=true&draftId=${data.draftId}`;
+                } else {
+                    window.location.href = `payment.html?service=tenant_verification&amount=149&draftId=${data.draftId}`;
+                }
             } else {
-                // 💳 यहाँ से 149 रुपये पेमेंट पेज पर पास हो जाएंगे
-                window.location.href = `payment.html?service=tenant_verification&amount=149`;
+                alert("❌ सर्वर पर फॉर्म सेव नहीं हो पाया। कृपया दोबारा कोशिश करें।");
+                btn.innerText = originalText;
+                btn.disabled = false;
             }
 
         } catch (error) {
             console.error(error);
-            alert("❌ डेटा प्रोसेस करने में एरर आई। कृपया छोटी इमेजेज अपलोड करें।");
+            alert("❌ नेटवर्क या सर्वर में कोई दिक्कत है।");
             btn.innerText = originalText;
             btn.disabled = false;
         }
