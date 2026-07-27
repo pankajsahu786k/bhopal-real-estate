@@ -170,7 +170,6 @@
             <span class="bottom-nav-icon">➕</span>
             <span>Add New</span>
         </a>
-        <!-- 👇 यह रहा आपका नया लेजर बटन 👇 -->
         <a href="owner-ledger.html" style="color: #f59e0b;">
             <span class="bottom-nav-icon">📋</span>
             <span>Ledger</span>
@@ -186,6 +185,31 @@
     </nav>
 
     <script>
+        // 🌟 मोबाइल ऐप में PDF ज़बरदस्ती डाउनलोड करवाने वाला स्पेशल फंक्शन
+        function downloadPoliceReport(pdfUrl) {
+            if (!pdfUrl) {
+                alert("PDF अभी उपलब्ध नहीं है!");
+                return;
+            }
+
+            // Cloudinary URL को 'Force Download' (fl_attachment) लिंक में बदलना
+            let forceDownloadUrl = pdfUrl;
+            if (pdfUrl.includes('cloudinary.com') && !pdfUrl.includes('fl_attachment')) {
+                forceDownloadUrl = pdfUrl.replace('/upload/', '/upload/fl_attachment/');
+            }
+
+            // मोबाइल ऐप के लिए एक अदृश्य (Invisible) लिंक बनाना
+            const link = document.createElement('a');
+            link.href = forceDownloadUrl;
+            link.setAttribute('download', 'Police_Verification_Report.pdf'); 
+            link.setAttribute('target', '_blank'); 
+
+            // लिंक को पेज में डालकर ऑटोमैटिक क्लिक करवाना और फिर हटा देना
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         async function loadProperties() {
             const savedName = localStorage.getItem('brokerName');
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -302,7 +326,6 @@
             }
         }
 
-        // 👮 NEW EXCLUSIVE FUNCTION: रीयल-टाइम ट्रेकर इंजन जो डेटाबेस से स्टेटस और पीडीएफ यूआरएल लोड करेगा
         async function loadLivePoliceVerification() {
             const brokerEmail = localStorage.getItem('brokerEmail');
             if (!brokerEmail) return;
@@ -327,7 +350,8 @@
 
                     if (item.status === 'Complete' || item.status === 'Done') {
                         statusBadge = `<span style="background: #eafaf1; color: #2ecc71; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 11px;">Complete ✅</span>`;
-                        downloadButton = `<a href="${item.documentUrl}" target="_blank" style="background: #27ae60; color: white; text-decoration: none; padding: 5px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block;">📥 Download PDF</a>`;
+                        // 🌟 FIX: यहाँ पर पुराने <a> लिंक की जगह नया <button> लगाया है जो फ़ोर्स डाउनलोड फंक्शन को कॉल करेगा
+                        downloadButton = `<button onclick="downloadPoliceReport('${item.documentUrl}')" style="background: #27ae60; color: white; border: none; padding: 5px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer;">📥 Download PDF</button>`;
                     }
 
                     tbody.innerHTML += `
@@ -425,7 +449,7 @@
             loadBrokerProfile();
             loadProperties();
             loadUniversalReceipts();
-            loadLivePoliceVerification(); // 🔥 इसे यहाँ कॉल किया गया है लाइव अपडेट फेच करने के लिए
+            loadLivePoliceVerification(); 
 
             if (isRealAdmin) {
                 const logoutBtn = document.getElementById('logoutBtn');
