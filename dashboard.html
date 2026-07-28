@@ -351,14 +351,11 @@
                     if (item.status === 'Complete' || item.status === 'Done') {
                         statusBadge = `<span style="background: #eafaf1; color: #2ecc71; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 11px;">Complete ✅</span>`;
                         
-                        // 🌟 100% MOBILE APP WORKING FIX: URL को यहीं बदल दिया
-                        let forceDownloadUrl = item.documentUrl;
-                        if (forceDownloadUrl && forceDownloadUrl.includes('cloudinary.com') && !forceDownloadUrl.includes('fl_attachment')) {
-                            forceDownloadUrl = forceDownloadUrl.replace('/upload/', '/upload/fl_attachment/');
-                        }
+                        // 🌟 THE ULTIMATE BYPASS: Google Docs PDF Viewer (मोबाइल ऐप के लिए ब्रह्मास्त्र)
+                        const safeUrl = encodeURIComponent(item.documentUrl);
+                        const googleViewerUrl = `https://docs.google.com/viewer?url=${safeUrl}`;
 
-                        // 🌟 बिना JavaScript के सीधा HTML <a> टैग इस्तेमाल किया (WebView इसे ब्लॉक नहीं कर सकता)
-                        downloadButton = `<a href="${forceDownloadUrl}" download target="_blank" style="background: #27ae60; color: white; border: none; padding: 7px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block;">📥 Download PDF</a>`;
+                        downloadButton = `<a href="${googleViewerUrl}" style="background: #2980b9; color: white; border: none; padding: 7px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block;">👁️ Open Report</a>`;
                     }
 
                     tbody.innerHTML += `
@@ -373,6 +370,7 @@
                 console.error("Verification tracker load error:", error);
             }
         }
+        
 
         async function loadUniversalReceipts() {
             const brokerEmail = localStorage.getItem('brokerEmail');
