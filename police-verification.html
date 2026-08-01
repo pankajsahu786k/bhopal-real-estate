@@ -244,10 +244,50 @@
             const data = await response.json();
 
             // 🌟 6. अगर सर्वर ने ड्राफ्ट बना दिया, तो URL में draftId लगाकर पेमेंट पेज पर भेजें
+            // 🌟 6. अगर सर्वर ने ड्राफ्ट बना दिया...
             if (data.success && data.draftId) {
                 if (isPaymentBypassedGlobal) {
-                    window.location.href = `payment.html?service=tenant_verification&amount=0&bypassed=true&draftId=${data.draftId}`;
+                    // 🔴 पेमेंट गेटवे को पूरी तरह बायपास करें और यहीं से डेटा फाइनल करें
+                    btn.innerText = "✅ Generating Free Receipt...";
+                    
+                    const finalTxnId = `FREE_${Math.floor(Math.random() * 10000000)}`;
+                    
+                    try {
+                        // 1. डेटाबेस में रिकॉर्ड फाइनल करो
+                        await fetch('/api/finalize-record', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                draftId: data.draftId, 
+                                transactionId: finalTxnId, 
+                                amountPaid: "0", 
+                                userEmail: activeUserEmail 
+                            })
+                        });
+                        
+                        // 2. रसीद जनरेट करो
+                        await fetch('/api/save-receipt', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                userEmail: activeUserEmail, 
+                                serviceName: 'tenant_verification', 
+                                transactionId: finalTxnId, 
+                                amountPaid: "0", 
+                                paymentStatus: 'Paid' 
+                            })
+                        });
+
+                        // 3. पेमेंट पेज को गोली मारो, सीधे रसीद पर जाओ! 🚀
+                        window.location.href = `receipt.html?amount=0&service=tenant_verification&txn=${finalTxnId}`;
+                    } catch(err) {
+                        console.error("Free Verification Error:", err);
+                        alert("कुछ तकनीकी समस्या आई है, कृपया दोबारा प्रयास करें।");
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }
                 } else {
+                    // 🔵 अगर पैसे लगने हैं, सिर्फ तभी पेमेंट गेटवे (payment.html) पर भेजो
                     window.location.href = `payment.html?service=tenant_verification&amount=149&draftId=${data.draftId}`;
                 }
             } else {
