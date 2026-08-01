@@ -72,6 +72,11 @@
         .bottom-nav a { color: #bdc3c7; text-decoration: none; text-align: center; font-size: 11px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .bottom-nav a.active { color: #2ecc71; font-weight: bold; }
         .bottom-nav-icon { font-size: 20px; }
+        /* 🌟 WhatsApp Phone Input Style */
+.phone-input-wrapper { display: flex; align-items: center; border: 2px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; }
+.phone-input-wrapper .fixed-code { background: #e2e8f0; padding: 10px 12px; font-weight: 700; color: #475569; border-right: 2px solid #cbd5e1; font-size: 14px; }
+.phone-input-wrapper input { border: none !important; padding: 10px 12px !important; flex: 1; outline: none; background: transparent; font-size: 14px; font-weight: 600; width: 100%; }
+.phone-input-wrapper:focus-within { border-color: #3498db; background: white; }
 
         /* 📱 MOBILE RESPONSIVE HACK */
         @media (max-width: 768px) {
@@ -161,8 +166,13 @@
                     <div class="form-grid">
                         <div class="form-group"><label>1. Name *</label><input type="text" id="tName" required></div>
                         <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" required></div>
-                        <div class="form-group"><label>3. Mobile No. *</label><input type="text" id="tMobile" required></div>
-                        
+                         <div class="form-group">
+    <label>3. Mobile No. *</label>
+    <div class="phone-input-wrapper">
+        <span class="fixed-code">+91</span>
+        <input type="tel" id="tMobile" placeholder="10 Digits" maxlength="10" pattern="[0-9]{10}" required>
+    </div>
+</div>
                         <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required onchange="handleStartDateChange()"></div>
                         <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="10" required></div>
                         <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" value="1" required></div>
@@ -697,12 +707,28 @@
         }
 
         function shareToWhatsAppMessenger() {
-            const mobile = document.getElementById('tMobile').value;
+            const rawMobile = document.getElementById('tMobile').value;
             const txt = document.getElementById('liveReceiptView').innerText;
-            if(!mobile || mobile === '----------' || txt.includes('कृपया')) { 
-                alert("शेयर करने के लिए कोई रसीद जनरेट नहीं हुई है!"); return; 
+            
+            if(!rawMobile || rawMobile === '----------' || txt.includes('कृपया')) { 
+                alert("शेयर करने के लिए कोई रसीद जनरेट नहीं हुई है या मोबाइल नंबर खाली है!"); 
+                return; 
             }
-            window.open(`https://api.whatsapp.com/send?phone=${mobile}&text=${encodeURIComponent(txt)}`, '_blank');
+
+            // 1. अगर यूज़र ने कोई स्पेस या फालतू कैरेक्टर डाला है तो उसे हटा दो
+            let cleanPhone = rawMobile.replace(/\D/g, ''); 
+
+            // 2. चेक करो कि नंबर 10 डिजिट का है
+            if(cleanPhone.length !== 10) {
+                alert("कृपया सही 10-अंकों का मोबाइल नंबर दर्ज करें!");
+                return;
+            }
+
+            // 🌟 3. ब्रह्मास्त्र: 91 को नंबर के आगे जोड़ना (यही मोबाइल WhatsApp का एरर फिक्स करेगा)
+            const finalWhatsAppNumber = "91" + cleanPhone;
+
+            // 4. WhatsApp यूनिवर्सल API लिंक
+            window.open(`https://api.whatsapp.com/send?phone=${finalWhatsAppNumber}&text=${encodeURIComponent(txt)}`, '_blank');
         }
 
         window.onload = () => {
