@@ -86,6 +86,55 @@
         }
 
         async function initializePayment() {
+            // 🌟 FIX: अगर पेमेंट फ्री (0) है या Bypass चालू है, तो QR कोड मत बनाओ
+            const isBypassed = urlParams.get('bypassed') === 'true';
+            
+            if (dynamicAmount === "0" || isBypassed) {
+                document.getElementById("amountDisplay").innerText = "0 (FREE)";
+                document.getElementById("paymentDynamicArea").innerHTML = `<h3 style="color:#27ae60;">✅ Free Verification Processing...</h3><p>कृपया प्रतीक्षा करें, हम आपका डेटा सेव कर रहे हैं...</p>`;
+                
+                const finalTxnId = `FREE_${Date.now()}`; // फ्री सर्विस के लिए डमी ट्रांज़ैक्शन ID
+                
+                // 1. रसीद सेव करो
+                try {
+                    await fetch('/api/save-receipt', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userEmail: activeUserEmail,
+                            serviceName: dynamicService,
+                            transactionId: finalTxnId,
+                            amountPaid: 0,
+                            paymentStatus: 'Free / Bypassed'
+                        })
+                    });
+                } catch (err) { console.error("Receipt Save Error:", err); }
+
+                // 2. फॉर्म का डेटा डेटाबेस में परमानेंट सेव करो
+                if (draftId) {
+                    try {
+                        await fetch('/api/finalize-record', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                draftId: draftId, 
+                                transactionId: finalTxnId, 
+                                amountPaid: 0,
+                                userEmail: activeUserEmail 
+                            })
+                        });
+                    } catch (err) { console.error("Finalize Error:", err); }
+                }
+
+                // 3. 2 सेकंड बाद सीधे रसीद वाले पेज पर भेज दो
+                setTimeout(() => {
+                    window.location.href = `receipt.html?amount=0&service=${encodeURIComponent(dynamicService)}&txn=${finalTxnId}`;
+                }, 2000);
+                
+                return; // 🔴 इसके आगे का QR कोड वाला लॉजिक चलने से रोक दो
+            }
+
+            // 👇 यहाँ से तुम्हारा पुराना QR कोड वाला लॉजिक वैसा का वैसा रहेगा
             try {
                 const response = await fetch('/api/create-payment', {
                     method: 'POST',
@@ -98,10 +147,7 @@
                     const uniqueAmount = data.amount;
                     document.getElementById("amountDisplay").innerText = uniqueAmount;
                     
-                    // यहाँ डिवाइस के हिसाब से UPI आईडी सेट हो रही है
                     const activeUpiId = isMobile ? businessUpiId : personalUpiId;
-                    
-                    // सिर्फ QR कोड बनाने के लिए UPI स्ट्रिंग (कोई क्लिकेबल लिंक नहीं है)
                     const upiLink = `upi://pay?pa=${activeUpiId}&pn=${encodeURIComponent(myBusinessName)}&am=${uniqueAmount}&cu=INR`;
                     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(upiLink)}`;
 
@@ -109,22 +155,20 @@
                     uiHtml += `<div class="timer-box">Time Left: <span id="timeRemaining">05:00</span></div>`;
 
                     if (isMobile) {
-                        // मोबाइल यूज़र्स के लिए स्टेप्स
                         uiHtml += `
                             <div class="process-steps">
                                 <h4>👇 How to Pay?</h4>
                                 <p><span>Step 1:</span> Take a <b>Screenshot</b> of this QR code.</p>
-                                <p><span>Step 2:</span> Open your PhonePe, GPay, or Paytm app.</p>
-                                <p><span>Step 3:</span> Tap the Scanner and select <b>'Scan from Gallery'</b> to upload the screenshot.</p>
+                                <p><span>Step 2:</span> Open your PhonePe or GPay app.</p>
+                                <p><span>Step 3:</span> Select <b>'Scan from Gallery'</b> to upload the screenshot.</p>
                             </div>
                             <p class="instruction">⚠️ Warning: Please pay EXACTLY ₹${uniqueAmount}, otherwise payment will fail.</p>
                         `;
                     } else {
-                        // डेस्कटॉप यूज़र्स के लिए स्टेप्स
                         uiHtml += `
                             <div class="process-steps">
                                 <h4>👇 How to Pay?</h4>
-                                <p><span>Step 1:</span> Open any UPI App (PhonePe/GPay/Paytm) on your mobile.</p>
+                                <p><span>Step 1:</span> Open any UPI App on your mobile.</p>
                                 <p><span>Step 2:</span> Scan the QR code shown above.</p>
                                 <p><span>Step 3:</span> Complete the payment.</p>
                             </div>
@@ -133,11 +177,8 @@
                     }
                     
                     paymentArea.innerHTML = uiHtml;
-                    
-                    // 5 मिनट (300 सेकंड) का टाइमर चालू करें
                     startTimer(300);
 
-                    // पेमेंट चेकिंग
                     checkPaymentInterval = setInterval(async () => {
                         try {
                             const res = await fetch(`/api/check-payment-status?amount=${uniqueAmount}`);
@@ -153,11 +194,8 @@
                                 document.getElementById('successText').style.display = 'block';
 
                                 const finalTxnId = `TXN_${uniqueAmount.replace('.', '')}`;
-                                
-                                // यूज़र का ईमेल निकालो
                                 const activeUserEmail = localStorage.getItem('email') || localStorage.getItem('brokerEmail') || localStorage.getItem('tenantEmail') || 'guest@bhopal.com';
 
-                                // 🌟 100% SECURE: रसीद हमेशा सेव होगी (Admin Dashboard के लिए)
                                 try {
                                     await fetch('/api/save-receipt', {
                                         method: 'POST',
@@ -172,7 +210,6 @@
                                     });
                                 } catch (err) { console.error("Receipt Save Error:", err); }
 
-                                // 🌟 100% SECURE: फॉर्म को परमानेंट सेव करना
                                 if (draftId) {
                                     try {
                                         await fetch('/api/finalize-record', {
@@ -182,7 +219,7 @@
                                                 draftId: draftId, 
                                                 transactionId: finalTxnId, 
                                                 amountPaid: uniqueAmount,
-                                                userEmail: activeUserEmail // बैकअप के लिए ईमेल भी भेज रहे हैं
+                                                userEmail: activeUserEmail 
                                             })
                                         });
                                     } catch (err) { console.error("Finalize Error:", err); }
