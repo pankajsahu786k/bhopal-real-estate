@@ -85,17 +85,22 @@
             }, 1000);
         }
 
-        async function initializePayment() {
-            // 🌟 FIX: अगर पेमेंट फ्री (0) है या Bypass चालू है, तो QR कोड मत बनाओ
+       async function initializePayment() {
             const isBypassed = urlParams.get('bypassed') === 'true';
             
+            // 🌟 सबसे सही ईमेल निकालना ताकि Dashboard में डेटा 100% दिखे
+            const activeUserEmail = localStorage.getItem('brokerEmail') || localStorage.getItem('email') || localStorage.getItem('tenantEmail') || 'guest@bhopal.com';
+
+            // ==========================================
+            // 🚀 FREE PAYMENT LOGIC (Zero Amount Bypass)
+            // ==========================================
             if (dynamicAmount === "0" || isBypassed) {
                 document.getElementById("amountDisplay").innerText = "0 (FREE)";
-                document.getElementById("paymentDynamicArea").innerHTML = `<h3 style="color:#27ae60;">✅ Free Verification Processing...</h3><p>कृपया प्रतीक्षा करें, हम आपका डेटा सेव कर रहे हैं...</p>`;
+                document.getElementById("paymentDynamicArea").innerHTML = `<h3 style="color:#27ae60;">✅ Processing Free Verification...</h3><p>कृपया प्रतीक्षा करें, हम आपका डेटा सेव कर रहे हैं...</p>`;
                 
-                const finalTxnId = `FREE_${Date.now()}`; // फ्री सर्विस के लिए डमी ट्रांज़ैक्शन ID
+                const finalTxnId = `FREE_${Math.floor(Math.random() * 10000000)}`; 
                 
-                // 1. रसीद सेव करो
+                // 1. रसीद सेव करो 
                 try {
                     await fetch('/api/save-receipt', {
                         method: 'POST',
@@ -104,13 +109,13 @@
                             userEmail: activeUserEmail,
                             serviceName: dynamicService,
                             transactionId: finalTxnId,
-                            amountPaid: 0,
-                            paymentStatus: 'Free / Bypassed'
+                            amountPaid: "0",        // 🌟 FIX: String भेजा ताकि DB क्रैश न हो
+                            paymentStatus: 'Paid'   // 🌟 FIX: 'Paid' भेजा ताकि DB का Enum Validation फेल न हो
                         })
                     });
-                } catch (err) { console.error("Receipt Save Error:", err); }
+                } catch (err) { console.error("Receipt Error:", err); }
 
-                // 2. फॉर्म का डेटा डेटाबेस में परमानेंट सेव करो
+                // 2. फॉर्म सेव करो
                 if (draftId) {
                     try {
                         await fetch('/api/finalize-record', {
@@ -119,22 +124,24 @@
                             body: JSON.stringify({ 
                                 draftId: draftId, 
                                 transactionId: finalTxnId, 
-                                amountPaid: 0,
+                                amountPaid: "0",    // 🌟 FIX: String
                                 userEmail: activeUserEmail 
                             })
                         });
                     } catch (err) { console.error("Finalize Error:", err); }
                 }
 
-                // 3. 2 सेकंड बाद सीधे रसीद वाले पेज पर भेज दो
+                // 3. रिडायरेक्ट
                 setTimeout(() => {
                     window.location.href = `receipt.html?amount=0&service=${encodeURIComponent(dynamicService)}&txn=${finalTxnId}`;
                 }, 2000);
                 
-                return; // 🔴 इसके आगे का QR कोड वाला लॉजिक चलने से रोक दो
+                return; // 🔴 STOP - QR Code वाले कोड को मत चलाओ
             }
 
-            // 👇 यहाँ से तुम्हारा पुराना QR कोड वाला लॉजिक वैसा का वैसा रहेगा
+            // ==========================================
+            // 💳 PREMIUM PAYMENT LOGIC (QR CODE)
+            // ==========================================
             try {
                 const response = await fetch('/api/create-payment', {
                     method: 'POST',
@@ -194,7 +201,6 @@
                                 document.getElementById('successText').style.display = 'block';
 
                                 const finalTxnId = `TXN_${uniqueAmount.replace('.', '')}`;
-                                const activeUserEmail = localStorage.getItem('email') || localStorage.getItem('brokerEmail') || localStorage.getItem('tenantEmail') || 'guest@bhopal.com';
 
                                 try {
                                     await fetch('/api/save-receipt', {
@@ -240,8 +246,6 @@
                 paymentArea.innerHTML = `<p style="color:red;">Server disconnected.</p>`;
             }
         }
-
-        initializePayment();
     </script>
 </body>
 </html>
