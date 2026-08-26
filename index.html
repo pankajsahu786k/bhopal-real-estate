@@ -126,10 +126,11 @@
         .hero h1 { font-size: 48px; margin-bottom: 10px; }
         .hero p { font-size: 18px; margin-bottom: 40px; font-weight: 300; }
         
-        .search-box { background: white; padding: 20px; border-radius: 10px; max-width: 800px; margin: 0 auto; display: flex; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); flex-wrap: wrap; }
+        .search-box { background: white; padding: 20px; border-radius: 10px; max-width: 900px; margin: 0 auto; display: flex; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); flex-wrap: wrap; }
         .search-box select, .search-box button { padding: 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; flex: 1; min-width: 200px; }
         .search-box button { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .search-box button:hover { background: #219653; }
+        #nearbyBtn:hover { background: #2563eb !important; }
 
         /* 🏠 Properties Grid */
         .section-title { text-align: center; margin: 50px 0 30px; color: #2c3e50; font-size: 32px; }
@@ -139,8 +140,9 @@
         .property-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         .card-img { width: 100%; height: 220px; object-fit: cover; }
         .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
-        .badge { background: #e8f8f5; color: #27ae60; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; margin-bottom: 10px; }
-        .card-title { font-size: 20px; margin: 0 0 10px; color: #2c3e50; }
+        .badge { background: #e8f8f5; color: #27ae60; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
+        .distance-badge { background: #e0f2fe; color: #0284c7; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; margin-left: 5px; }
+        .card-title { font-size: 20px; margin: 10px 0; color: #2c3e50; }
         .card-location { color: #7f8c8d; font-size: 14px; margin-bottom: 15px; }
         .card-price { font-size: 24px; font-weight: bold; color: #27ae60; margin-bottom: 15px; }
         .view-btn { display: block; text-align: center; background: #3498db; color: white; padding: 10px; border-radius: 5px; font-weight: bold; margin-top: auto; transition: 0.3s; }
@@ -205,13 +207,12 @@
             </select>
             <select id="searchLocation">
                 <option value="All">भोपाल की सभी लोकेशन्स...</option>
-                <option value="MP Nagar Zone 1">MP Nagar</option>
-                <option value="Arera Colony">Arera Colony</option>
-                <option value="Kolar Road">Kolar Road</option>
-                <option value="Awadhpuri">Awadhpuri</option>
-                <option value="New Market">New Market</option>
+                <!-- Locations will load dynamically -->
             </select>
             <button onclick="filterProperties()">खोजें 🔍</button>
+            
+            <!-- 🌟 NAYA BUTTON: Hyperlocal Distance Search -->
+            <button id="nearbyBtn" onclick="findNearbyProperties()" style="background: #3b82f6;">📍 आस-पास खोजें</button>
         </div>
     </div>
 
@@ -243,11 +244,8 @@
                 allProperties = await response.json();
                 
                 document.getElementById('loading').style.display = 'none';
-                
-                // 🌟 नया जादू: डेटाबेस के हिसाब से ड्रॉपडाउन को अपने आप अपडेट करें
                 updateLocationDropdown(allProperties);
-
-                displayProperties(allProperties); // पहले सारी प्रॉपर्टी दिखा दें
+                displayProperties(allProperties);
                 autoDetectAndFilterLocation(); 
 
             } catch (error) {
@@ -257,21 +255,59 @@
             }
         });
 
-        // 🌟 नया फंक्शन: डेटाबेस से लोकेशन निकालकर सर्च बार में डालना
+        // 🌟 GET DISTANCE & SHOW NEARBY (HYPERLOCAL SEARCH)
+        async function findNearbyProperties() {
+            const btn = document.getElementById('nearbyBtn');
+            btn.innerText = "ढूंढ रहा है... ⏳";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async function(position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+
+                    try {
+                        // 🌟 Backend API call with User GPS Coordinates
+                        const response = await fetch(`/api/get-properties?lat=${lat}&lng=${lng}`);
+                        allProperties = await response.json();
+                        
+                        btn.innerText = "📍 आस-पास खोजें";
+                        
+                        // Dropdowns reset karein taaki filter clash na kare
+                        document.getElementById('searchLocation').value = 'All';
+                        document.getElementById('searchPurpose').value = 'All';
+                        
+                        displayProperties(allProperties);
+                        
+                        const loadingDiv = document.getElementById('loading');
+                        loadingDiv.style.display = 'block';
+                        loadingDiv.style.color = '#27ae60';
+                        loadingDiv.style.fontWeight = 'bold';
+                        loadingDiv.innerHTML = `📍 आपके सबसे करीब की प्रॉपर्टीज़ दिखाई जा रही हैं!`;
+                        
+                        setTimeout(() => { loadingDiv.style.display = 'none'; }, 4000);
+                        document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
+
+                    } catch(e) {
+                        btn.innerText = "📍 आस-पास खोजें";
+                        alert("डेटा लाने में समस्या आई।");
+                    }
+                }, function(error) {
+                    btn.innerText = "📍 आस-पास खोजें";
+                    alert("⚠️ कृपया अपनी लोकेशन (GPS) चालू करें!");
+                }, { enableHighAccuracy: true });
+            } else {
+                alert("आपका ब्राउज़र लोकेशन सपोर्ट नहीं करता।");
+            }
+        }
+
+        // 🌟 लोकेशन ड्रॉपडाउन को अपडेट करने का फंक्शन
         function updateLocationDropdown(properties) {
             const locationDropdown = document.getElementById('searchLocation');
-            
-            // पुराने फिक्स ऑप्शंस को हटा कर सिर्फ "All" वाला डिफ़ॉल्ट ऑप्शन सेट करें
             locationDropdown.innerHTML = '<option value="All">भोपाल की सभी लोकेशन्स...</option>';
 
-            // डेटाबेस से सारी लोकेशन्स निकालें और डुप्लीकेट को हटाएं (Set का उपयोग करके)
-            // (ताकि अगर 10 प्रॉपर्टी 'MP Nagar' की हों, तो लिस्ट में 'MP Nagar' एक ही बार दिखे)
             let uniqueLocations = [...new Set(properties.map(prop => prop.location.trim()))];
-
-            // लोकेशन्स को A to Z (Alphabetical) क्रम में सजाएं
             uniqueLocations.sort();
 
-            // एक-एक करके हर नई लोकेशन को ड्रॉपडाउन में जोड़ दें
             uniqueLocations.forEach(loc => {
                 if (loc) {
                     locationDropdown.innerHTML += `<option value="${loc}">${loc}</option>`;
@@ -289,23 +325,13 @@
                     try {
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
                         const data = await response.json();
-                        
                         let areaName = data.address.suburb || data.address.neighbourhood || data.address.city_district || "Bhopal";
-
                         const locationDropdown = document.getElementById('searchLocation');
                         
                         for (let i = 0; i < locationDropdown.options.length; i++) {
                             if (areaName.toLowerCase().includes(locationDropdown.options[i].value.toLowerCase())) {
                                 locationDropdown.selectedIndex = i;
                                 filterProperties(); 
-                                
-                                const loadingDiv = document.getElementById('loading');
-                                loadingDiv.style.display = 'block';
-                                loadingDiv.style.color = '#27ae60';
-                                loadingDiv.style.fontWeight = 'bold';
-                                loadingDiv.innerHTML = `📍 आपके वर्तमान इलाके (${areaName}) की प्रॉपर्टीज़ दिखाई जा रही हैं!`;
-                                
-                                setTimeout(() => { loadingDiv.style.display = 'none'; }, 4000);
                                 break;
                             }
                         }
@@ -313,7 +339,7 @@
                         console.log("साइलेंट लोकेशन API एरर", e);
                     }
                 }, function(error) {
-                    console.log("यूज़र ने लोकेशन परमिशन नहीं दी, इसलिए सारी प्रॉपर्टीज़ ही दिखती रहेंगी।");
+                    console.log("यूज़र ने लोकेशन परमिशन नहीं दी।");
                 });
             }
         }
@@ -338,12 +364,21 @@
 
                 const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / महीना` : `₹ ${prop.price}`;
                 const badgeText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
+                
+                // 🌟 NAYA: Duri (Distance) dikhane ka logic
+                let distanceHtml = '';
+                if (prop.distance !== undefined && prop.distance !== null) {
+                    distanceHtml = `<span class="distance-badge">📍 ${prop.distance.toFixed(1)} KM</span>`;
+                }
 
                 const cardHtml = `
                     <div class="property-card">
                         <img src="${propImage}" class="card-img" alt="${prop.title}">
                         <div class="card-body">
-                            <div><span class="badge">${badgeText}</span></div>
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+                                <span class="badge">${badgeText}</span>
+                                ${distanceHtml}
+                            </div>
                             <h3 class="card-title">${prop.title}</h3>
                             <p class="card-location">📍 ${prop.location}</p>
                             <div class="card-price">${priceText}</div>
@@ -370,21 +405,17 @@
             displayProperties(filteredData);
             document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
         }
-        // 🔄 10 सेकंड वाला स्मार्ट ऑटो-रिफ्रेश (सिर्फ होमपेज के लिए)
+        
+        // 🔄 10 सेकंड वाला स्मार्ट ऑटो-रिफ्रेश
         setInterval(async () => {
             try {
-                console.log("🔄 Live Data Syncing...");
-                
-                // नया डेटा लाओ (cache bypass के साथ)
                 const response = await fetch('/api/get-properties', { cache: 'no-store' });
                 const newData = await response.json();
                 
-                // अगर डेटाबेस में कोई बदलाव हुआ है, तभी स्क्रीन अपडेट करो!
                 if(JSON.stringify(newData) !== JSON.stringify(allProperties)) {
                     allProperties = newData;
                     updateLocationDropdown(allProperties); 
                     filterProperties(); 
-                    console.log("✅ New data loaded and screen updated!");
                 }
             } catch (error) {
                 console.log("Sync failed:", error);
