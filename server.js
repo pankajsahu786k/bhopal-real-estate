@@ -89,13 +89,19 @@ const propertySchema = new mongoose.Schema({
     views: { type: Number, default: 0 }, clicks: { type: Number, default: 0 },
     transactionId: { type: String, default: 'FREE_BYPASS' },
     amountPaid: { type: Number, default: 0 },
-    paymentStatus: { type: String, default: 'Free' }
+    paymentStatus: { type: String, default: 'Free' },
+    latitude: { type: Number },  // 🌟 NAYA: Property GPS Lat
+    longitude: { type: Number }  // 🌟 NAYA: Property GPS Lng
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
 const brokerProfileSchema = new mongoose.Schema({
     brokerEmail: { type: String, unique: true, required: true },
-    phone: String, photo: String, dealingAreas: [String]
+    phone: String, 
+    photo: String, 
+    dealingAreas: [String],
+    latitude: { type: Number },   // 🌟 NAYA: GPS Latitude
+    longitude: { type: Number }   // 🌟 NAYA: GPS Longitude
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
@@ -497,12 +503,53 @@ app.delete('/api/rk-delete-package/:category/:id', async (req, res) => {
     } catch (error) { console.error("DB Delete Error:", error); res.status(500).json({ success: false, message: 'Delete Operation Failed' }); }
 });
 
+// 🌍 Duri nikalne ka formula (Haversine Formula)
+function getDistanceInKm(lat1, lon1, lat2, lon2) {
+    if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+    const R = 6371; 
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; 
+}
+
 app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
-        const properties = (brokerEmail && brokerEmail !== "undefined") ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }) : await Property.find({ status: 'approved' });
+        const userLat = parseFloat(req.query.lat); // Customer ka Lat
+        const userLng = parseFloat(req.query.lng); // Customer ka Lng
+
+        let properties = (brokerEmail && brokerEmail !== "undefined") 
+            ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }).lean()
+            : await Property.find({ status: 'approved' }).lean();
+
+        // 🌟 Agar customer ne apni location bheji hai, toh distance nikalo
+        if (userLat && userLng) {
+            properties = properties.map(prop => {
+                let distance = null;
+                // Pehle check karo property me GPS hai ya nahi
+                if (prop.latitude && prop.longitude) {
+                    distance = getDistanceInKm(userLat, userLng, prop.latitude, prop.longitude);
+                }
+                return { ...prop, distance: distance };
+            });
+
+            // Jinki distance null nahi hai, unhe paas se door ke hisaab se sort karo
+            properties.sort((a, b) => {
+                if (a.distance === null) return 1;
+                if (b.distance === null) return -1;
+                return a.distance - b.distance;
+            });
+        }
+
         res.json(properties);
-    } catch (error) { res.status(500).json({ message: 'Error' }); }
+    } catch (error) { 
+        console.error(error);
+        res.status(500).json({ message: 'Error' }); 
+    }
 });
 
 app.get('/api/get-profile', async(req, res) => {
@@ -514,12 +561,17 @@ app.get('/api/get-profile', async(req, res) => {
 });
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
-        const { brokerEmail, phone } = req.body;
+        const { brokerEmail, phone, latitude, longitude } = req.body;
         let areas = [];
         if (req.body.dealingAreas) {
             try { areas = JSON.parse(req.body.dealingAreas); } catch (e) { areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); }
         }
         const updateData = { phone: phone, dealingAreas: areas };
+        
+        // 🌟 NAYA: अगर GPS डेटा आया है तो उसे भी सेव करें
+        if (latitude) updateData.latitude = Number(latitude);
+        if (longitude) updateData.longitude = Number(longitude);
+        
         if (req.file) updateData.photo = req.file.path || req.file.url;
         await BrokerProfile.findOneAndUpdate({ brokerEmail: brokerEmail.toLowerCase().trim() }, { $set: updateData }, { new: true, upsert: true });
         res.json({ success: true });

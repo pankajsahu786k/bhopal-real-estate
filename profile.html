@@ -84,6 +84,17 @@
                         <input type="text" id="dealingAreas" placeholder="जैसे: MP Nagar, Kolar, Arera Colony" required>
                         <p style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">* एरिया के नाम के बीच में कॉमा (,) लगाएँ</p>
                     </div>
+                    <!-- 🌟 NAYA: GPS Tracker for Broker Office/Home -->
+                    <div class="form-group" style="background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px dashed #0284c7;">
+                        <label style="color: #0369a1; font-weight: bold; margin-bottom: 5px;">📍 ऑफिस / घर की लोकेशन (GPS)</label>
+                        <p style="font-size: 11px; color: #0284c7; margin-bottom: 10px;">अपनी सटीक लोकेशन सेव करें ताकि सिस्टम ग्राहकों को आपके पास की प्रॉपर्टी दिखा सके।</p>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" id="getLocBtn" style="background: #0284c7; color: white; padding: 10px 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; flex-shrink: 0;">
+                                📍 Detect My Location
+                            </button>
+                            <input type="text" id="locDisplay" placeholder="Click button to detect... ➡️" readonly style="flex: 1; min-width: 150px; padding: 10px; border-radius: 5px; border: 1px solid #bae6fd; background: #f0f9ff; font-weight: bold; color: #64748b; cursor: not-allowed;">
+                        </div>
+                    </div>
 
                     <div class="form-group">
                         <label>प्रोफाइल फोटो (Profile Photo)</label>
@@ -175,6 +186,103 @@
             } finally {
                 saveBtn.innerText = "Save Profile Updates 💾";
                 saveBtn.disabled = false;
+            }
+        });
+        let userLat = null;
+        let userLng = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const email = localStorage.getItem('brokerEmail');
+            const name = localStorage.getItem('brokerName') || 'User';
+            
+            if (!email) {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('welcomeName').innerText = `Welcome, Broker ${name}`;
+
+            try {
+                const response = await fetch(`/api/get-profile?email=${email}`);
+                const data = await response.json();
+                
+                if (data.phone) document.getElementById('phone').value = data.phone;
+                if (data.dealingAreas && data.dealingAreas.length > 0) {
+                    document.getElementById('dealingAreas').value = data.dealingAreas.join(', ');
+                }
+                if (data.photo) {
+                    const img = document.getElementById('photoPreview');
+                    img.src = data.photo;
+                    img.style.display = 'block';
+                }
+
+                // 🌟 NAYA: अगर पहले से लोकेशन सेव है, तो उसे दिखाओ
+                if (data.latitude && data.longitude) {
+                    userLat = data.latitude;
+                    userLng = data.longitude;
+                    const display = document.getElementById('locDisplay');
+                    display.value = `✅ Lat: ${userLat.toFixed(4)}, Lng: ${userLng.toFixed(4)}`;
+                    display.style.color = "#15803d"; display.style.background = "#dcfce3";
+                    document.getElementById('getLocBtn').innerText = "📍 Location Saved";
+                    document.getElementById('getLocBtn').style.background = "#16a34a";
+                }
+            } catch (error) { console.error(error); }
+        });
+
+        // 📍 NAYA: Location Detect Button Click Event
+        document.getElementById('getLocBtn').addEventListener('click', function() {
+            const btn = this;
+            const display = document.getElementById('locDisplay');
+            btn.innerText = "Detecting... ⏳";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLat = position.coords.latitude;
+                        userLng = position.coords.longitude;
+                        display.value = `✅ Lat: ${userLat.toFixed(4)}, Lng: ${userLng.toFixed(4)}`;
+                        display.style.color = "#15803d"; display.style.background = "#dcfce3"; display.style.borderColor = "#86efac";
+                        btn.innerText = "📍 Location Saved"; btn.style.background = "#16a34a";
+                    },
+                    (error) => {
+                        btn.innerText = "📍 Detect My Location";
+                        alert("⚠️ Location permission allow करें या मोबाइल का GPS चालू करें!");
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                alert("Aapka browser location support nahi karta.");
+            }
+        });
+
+        // Form Submit Logic
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.innerText = "Saving Please Wait... ⏳"; saveBtn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('brokerEmail', localStorage.getItem('brokerEmail'));
+            formData.append('phone', document.getElementById('phone').value);
+            formData.append('dealingAreas', JSON.stringify(document.getElementById('dealingAreas').value.split(',').map(a => a.trim()))); 
+
+            const photoInput = document.getElementById('profilePhoto');
+            if (photoInput.files.length > 0) formData.append('profilePhoto', photoInput.files[0]);
+
+            // 🌟 NAYA: GPS Data Form में जोड़ें
+            if (userLat !== null) formData.append('latitude', userLat);
+            if (userLng !== null) formData.append('longitude', userLng);
+
+            try {
+                const response = await fetch('/api/update-profile', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    alert("✅ प्रोफाइल सफलतापूर्वक अपडेट हो गई!");
+                    window.location.href = 'dashboard.html'; 
+                } else { alert("❌ प्रोफाइल सेव नहीं हो पाई: " + result.message); }
+            } catch (error) {
+                alert("❌ सर्वर एरर!");
+            } finally {
+                saveBtn.innerText = "Save Profile Updates 💾"; saveBtn.disabled = false;
             }
         });
 
