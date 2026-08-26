@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add New Property - Bhopal Real Estate</title>
     <link rel="stylesheet" href="add-property-style.css">
-    <!-- 🌟 Razorpay की स्क्रिप्ट हटा दी गई है -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 </head>
 
@@ -41,7 +40,6 @@
                 <label for="location">भोपाल में लोकेशन (Location in Bhopal)</label>
                 <select id="location" required onchange="checkNewLocation(this.value)">
                     <option value="">इलाका चुनें...</option>
-                    
                     <optgroup label="मुख्य एवं व्यापारिक क्षेत्र (Central & Commercial)">
                         <option value="MP Nagar Zone 1">MP Nagar Zone 1 (एम.पी. नगर जोन 1)</option>
                         <option value="MP Nagar Zone 2">MP Nagar Zone 2 (एम.पी. नगर जोन 2)</option>
@@ -49,7 +47,6 @@
                         <option value="TT Nagar">TT Nagar (टी.टी. नगर)</option>
                         <option value="Malviya Nagar">Malviya Nagar (मालवीय नगर)</option>
                     </optgroup>
-
                     <optgroup label="पॉश आवासीय क्षेत्र (Premium Residential)">
                         <option value="Arera Colony">Arera Colony (अरेरा कॉलोनी)</option>
                         <option value="Shahpura">Shahpura (शाहपुरा)</option>
@@ -57,7 +54,6 @@
                         <option value="Char Imli">Char Imli (चार इमली)</option>
                         <option value="Gulmohar">Gulmohar (गुलमोहर)</option>
                     </optgroup>
-
                     <optgroup label="तेजी से विकसित होते क्षेत्र (Fast Growing)">
                         <option value="Kolar Road">Kolar Road (कोलार रोड)</option>
                         <option value="Awadhpuri">Awadhpuri (अवधपुरी)</option>
@@ -66,7 +62,6 @@
                         <option value="Katara Hills">Katara Hills (कटारा हिल्स)</option>
                         <option value="Bawadiya Kalan">Bawadiya Kalan (बावड़िया कलां)</option>
                     </optgroup>
-
                     <optgroup label="अन्य प्रमुख क्षेत्र (Other Major Areas)">
                         <option value="Indrapuri">Indrapuri (इन्द्रपुरी)</option>
                         <option value="Piplani">Piplani (पिपलानी)</option>
@@ -75,11 +70,21 @@
                         <option value="Karond">Karond (करोंद)</option>
                         <option value="Gandhi Nagar">Gandhi Nagar (गांधी नगर)</option>
                     </optgroup>
-
                     <option value="other" style="font-weight: bold; color: #3498db;">+ लिस्ट में नहीं है? नई लोकेशन जोड़ें</option>
                 </select>
+                <input type="text" id="customLocation" placeholder="अपनी नई लोकेशन का नाम टाइप करें..." style="display: none; padding: 10px; width: 100%; border-radius: 5px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
+            </div>
 
-                <input type="text" id="customLocation" placeholder="अपनी नई लोकेशन का नाम टाइप करें (जैसे: Misrod, Ayodhya Nagar)..." style="display: none; padding: 10px; width: 100%; border-radius: 5px; margin-top: 10px; box-sizing: border-box; border: 1px solid #ccc; font-family: 'Poppins', sans-serif;">
+            <!-- 🌟 NAYA FEATURE: Property Exact GPS Location -->
+            <div class="form-group" style="background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px dashed #0284c7; margin-top: 15px;">
+                <label style="color: #0369a1; font-weight: bold; margin-bottom: 5px;">📍 प्रॉपर्टी की एग्ज़ैक्ट लोकेशन (GPS)</label>
+                <p style="font-size: 11px; color: #0284c7; margin-bottom: 10px;">ग्राहक को गूगल मैप्स पर सही रास्ता दिखाने के लिए इसे सेव करना ज़रूरी है।</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button type="button" id="getPropLocBtn" style="background: #0284c7; color: white; padding: 10px 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; flex-shrink: 0;">
+                        📍 Detect Property Location
+                    </button>
+                    <input type="text" id="propLocDisplay" placeholder="Click button to detect... ➡️" readonly required style="flex: 1; min-width: 150px; padding: 10px; border-radius: 5px; border: 1px solid #bae6fd; background: #f0f9ff; font-weight: bold; color: #64748b; cursor: not-allowed;">
+                </div>
             </div>
 
             <div class="form-group">
@@ -88,7 +93,7 @@
             </div>
 
             <div class="form-group">
-                <label for="contactNumber">संपर्क नंबर / Mobile Number (Call & WhatsApp के लिए)</label>
+                <label for="contactNumber">संपर्क नंबर / Mobile Number</label>
                 <input type="tel" id="contactNumber" placeholder="जैसे: 9876543210" pattern="[0-9]{10}" required>
             </div>
 
@@ -98,7 +103,7 @@
             </div>
 
             <div class="form-group">
-                <label for="videoLink">YouTube वीडियो लिंक (Optional - Cinematic/Drone Video)</label>
+                <label for="videoLink">YouTube वीडियो लिंक (Optional)</label>
                 <input type="url" id="videoLink" placeholder="जैसे: https://youtu.be/..." style="padding: 10px; width: 100%; border-radius: 5px; border: 1px solid #ccc;">
             </div>
 
@@ -116,7 +121,11 @@
         let userRole = 'user'; 
         let isPaymentBypassedGlobal = false;
         const serviceName = 'Property Listing Premium';
-        const baseAmount = 10; // प्रॉपर्टी ऐड करने का फिक्स चार्ज
+        const baseAmount = 10; 
+
+        // 🌟 GPS COORDINATES VARIABLES
+        let propLat = null;
+        let propLng = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -147,6 +156,35 @@
             }
         });
 
+        // 📍 Get Property Location Button Logic
+        document.getElementById('getPropLocBtn').addEventListener('click', function() {
+            const btn = this;
+            const display = document.getElementById('propLocDisplay');
+            btn.innerText = "Detecting... ⏳";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        propLat = position.coords.latitude;
+                        propLng = position.coords.longitude;
+                        display.value = `✅ Lat: ${propLat.toFixed(4)}, Lng: ${propLng.toFixed(4)}`;
+                        display.style.color = "#15803d";
+                        display.style.background = "#dcfce3";
+                        display.style.borderColor = "#86efac";
+                        btn.innerText = "📍 Location Saved";
+                        btn.style.background = "#16a34a";
+                    },
+                    (error) => {
+                        btn.innerText = "📍 Detect Map Location";
+                        alert("⚠️ Location permission allow करें या मोबाइल का GPS चालू करें!");
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                alert("Aapka browser location support nahi karta.");
+            }
+        });
+
         function checkNewLocation(val) {
             const inputBox = document.getElementById('customLocation');
             if (val === 'other') {
@@ -158,6 +196,13 @@
 
         async function handleFormSubmit(event) {
             event.preventDefault(); 
+
+            // 🌟 CHECK: GPS Location li hai ya nahi
+            if(propLat === null || propLng === null) {
+                alert("⚠️ कृपया 'Detect Property Location' बटन पर क्लिक करके प्रॉपर्टी की एग्ज़ैक्ट लोकेशन सेव करें!");
+                return;
+            }
+
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerText;
             submitBtn.innerText = "Uploading Draft... ⏳";
@@ -176,9 +221,11 @@
             formData.append('contactNumber', document.getElementById('contactNumber').value); 
             formData.append('brokerEmail', brokerEmail);
             formData.append('videoLink', document.getElementById('videoLink').value);
-            
-            // 🌟 सर्वर को बताने के लिए कि यह डेटा प्रॉपर्टी का है
             formData.append('serviceType', 'Property');
+
+            // 🌟 Append GPS data to FormData
+            formData.append('latitude', propLat);
+            formData.append('longitude', propLng);
 
             const imgInput = document.getElementById('propertyImages');
             if (imgInput.files.length > 3) {
@@ -194,7 +241,6 @@
             }
 
             try {
-                // 🌟 1. डेटा को हवा (RAM Draft) में सेव करें
                 const response = await fetch('/api/submit-property-draft', { method: 'POST', body: formData });
                 const result = await response.json();
 
@@ -206,19 +252,16 @@
 
                 const draftId = result.draftId;
 
-                // 🌟 2. Free / Bypassed फ्लो (डायरेक्ट पक्की एंट्री)
                 if (isPaymentBypassedGlobal || userRole === 'employee' || userRole === 'admin') {
                     submitBtn.innerText = "Bypass Verified! Publishing... 🔓";
                     const freeTxnId = 'FREE_' + Math.random().toString(36).substring(2, 10).toUpperCase();
                     
-                    // डेटाबेस में असली सेव करें
                     await fetch('/api/finalize-record', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ draftId: draftId, transactionId: freeTxnId, amountPaid: 0 })
                     });
 
-                    // रसीद जनरेट करें
                     await fetch('/api/save-receipt', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +277,6 @@
                     alert('✅ Property Uploaded Successfully!');
                     window.location.href = `receipt.html?txn=${freeTxnId}&service=Property%20Listing%20(FREE)&amount=0`;
                 } 
-                // 🌟 3. Paid फ्लो (पेमेंट पेज पर भेजें)
                 else {
                     submitBtn.innerText = "Redirecting to Payment... 💳";
                     window.location.href = `payment.html?service=${encodeURIComponent(serviceName)}&amount=${baseAmount}&draftId=${draftId}`;

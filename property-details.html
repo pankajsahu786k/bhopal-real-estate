@@ -67,12 +67,13 @@
                 </div>
             </div>
 
-            <div class="broker-card">
+            <div class="broker-card" id="brokerCardBox">
                 <h3>प्रॉपर्टी ओनर</h3>
                 <img id="brokerImg" src="https://placehold.co/100x100?text=User" style="border-radius:50%; width:100px; height:100px; object-fit:cover;" onerror="this.onerror=null; this.src='https://placehold.co/100x100?text=User';">
                 <h2 id="brokerNameDisplay" style="font-size: 18px; margin: 10px 0;"></h2>
                 <a href="#" id="callBtn" class="contact-btn" onclick="trackClick()">📞 कॉल करें</a>
                 <a href="#" id="whatsappBtn" class="contact-btn" style="background: #25D366;" onclick="trackClick()" target="_blank">💬 WhatsApp करें</a>
+                <!-- 🌟 MAP BUTTON YAHAN AUTOMATICALLY ADD HOGA -->
             </div>
         </div>
     </div>
@@ -101,15 +102,13 @@
                     document.getElementById('brokerNameDisplay').innerText = property.brokerEmail ? property.brokerEmail.split('@')[0] : 'Broker';
                     
                     // 📞 DYNAMIC MOBILE NUMBER LOGIC 
-                    // Pehle form wala number check karo, nahi toh profile wala lo
                     const finalContactNumber = property.contactNumber || (brokerProfile ? brokerProfile.phone : '');
 
                     if (finalContactNumber && finalContactNumber.trim() !== '') {
                         document.getElementById('callBtn').href = `tel:${finalContactNumber}`;
-                        const waNumber = finalContactNumber.replace(/\D/g, ''); // Sirf digits nikalna
+                        const waNumber = finalContactNumber.replace(/\D/g, ''); 
                         document.getElementById('whatsappBtn').href = `https://wa.me/91${waNumber}?text=Hello, I saw your property "${property.title}" on Bhopal Real Estate.`;
                     } else {
-                        // Agar koi number nahi hai toh button disable kar do
                         document.getElementById('callBtn').onclick = () => alert('❌ ओनर का मोबाइल नंबर उपलब्ध नहीं है।');
                         document.getElementById('callBtn').href = '#';
                         document.getElementById('whatsappBtn').onclick = () => alert('❌ ओनर का WhatsApp उपलब्ध नहीं है।');
@@ -119,6 +118,14 @@
                     // Broker Photo Logic
                     if (brokerProfile && brokerProfile.photo && brokerProfile.photo.trim() !== '') {
                         document.getElementById('brokerImg').src = brokerProfile.photo;
+                    }
+
+                    // 🗺️ 🌟 NAYA: GOOGLE MAPS BUTTON LOGIC
+                    // Agar property ke andar latitude aur longitude save hai, to map button dikhao
+                    if (property.latitude && property.longitude) {
+                        const mapUrl = `https://www.google.com/maps?q=${property.latitude},${property.longitude}`;
+                        const mapBtnHtml = `<a href="${mapUrl}" target="_blank" class="contact-btn" style="background: #3b82f6; text-align: center; margin-top: 10px;">🗺️ View on Google Maps</a>`;
+                        document.getElementById('brokerCardBox').insertAdjacentHTML('beforeend', mapBtnHtml);
                     }
 
                     // 📸 Image Gallery Logic
