@@ -6,7 +6,7 @@
     <title>Instant Rent Agreement Generator | Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- 🌟 PDF Download के लिए html2pdf लाइब्रेरी -->
+    <!-- 🌟 PDF Download Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script>
@@ -25,7 +25,7 @@
         body { font-family: 'Poppins', sans-serif; margin: 0; background-color: #f4f7f6; color: #333; padding-bottom: 5px; }
         a { text-decoration: none; }
         
-        /* 👑 Premium Light & Gold Header */
+        /* 👑 Header Matrix */
         .super-app-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); position: sticky; top: 0; z-index: 1000; border-bottom: 2px solid #f59e0b; box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08); padding: 12px 30px; width: 100%; }
         .header-container { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; }
         .brand-logo { font-size: 22px; font-weight: 800; color: #1e1b4b; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -39,16 +39,13 @@
         .matrix-link:hover { color: #1e1b4b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
         .matrix-link.active { color: #fff !important; background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important; border-color: #1e1b4b !important; }
         .broker-login-nav-btn { background: #2c3e50 !important; color: white !important; border-color: #2c3e50 !important; }
-        .broker-login-nav-btn:hover { background: #1a252f !important; }
         .instant-access-badge { font-size: 11px; font-weight: 700; color: #065f46; background: #d1fae5; padding: 8px 14px; border-radius: 6px; border: 1px solid #a7f3d0; display: flex; align-items: center; gap: 6px; white-space: nowrap; margin-left: 8px; }
-        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; animation: networkPulse 1.8s infinite ease-in-out; }
-        @keyframes networkPulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
 
         /* 🏢 Layout Wrapper */
-        .agreement-wrapper { max-width: 1350px; width: 100%; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 5fr 6fr; gap: 25px; flex-grow: 1; }
+        .agreement-wrapper { max-width: 1400px; width: 100%; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 5fr 6fr; gap: 25px; flex-grow: 1; }
         
         /* 📝 Form Card Styling */
-        .form-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-top: 4px solid #f59e0b; height: fit-content; }
+        .form-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-top: 4px solid #f59e0b; height: fit-content; max-height: 90vh; overflow-y: auto; }
         .form-card h2 { color: #1e1b4b; font-size: 20px; font-weight: 800; margin-bottom: 15px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
         .section-divider { font-size: 13px; font-weight: 700; color: #f59e0b; margin: 15px 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px; }
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
@@ -57,42 +54,39 @@
         .form-group label { font-size: 12px; font-weight: 600; margin-bottom: 6px; color: #475569; }
         .form-group input, .form-group textarea { padding: 11px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; background: #f8fafc; }
         .form-group input:focus, .form-group textarea:focus { border-color: #f59e0b; background: white; box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1); }
-        
         .gen-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 14px; border-radius: 6px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .gen-btn:hover { background: #219653; }
 
-        /* 📄 Preview Card */
-        .preview-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; display: flex; flex-direction: column; }
-        .pdf-document { padding: 20px; background: white; }
-        .stamp-bypass-box { border: 2px dashed #94a3b8; padding: 25px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 30px; border-radius: 6px; background: #f8fafc; }
+        /* 🌟 NAYA: Dynamic Family Box Styling */
+        .dynamic-family-box { background: #f1f5f9; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+
+        /* 📄 Legal A4 Preview Card Styling */
+        .preview-card { background: #e2e8f0; padding: 20px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; max-height: 90vh; overflow-y: auto; }
+        .pdf-document { background: white; width: 100%; max-width: 800px; padding: 40px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); min-height: 1000px; }
+        .stamp-bypass-box { border: 2px dashed #94a3b8; padding: 25px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 30px; background: #f8fafc; }
         .preview-header { text-align: center; border-bottom: 2px double #111; padding-bottom: 12px; margin-bottom: 25px; }
-        .preview-header h3 { margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; color: #111; }
-        .legal-text { font-size: 14px; line-height: 1.8; text-align: justify; color: #111; }
+        .preview-header h3 { margin: 0; font-size: 24px; font-weight: 800; text-transform: uppercase; color: #111; }
+        .legal-text { font-size: 15px; line-height: 1.8; text-align: justify; color: #111; }
         .legal-text p { margin-bottom: 15px; }
         
-        .signatures-section { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
-        .sig-block { text-align: center; width: 45%; font-size: 12px; font-weight: 700; color: #111; }
-        .sig-line { margin-bottom: 45px; border-bottom: 1px solid #111; width: 100%; }
+        .signatures-section { display: flex; justify-content: space-between; margin-top: 60px; padding-top: 20px; page-break-inside: avoid; }
+        .sig-block { text-align: center; width: 40%; font-size: 14px; font-weight: 700; color: #111; }
+        .sig-line { margin-bottom: 50px; border-bottom: 1px solid #111; width: 100%; }
         
         /* 🖨️ Button Actions */
-        .action-buttons { display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px; display: none; }
-        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .download-btn { background: #e84118; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .print-btn:hover { background: #2e2a72; }
-        .download-btn:hover { background: #c23616; }
-
+        .action-buttons { display: flex; gap: 15px; margin-top: 20px; width: 100%; max-width: 800px; justify-content: flex-end; display: none; }
+        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .download-btn { background: #e84118; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        
         @media print {
-            body { background: white; color: black; }
+            body { background: white; }
             .form-card, .super-app-header, .action-buttons { display: none !important; }
-            .agreement-wrapper { grid-template-columns: 1fr; margin: 0; padding: 0; }
-            .preview-card { border: none; box-shadow: none; padding: 0; }
-            .stamp-bypass-box { height: 180px; border: none; background: transparent; }
+            .agreement-wrapper { display: block; margin: 0; padding: 0; }
+            .preview-card { background: white; padding: 0; display: block; overflow: visible; }
+            .pdf-document { box-shadow: none; padding: 0; width: 100%; max-width: 100%; }
+            .stamp-bypass-box { height: 200px; border: none; background: transparent; }
         }
-        @media (max-width: 1150px) {
-            .header-container { flex-direction: column; gap: 10px; }
-            .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
-            .agreement-wrapper { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 1150px) { .agreement-wrapper { grid-template-columns: 1fr; } }
     </style> 
 </head>
 <body>
@@ -101,20 +95,8 @@
         <div class="header-container">
             <div class="brand-logo" onclick="window.location.href='index.html'">
                 <span class="sparkle">✨</span> 
-                <span class="logo-main">Bhopal <span>Properties</span></span> 
-                <span class="app-tag">Super App</span>
+                <span class="logo-main">Bhopal <span>Properties</span></span>
             </div>
-            <nav class="navigation-hub">
-                <ul class="nav-matrix-links">
-                    <li><a href="index.html" class="matrix-link">Home</a></li>
-                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
-                    <li><a href="services.html?service=tenant" class="matrix-link">Tenant Verification</a></li>
-                    <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
-                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
-                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
-                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
-                </ul>
-            </nav>
             <div class="instant-access-badge">
                 <span class="pulse-dot"></span> <span id="headerUserName">Broker Account</span>
             </div>
@@ -126,70 +108,46 @@
             <h2>Rent Agreement Details</h2>
             <form id="agreementForm" onsubmit="generateAgreementDraft(event)">
                 
-                <div class="section-divider">👤 Landlord Details (मकान मालिक)</div>
+                <div class="section-divider">👤 Landlord Details</div>
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label>मकान मालिक का नाम *</label>
-                        <input type="text" id="ownerName" required placeholder="Landlord Full Name">
-                    </div>
-                    <div class="form-group">
-                        <label>मोबाइल नंबर *</label>
-                        <input type="tel" id="ownerMobile" required placeholder="10 Digit Mobile No.">
-                    </div>
+                    <div class="form-group"><label>मकान मालिक का नाम *</label><input type="text" id="ownerName" required></div>
+                    <div class="form-group"><label>मोबाइल नंबर *</label><input type="tel" id="ownerMobile" required></div>
                 </div>
                 <div class="form-group full-width" style="margin-bottom: 15px;">
-                    <label>मकान मालिक का स्थायी पता (Landlord Address) *</label>
-                    <input type="text" id="ownerAddress" required placeholder="Permanent Address of Landlord">
+                    <label>मकान मालिक का स्थायी पता *</label>
+                    <input type="text" id="ownerAddress" required>
                 </div>
 
-                <div class="section-divider">👤 Tenant Details (किरायेदार)</div>
+                <div class="section-divider">👤 Tenant Details</div>
                 <div class="form-group full-width" style="margin-bottom: 15px;">
                     <label>किरायेदार का नाम *</label>
-                    <input type="text" id="tenantName" required placeholder="Tenant Full Name">
+                    <input type="text" id="tenantName" required>
                 </div>
                 
-                <!-- 🌟 NAYA: Tenant Aadhar & Family Info -->
                 <div class="form-group full-width" style="margin-bottom: 15px;">
-                    <label>किरायेदार का आधार नंबर (Aadhaar Card No.) *</label>
+                    <label>किरायेदार का आधार नंबर *</label>
                     <input type="text" id="tenantAadhar" required placeholder="[Your Aadhaar]" maxlength="12" pattern="\d{12}">
                 </div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>रहने वाले कुल लोग (Total Members) *</label>
-                        <input type="number" id="familyCount" required placeholder="e.g. 3">
-                    </div>
-                    <div class="form-group">
-                        <label>आपसी रिश्ता (Relation) *</label>
-                        <input type="text" id="familyRelation" required placeholder="e.g. Husband, Wife, 1 Child">
-                    </div>
+                
+                <div class="form-group full-width" style="margin-bottom: 10px;">
+                    <label>रहने वाले कुल लोग (Total Members) *</label>
+                    <input type="number" id="familyCount" required min="1" placeholder="e.g. 2" oninput="generateFamilyFields()">
                 </div>
                 
-                <div class="section-divider">🏠 Property & Rent Term Details</div>
+                <!-- 🌟 NAYA: Dynamic Family Container -->
+                <div id="familyFieldsContainer" class="form-group full-width"></div>
+                
+                <div class="section-divider">🏠 Property Details</div>
                 <div class="form-group full-width" style="margin-bottom: 15px;">
-                    <label>किराए पर दी जाने वाली प्रॉपर्टी का पूरा पता *</label>
-                    <textarea id="propAddress" rows="2" required placeholder="e.g., House No. 45, Sector C, Shahpura, Bhopal, MP"></textarea>
+                    <label>प्रॉपर्टी का पूरा पता *</label>
+                    <textarea id="propAddress" rows="2" required></textarea>
                 </div>
 
                 <div class="form-grid">
-                    <div class="form-group">
-                        <label>महीने का किराया (₹) *</label>
-                        <input type="number" id="monthlyRent" required placeholder="Rent per month">
-                    </div>
-                    <div class="form-group">
-                        <label>सिक्योरिटी डिपॉजिट (₹) *</label>
-                        <input type="number" id="securityDeposit" required placeholder="Advance Amount">
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>एग्रीमेंट अवधि (Months) *</label>
-                        <input type="number" id="durationMonths" value="11" required>
-                    </div>
-                    <div class="form-group">
-                        <label>बिजली बिल दर (₹ / Unit) *</label>
-                        <input type="number" id="electricityRate" step="0.1" placeholder="e.g. 8 or 10" required>
-                    </div>
+                    <div class="form-group"><label>महीने का किराया (₹) *</label><input type="number" id="monthlyRent" required></div>
+                    <div class="form-group"><label>सिक्योरिटी डिपॉजिट (₹) *</label><input type="number" id="securityDeposit" required></div>
+                    <div class="form-group"><label>एग्रीमेंट अवधि (Months) *</label><input type="number" id="durationMonths" value="11" required></div>
+                    <div class="form-group"><label>बिजली दर (₹/Unit) *</label><input type="number" id="electricityRate" step="0.1" required></div>
                 </div>
                 
                 <div class="form-group full-width" style="margin-bottom: 15px;">
@@ -197,15 +155,14 @@
                     <input type="date" id="startDate" required>
                 </div>
 
-                <button type="submit" class="gen-btn">✨ ड्राफ्ट तैयार करें (Generate Draft)</button>
+                <button type="submit" class="gen-btn">✨ ड्राफ्ट तैयार करें</button>
             </form>
         </div>
 
         <div class="preview-card" id="agreementPreviewBlock">
-            <!-- 📄 PDF Generation Wrapper -->
             <div id="pdfDocument" class="pdf-document">
                 <div class="stamp-bypass-box" id="stampBox">
-                    Affix Stamp Paper Here <br><span style="font-size:11px; font-weight:normal; color:#64748b;">(Leave blank if printing directly on Stamp Paper)</span>
+                    Affix Stamp Paper Here <br><span style="font-size:11px; font-weight:normal;">(Leave blank if printing directly on Stamp Paper)</span>
                 </div>
                 <div class="preview-header">
                     <h3>Rent Agreement</h3>
@@ -214,12 +171,11 @@
                     <p style="text-align: center; color: #94a3b8; font-style: italic; margin-top: 60px;">फॉर्म भरकर "ड्राफ्ट तैयार करें" बटन पर क्लिक करें। कानूनी रेंट एग्रीमेंट का लाइव प्रीव्यू यहाँ दिखाई देगा।</p>
                 </div>
                 <div class="signatures-section" id="sigSection" style="display: none;">
-                    <div class="sig-block"><div class="sig-line"></div>LANDLORD SIGNATURE</div>
-                    <div class="sig-block"><div class="sig-line"></div>TENANT SIGNATURE</div>
+                    <div class="sig-block"><div class="sig-line"></div>LANDLORD</div>
+                    <div class="sig-block"><div class="sig-line"></div>TENANT</div>
                 </div>
             </div>
 
-            <!-- 🖨️ PDF & Print Actions -->
             <div class="action-buttons" id="actionBtns">
                 <button class="print-btn" onclick="window.print()">🖨️ Print</button>
                 <button class="download-btn" onclick="downloadPDF()">📥 Download PDF</button>
@@ -233,6 +189,28 @@
             document.getElementById('headerUserName').innerText = name;
         });
 
+        // 🌟 NAYA: Generate Dynamic Input Fields for Members
+        function generateFamilyFields() {
+            const count = parseInt(document.getElementById('familyCount').value) || 0;
+            const container = document.getElementById('familyFieldsContainer');
+            container.innerHTML = ''; 
+            
+            for(let i = 1; i <= count; i++) {
+                container.innerHTML += `
+                    <div class="dynamic-family-box form-grid">
+                        <div class="form-group">
+                            <label>Member ${i} Name *</label>
+                            <input type="text" class="fam-name" required placeholder="Full Name">
+                        </div>
+                        <div class="form-group">
+                            <label>Relation with Tenant *</label>
+                            <input type="text" class="fam-rel" required placeholder="e.g. Wife, Son, Brother">
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         function generateAgreementDraft(e) {
             e.preventDefault();
             
@@ -240,11 +218,21 @@
             const ownerMob = document.getElementById('ownerMobile').value;
             const ownerAddr = document.getElementById('ownerAddress').value;
             const tenant = document.getElementById('tenantName').value;
-            
-            // Fetch newly added fields
             const tenantAadhar = document.getElementById('tenantAadhar').value;
+            
+            // 🌟 NAYA: Fetch Dynamic Family Data
             const familyCount = document.getElementById('familyCount').value;
-            const familyRel = document.getElementById('familyRelation').value;
+            const famNames = document.querySelectorAll('.fam-name');
+            const famRels = document.querySelectorAll('.fam-rel');
+            let familyListHtml = '';
+            
+            if(famNames.length > 0) {
+                familyListHtml = `<ul style="margin-top: 10px; margin-bottom: 10px; padding-left: 20px;">`;
+                for(let i=0; i<famNames.length; i++) {
+                    familyListHtml += `<li><strong>${famNames[i].value}</strong> (Relation: ${famRels[i].value})</li>`;
+                }
+                familyListHtml += `</ul>`;
+            }
 
             const address = document.getElementById('propAddress').value;
             const rent = document.getElementById('monthlyRent').value;
@@ -263,7 +251,7 @@
                 <strong>${owner}</strong>, Mobile No: <strong>${ownerMob}</strong>, Residing at: <strong>${ownerAddr}</strong>, hereinafter called the <strong>"LANDLORD"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the FIRST PART.</p>
                 
                 <p><strong>AND:</strong><br>
-                <strong>${tenant}</strong>, holding Aadhar Card No: <strong>${tenantAadhar}</strong>, hereinafter called the <strong>"TENANT"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the SECOND PART.</p>
+                <strong>${tenant}</strong>, holding Aadhaar Card No: <strong>${tenantAadhar}</strong>, hereinafter called the <strong>"TENANT"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the SECOND PART.</p>
                 
                 <p>WHEREAS the Landlord is the absolute owner of the premises situated at <strong>${address}</strong>, and has agreed to let out the said property to the Tenant for a fixed period of <strong>${months} Months</strong> commencing from ${sDate}.</p>
                 
@@ -273,26 +261,25 @@
                 3. That the Tenant shall use the premises for residential purposes only and shall pay utility charges separately as per usage.<br>
                 4. That the Tenant shall not make any structural alterations or sub-let the property to any third party without the prior written consent of the Landlord.<br>
                 5. That the Tenant has explicitly agreed to pay Electricity Charges at a fixed rate of <strong>₹ ${elecRate} per Unit</strong> directly to the Landlord/Electricity Board every month according to sub-meter/main-meter reading variations.<br>
-                6. <strong>Occupancy Limit:</strong> That the said premises shall be occupied by the Tenant and their family members consisting of exactly <strong>${familyCount} persons (${familyRel})</strong> only.</p>
+                6. <strong>Occupancy Limit & Family Details:</strong> That the said premises shall be occupied by the Tenant and their family members consisting of exactly <strong>${familyCount} persons</strong>. The details of the residing members are as follows:
+                ${familyListHtml}
+                No other person shall be allowed to reside in the premises without prior permission.</p>
             `;
 
             document.getElementById('legalTextContent').innerHTML = legalTemplateHtml;
             document.getElementById('sigSection').style.display = 'flex';
             document.getElementById('actionBtns').style.display = 'flex';
-            
-            document.getElementById('agreementPreviewBlock').scrollIntoView({ behavior: 'smooth' });
         }
 
-        // 🌟 Download PDF Function
         function downloadPDF() {
             const element = document.getElementById('pdfDocument');
             const tenantName = document.getElementById('tenantName').value || 'Tenant';
             
             const opt = {
-                margin:       10,
+                margin:       [10, 10, 10, 10],
                 filename:     `Rent_Agreement_${tenantName.replace(/\s+/g, '_')}.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 },
+                html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
             
