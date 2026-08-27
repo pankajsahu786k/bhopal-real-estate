@@ -165,6 +165,30 @@
         .footer-links a { color: #bdc3c7; margin: 0 15px; font-size: 14px; transition: 0.3s; }
         .footer-links a:hover { color: white; }
         .footer-bottom { font-size: 14px; color: #7f8c8d; border-top: 1px solid #34495e; padding-top: 20px; margin-top: 20px; }
+
+        /* 🤖 AI Virtual Broker Chat UI */
+        .ai-chat-btn { position: fixed; bottom: 30px; right: 30px; background: #1e1b4b; color: #f59e0b; width: 65px; height: 65px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(30,27,75,0.4); z-index: 1000; transition: 0.3s; border: 2px solid #f59e0b; animation: float 3s ease-in-out infinite; }
+        .ai-chat-btn:hover { transform: scale(1.1); }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .ai-chat-window { position: fixed; bottom: 110px; right: 30px; width: 360px; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; z-index: 1000; display: none; flex-direction: column; border: 1px solid #e2e8f0; font-family: 'Poppins', sans-serif; }
+        .chat-header { background: linear-gradient(135deg, #1e1b4b, #2e2a72); color: white; padding: 15px 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .close-chat { cursor: pointer; color: #f1c40f; font-size: 20px; font-weight: bold; }
+        .chat-body { padding: 15px; height: 350px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; }
+        .bot-msg { background: white; color: #1e1b4b; padding: 12px 16px; border-radius: 15px 15px 15px 0; max-width: 85%; font-size: 13px; font-weight: 500; align-self: flex-start; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid #f59e0b; }
+        .user-msg { background: #27ae60; color: white; padding: 12px 16px; border-radius: 15px 15px 0 15px; max-width: 85%; font-size: 13px; font-weight: 500; align-self: flex-end; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .chat-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+        .chat-opt-btn { background: #e0e7ff; border: 1px solid #4338ca; color: #4338ca; padding: 8px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .chat-opt-btn:hover { background: #4338ca; color: white; }
+        .chat-input-area { display: flex; padding: 12px; background: white; border-top: 1px solid #e2e8f0; }
+        .chat-input-area input { flex: 1; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; font-family: 'Poppins', sans-serif; font-size: 14px; }
+        .chat-input-area button { background: #27ae60; color: white; border: none; padding: 10px 18px; margin-left: 8px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .bot-prop-card { background: white; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .bot-prop-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+        .bot-prop-card strong { font-size: 14px; color: #1e1b4b; }
+        .bot-prop-card span { color: #64748b; font-weight: 500; }
+        .bot-prop-card a { background: #3b82f6; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: bold; transition: 0.2s; }
+        
+        @media (max-width: 768px) { .ai-chat-window { width: 90%; right: 5%; bottom: 100px; } }
     </style>
 </head>
 <body>
@@ -220,6 +244,26 @@
     <div id="loading" style="text-align: center; font-size: 18px; margin-bottom: 50px;">प्रॉपर्टीज़ लोड हो रही हैं... ⏳</div>
     
     <div class="properties-container" id="propertyList"></div>
+
+    <!-- 🤖 AI Virtual Broker Chat UI -->
+    <div class="ai-chat-btn" onclick="toggleChat()" title="AI Virtual Broker">🤖</div>
+    <div class="ai-chat-window" id="aiChat">
+        <div class="chat-header">
+            <span>✨ AI Match-Maker</span>
+            <span class="close-chat" onclick="toggleChat()">✖</span>
+        </div>
+        <div class="chat-body" id="chatBox">
+            <div class="bot-msg">नमस्ते! मैं भोपाल प्रॉपर्टीज़ का स्मार्ट AI असिस्टेंट हूँ। 🤖<br><br>क्या मैं आपकी सपनों की प्रॉपर्टी ढूँढने में मदद करूँ?</div>
+            <div class="chat-options" id="initOptions">
+                <button class="chat-opt-btn" onclick="startAiFlow('Rent')">हाँ, किराये (Rent) के लिए 🔑</button>
+                <button class="chat-opt-btn" onclick="startAiFlow('Sell')">हाँ, खरीदने (Buy) के लिए 🏠</button>
+            </div>
+        </div>
+        <div class="chat-input-area" id="chatInputArea" style="display: none;">
+            <input type="number" id="budgetInput" placeholder="अधिकतम बजट (₹) दर्ज करें..." onkeypress="if(event.key==='Enter') processBudget()">
+            <button onclick="processBudget()">Send</button>
+        </div>
+    </div>
 
     <footer>
         <div class="footer-links">
@@ -421,6 +465,94 @@
                 console.log("Sync failed:", error);
             }
         }, 10000);
+
+        // --- 🤖 AI CHATBOT LOGIC START ---
+        let aiSearchType = '';
+        
+        function toggleChat() {
+            const chat = document.getElementById('aiChat');
+            chat.style.display = chat.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function appendUserMsg(text) {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML += `<div class="user-msg">${text}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function appendBotMsg(text) {
+            const chatBox = document.getElementById('chatBox');
+            chatBox.innerHTML += `<div class="bot-msg">${text}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function startAiFlow(type) {
+            document.getElementById('initOptions').style.display = 'none';
+            aiSearchType = type;
+            const typeText = type === 'Rent' ? 'किराये' : 'खरीदने';
+            appendUserMsg(`मुझे ${typeText} के लिए प्रॉपर्टी चाहिए।`);
+            
+            setTimeout(() => {
+                appendBotMsg(`बढ़िया! आपका अधिकतम बजट (Maximum Budget) कितना है? नीचे टाइप करें 👇`);
+                document.getElementById('chatInputArea').style.display = 'flex';
+                document.getElementById('budgetInput').focus();
+                document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+            }, 600);
+        }
+
+        function processBudget() {
+            const budget = document.getElementById('budgetInput').value;
+            if(!budget) return;
+            
+            document.getElementById('chatInputArea').style.display = 'none';
+            appendUserMsg(`मेरा बजट ₹${budget} तक है।`);
+            
+            setTimeout(() => {
+                appendBotMsg(`समझ गया! मैं डेटाबेस खंगाल रहा हूँ और ₹${budget} के अंदर की बेस्ट प्रॉपर्टीज़ ढूंढ रहा हूँ... 🔍`);
+                findAiMatches(Number(budget));
+            }, 800);
+        }
+
+        function findAiMatches(budget) {
+            let matches = allProperties.filter(p => p.purpose === aiSearchType && p.price <= budget);
+            matches.sort((a, b) => b.price - a.price); 
+            
+            setTimeout(() => {
+                if(matches.length === 0) {
+                    appendBotMsg(`माफ़ करें 😔, अभी ₹${budget} के बजट में कोई प्रॉपर्टी उपलब्ध नहीं है।`);
+                } else {
+                    appendBotMsg(`ये रहीं आपके लिए टॉप ${Math.min(matches.length, 3)} बेस्ट प्रॉपर्टीज़! 🎉`);
+                    
+                    for(let i=0; i<Math.min(matches.length, 3); i++) {
+                        const prop = matches[i];
+                        let img = (prop.images && prop.images.length > 0) ? prop.images[0] : 'https://placehold.co/800x450';
+                        const propCard = `
+                            <div class="bot-prop-card">
+                                <img src="${img}">
+                                <strong>${prop.title}</strong>
+                                <span>📍 ${prop.location} | ₹${prop.price}</span>
+                                <a href="property-details.html?id=${prop._id}">पूरी डिटेल्स देखें ➡️</a>
+                            </div>
+                        `;
+                        document.getElementById('chatBox').innerHTML += propCard;
+                    }
+                }
+                
+                document.getElementById('chatBox').innerHTML += `<div class="chat-options" style="margin-top:10px;"><button class="chat-opt-btn" onclick="resetAiChat()">🔄 फिर से नया सर्च करें</button></div>`;
+                document.getElementById('chatBox').scrollTop = document.getElementById('chatBox').scrollHeight;
+            }, 1500);
+        }
+
+        function resetAiChat() {
+            document.getElementById('chatBox').innerHTML = `
+                <div class="bot-msg">नमस्ते! मैं भोपाल प्रॉपर्टीज़ का स्मार्ट AI असिस्टेंट हूँ। 🤖<br><br>क्या मैं आपकी सपनों की प्रॉपर्टी ढूँढने में मदद करूँ?</div>
+                <div class="chat-options" id="initOptions">
+                    <button class="chat-opt-btn" onclick="startAiFlow('Rent')">हाँ, किराये (Rent) के लिए 🔑</button>
+                    <button class="chat-opt-btn" onclick="startAiFlow('Sell')">हाँ, खरीदने (Buy) के लिए 🏠</button>
+                </div>
+            `;
+            document.getElementById('budgetInput').value = '';
+        }
     </script>
 </body>
 </html>
