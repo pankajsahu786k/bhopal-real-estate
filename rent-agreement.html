@@ -6,6 +6,9 @@
     <title>Instant Rent Agreement Generator | Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- 🌟 PDF Download के लिए html2pdf लाइब्रेरी -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <script>
         (function() {
             const isUserLoggedIn = localStorage.getItem('brokerName') || localStorage.getItem('username'); 
@@ -22,119 +25,24 @@
         body { font-family: 'Poppins', sans-serif; margin: 0; background-color: #f4f7f6; color: #333; padding-bottom: 5px; }
         a { text-decoration: none; }
         
-        /* 👑 Premium Light & Gold Header Matrix Styling */
-        .super-app-header {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            border-bottom: 2px solid #f59e0b;
-            box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08);
-            padding: 12px 30px;
-            width: 100%;
-        }
-        .header-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: nowrap;
-        }
-        .brand-logo {
-            font-size: 22px;
-            font-weight: 800;
-            color: #1e1b4b;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
+        /* 👑 Premium Light & Gold Header */
+        .super-app-header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); position: sticky; top: 0; z-index: 1000; border-bottom: 2px solid #f59e0b; box-shadow: 0 4px 20px rgba(30, 27, 75, 0.08); padding: 12px 30px; width: 100%; }
+        .header-container { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: nowrap; }
+        .brand-logo { font-size: 22px; font-weight: 800; color: #1e1b4b; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
         .brand-logo span.logo-main { font-weight: 800; color: #1e1b4b; }
         .brand-logo span.logo-main span { color: #27ae60; }
         .brand-logo .sparkle { color: #f59e0b; }
-        .brand-logo .app-tag {
-            font-size: 11px;
-            background: #e0e7ff;
-            color: #4338ca;
-            padding: 2px 6px;
-            border-radius: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        .navigation-hub {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-        }
-        .nav-matrix-links {
-            display: flex;
-            list-style: none;
-            gap: 6px;
-            align-items: center;
-            margin: 0;
-            padding: 0;
-        }
-        .matrix-link {
-            font-size: 12px;
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-            padding: 8px 14px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
-            transition: 0.2s ease;
-            white-space: nowrap;
-        }
-        .matrix-link:hover {
-            color: #1e1b4b;
-            border-color: #f59e0b;
-            background: rgba(245, 158, 11, 0.05);
-        }
-        .matrix-link.active {
-            color: #fff !important;
-            background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important;
-            border-color: #1e1b4b !important;
-        }
-        .broker-login-nav-btn {
-            background: #2c3e50 !important;
-            color: white !important;
-            border-color: #2c3e50 !important;
-        }
-        .broker-login-nav-btn:hover {
-            background: #1a252f !important;
-        }
-        .instant-access-badge {
-            font-size: 11px;
-            font-weight: 700;
-            color: #065f46;
-            background: #d1fae5;
-            padding: 8px 14px;
-            border-radius: 6px;
-            border: 1px solid #a7f3d0;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-            margin-left: 8px;
-        }
-        .pulse-dot {
-            width: 6px;
-            height: 6px;
-            background-color: #10b981;
-            border-radius: 50%;
-            display: inline-block;
-            animation: networkPulse 1.8s infinite ease-in-out;
-        }
-        @keyframes networkPulse {
-            0% { transform: scale(0.8); opacity: 0.5; }
-            50% { transform: scale(1.2); opacity: 1; }
-            100% { transform: scale(0.8); opacity: 0.5; }
-        }
+        .brand-logo .app-tag { font-size: 11px; background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 12px; font-weight: 700; text-transform: uppercase; }
+        .navigation-hub { flex-grow: 1; display: flex; justify-content: center; }
+        .nav-matrix-links { display: flex; list-style: none; gap: 6px; align-items: center; margin: 0; padding: 0; }
+        .matrix-link { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; padding: 8px 14px; border-radius: 6px; border: 1px solid #e2e8f0; background: #f8fafc; transition: 0.2s ease; white-space: nowrap; }
+        .matrix-link:hover { color: #1e1b4b; border-color: #f59e0b; background: rgba(245, 158, 11, 0.05); }
+        .matrix-link.active { color: #fff !important; background: linear-gradient(135deg, #1e1b4b, #2e2a72) !important; border-color: #1e1b4b !important; }
+        .broker-login-nav-btn { background: #2c3e50 !important; color: white !important; border-color: #2c3e50 !important; }
+        .broker-login-nav-btn:hover { background: #1a252f !important; }
+        .instant-access-badge { font-size: 11px; font-weight: 700; color: #065f46; background: #d1fae5; padding: 8px 14px; border-radius: 6px; border: 1px solid #a7f3d0; display: flex; align-items: center; gap: 6px; white-space: nowrap; margin-left: 8px; }
+        .pulse-dot { width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; display: inline-block; animation: networkPulse 1.8s infinite ease-in-out; }
+        @keyframes networkPulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
 
         /* 🏢 Layout Wrapper */
         .agreement-wrapper { max-width: 1350px; width: 100%; margin: 20px auto; padding: 0 20px; display: grid; grid-template-columns: 5fr 6fr; gap: 25px; flex-grow: 1; }
@@ -154,23 +62,28 @@
         .gen-btn:hover { background: #219653; }
 
         /* 📄 Preview Card */
-        .preview-card { background: white; padding: 45px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; min-height: 650px; display: flex; flex-direction: column; }
+        .preview-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); border: 1px solid #cbd5e1; display: flex; flex-direction: column; }
+        .pdf-document { padding: 20px; background: white; }
         .stamp-bypass-box { border: 2px dashed #94a3b8; padding: 25px; text-align: center; color: #94a3b8; font-weight: 700; text-transform: uppercase; font-size: 13px; margin-bottom: 30px; border-radius: 6px; background: #f8fafc; }
         .preview-header { text-align: center; border-bottom: 2px double #111; padding-bottom: 12px; margin-bottom: 25px; }
         .preview-header h3 { margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; color: #111; }
-        .legal-text { font-size: 14px; line-height: 1.8; text-align: justify; color: #111; flex-grow: 1; }
+        .legal-text { font-size: 14px; line-height: 1.8; text-align: justify; color: #111; }
         .legal-text p { margin-bottom: 15px; }
         
         .signatures-section { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 20px; border-top: 1px dashed #cbd5e1; }
         .sig-block { text-align: center; width: 45%; font-size: 12px; font-weight: 700; color: #111; }
         .sig-line { margin-bottom: 45px; border-bottom: 1px solid #111; width: 100%; }
         
-        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 30px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; margin-top: 20px; align-self: flex-end; display: none; }
+        /* 🖨️ Button Actions */
+        .action-buttons { display: flex; gap: 15px; justify-content: flex-end; margin-top: 20px; display: none; }
+        .print-btn { background: #1e1b4b; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .download-btn { background: #e84118; color: white; border: none; padding: 12px 25px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .print-btn:hover { background: #2e2a72; }
+        .download-btn:hover { background: #c23616; }
 
-        /* 🖨️ Print Matrix */
         @media print {
             body { background: white; color: black; }
-            .form-card, .super-app-header, .print-btn { display: none !important; }
+            .form-card, .super-app-header, .action-buttons { display: none !important; }
             .agreement-wrapper { grid-template-columns: 1fr; margin: 0; padding: 0; }
             .preview-card { border: none; box-shadow: none; padding: 0; }
             .stamp-bypass-box { height: 180px; border: none; background: transparent; }
@@ -180,7 +93,8 @@
             .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
             .agreement-wrapper { grid-template-columns: 1fr; }
         }
-    </style> </head>
+    </style> 
+</head>
 <body>
 
     <header class="super-app-header">
@@ -234,6 +148,22 @@
                     <input type="text" id="tenantName" required placeholder="Tenant Full Name">
                 </div>
                 
+                <!-- 🌟 NAYA: Tenant Aadhar & Family Info -->
+                <div class="form-group full-width" style="margin-bottom: 15px;">
+                    <label>किरायेदार का आधार नंबर (Aadhaar Card No.) *</label>
+                    <input type="text" id="tenantAadhar" required placeholder="[Your Aadhaar]" maxlength="12" pattern="\d{12}">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>रहने वाले कुल लोग (Total Members) *</label>
+                        <input type="number" id="familyCount" required placeholder="e.g. 3">
+                    </div>
+                    <div class="form-group">
+                        <label>आपसी रिश्ता (Relation) *</label>
+                        <input type="text" id="familyRelation" required placeholder="e.g. Husband, Wife, 1 Child">
+                    </div>
+                </div>
+                
                 <div class="section-divider">🏠 Property & Rent Term Details</div>
                 <div class="form-group full-width" style="margin-bottom: 15px;">
                     <label>किराए पर दी जाने वाली प्रॉपर्टी का पूरा पता *</label>
@@ -272,20 +202,28 @@
         </div>
 
         <div class="preview-card" id="agreementPreviewBlock">
-            <div class="stamp-bypass-box" id="stampBox">
-                Affix Stamp Paper Here <br><span style="font-size:11px; font-weight:normal; color:#64748b;">(Leave blank if printing directly on Stamp Paper)</span>
+            <!-- 📄 PDF Generation Wrapper -->
+            <div id="pdfDocument" class="pdf-document">
+                <div class="stamp-bypass-box" id="stampBox">
+                    Affix Stamp Paper Here <br><span style="font-size:11px; font-weight:normal; color:#64748b;">(Leave blank if printing directly on Stamp Paper)</span>
+                </div>
+                <div class="preview-header">
+                    <h3>Rent Agreement</h3>
+                </div>
+                <div class="legal-text" id="legalTextContent">
+                    <p style="text-align: center; color: #94a3b8; font-style: italic; margin-top: 60px;">फॉर्म भरकर "ड्राफ्ट तैयार करें" बटन पर क्लिक करें। कानूनी रेंट एग्रीमेंट का लाइव प्रीव्यू यहाँ दिखाई देगा।</p>
+                </div>
+                <div class="signatures-section" id="sigSection" style="display: none;">
+                    <div class="sig-block"><div class="sig-line"></div>LANDLORD SIGNATURE</div>
+                    <div class="sig-block"><div class="sig-line"></div>TENANT SIGNATURE</div>
+                </div>
             </div>
-            <div class="preview-header">
-                <h3>Rent Agreement</h3>
+
+            <!-- 🖨️ PDF & Print Actions -->
+            <div class="action-buttons" id="actionBtns">
+                <button class="print-btn" onclick="window.print()">🖨️ Print</button>
+                <button class="download-btn" onclick="downloadPDF()">📥 Download PDF</button>
             </div>
-            <div class="legal-text" id="legalTextContent">
-                <p style="text-align: center; color: #94a3b8; font-style: italic; margin-top: 60px;">फॉर्म भरकर "ड्राफ्ट तैयार करें" बटन पर क्लिक करें। कानूनी रेंट एग्रीमेंट का लाइव प्रीव्यू यहाँ दिखाई देगा।</p>
-            </div>
-            <div class="signatures-section" id="sigSection" style="display: none;">
-                <div class="sig-block"><div class="sig-line"></div>LANDLORD SIGNATURE</div>
-                <div class="sig-block"><div class="sig-line"></div>TENANT SIGNATURE</div>
-            </div>
-            <button class="print-btn" id="printActionBtn" onclick="window.print()">🖨️ Print / Save as PDF</button>
         </div>
     </div>
 
@@ -302,6 +240,12 @@
             const ownerMob = document.getElementById('ownerMobile').value;
             const ownerAddr = document.getElementById('ownerAddress').value;
             const tenant = document.getElementById('tenantName').value;
+            
+            // Fetch newly added fields
+            const tenantAadhar = document.getElementById('tenantAadhar').value;
+            const familyCount = document.getElementById('familyCount').value;
+            const familyRel = document.getElementById('familyRelation').value;
+
             const address = document.getElementById('propAddress').value;
             const rent = document.getElementById('monthlyRent').value;
             const advance = document.getElementById('securityDeposit').value;
@@ -319,7 +263,7 @@
                 <strong>${owner}</strong>, Mobile No: <strong>${ownerMob}</strong>, Residing at: <strong>${ownerAddr}</strong>, hereinafter called the <strong>"LANDLORD"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the FIRST PART.</p>
                 
                 <p><strong>AND:</strong><br>
-                <strong>${tenant}</strong>, hereinafter called the <strong>"TENANT"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the SECOND PART.</p>
+                <strong>${tenant}</strong>, holding Aadhar Card No: <strong>${tenantAadhar}</strong>, hereinafter called the <strong>"TENANT"</strong> (which expression shall mean and include his heirs, successors, and assigns) of the SECOND PART.</p>
                 
                 <p>WHEREAS the Landlord is the absolute owner of the premises situated at <strong>${address}</strong>, and has agreed to let out the said property to the Tenant for a fixed period of <strong>${months} Months</strong> commencing from ${sDate}.</p>
                 
@@ -328,14 +272,37 @@
                 2. That the Tenant has paid an interest-free security deposit of <strong>₹ ${advance}/-</strong> to the Landlord, which shall be refunded at the time of vacating the premises.<br>
                 3. That the Tenant shall use the premises for residential purposes only and shall pay utility charges separately as per usage.<br>
                 4. That the Tenant shall not make any structural alterations or sub-let the property to any third party without the prior written consent of the Landlord.<br>
-                5. That the Tenant has explicitly agreed to pay Electricity Charges at a fixed rate of <strong>₹ ${elecRate} per Unit</strong> directly to the Landlord/Electricity Board every month according to sub-meter/main-meter reading variations.</p>
+                5. That the Tenant has explicitly agreed to pay Electricity Charges at a fixed rate of <strong>₹ ${elecRate} per Unit</strong> directly to the Landlord/Electricity Board every month according to sub-meter/main-meter reading variations.<br>
+                6. <strong>Occupancy Limit:</strong> That the said premises shall be occupied by the Tenant and their family members consisting of exactly <strong>${familyCount} persons (${familyRel})</strong> only.</p>
             `;
 
             document.getElementById('legalTextContent').innerHTML = legalTemplateHtml;
             document.getElementById('sigSection').style.display = 'flex';
-            document.getElementById('printActionBtn').style.display = 'block';
+            document.getElementById('actionBtns').style.display = 'flex';
             
             document.getElementById('agreementPreviewBlock').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 🌟 Download PDF Function
+        function downloadPDF() {
+            const element = document.getElementById('pdfDocument');
+            const tenantName = document.getElementById('tenantName').value || 'Tenant';
+            
+            const opt = {
+                margin:       10,
+                filename:     `Rent_Agreement_${tenantName.replace(/\s+/g, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            const btn = document.querySelector('.download-btn');
+            btn.innerHTML = "⏳ Generating...";
+            
+            html2pdf().from(element).set(opt).save().then(() => {
+                btn.innerHTML = "✅ Downloaded!";
+                setTimeout(() => { btn.innerHTML = "📥 Download PDF"; }, 3000);
+            });
         }
 
         function numberToWords(num) {
