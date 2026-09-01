@@ -658,8 +658,43 @@ app.post('/api/admin/change-role/:id', async (req, res) => {
     catch (error) { res.status(500).json({ success: false }); }
 });
 
+// 🌟 ADMIN APPROVE + INSTAGRAM AUTO-POST WEBHOOK
 app.post('/api/admin/approve-property/:id', async (req, res) => {
-    try { await Property.findByIdAndUpdate(req.params.id, { status: 'approved' }); res.json({ success: true }); } catch (error) { res.status(500).json({ success: false }); }
+    try {
+        const property = await Property.findByIdAndUpdate(
+            req.params.id, 
+            { status: 'approved' }, 
+            { new: true }
+        );
+
+        if (property) {
+            // Make.com Webhook Trigger
+            try {
+                await fetch('https://hook.eu1.make.com/74j6gk5c2ywmtp3pzx4nyr5bavfgfkyq', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: property._id,
+                        title: property.title,
+                        purpose: property.purpose,
+                        price: property.purpose === 'Rent' ? `₹${property.price}/month` : `₹${property.price}`,
+                        location: property.location,
+                        images: property.images && property.images.length > 0 ? property.images : [],
+                        propertyUrl: `https://bhopal-real-estate.onrender.com/property/${property._id}`,
+                        brokerEmail: property.brokerEmail
+                    })
+                });
+                console.log(`🚀 Property ${property._id} approved & sent to Make.com`);
+            } catch (webhookErr) {
+                console.error("Make.com webhook trigger error:", webhookErr.message);
+            }
+        }
+
+        res.json({ success: true, message: "Property approved & queued for Instagram post!" });
+    } catch (error) {
+        console.error("Approval error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
 });
 
 app.post('/api/admin/unpublish-property/:id', async (req, res) => {
