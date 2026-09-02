@@ -658,7 +658,7 @@ app.post('/api/admin/change-role/:id', async (req, res) => {
     catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 🌟 ADMIN APPROVE + INSTAGRAM AUTO-POST WEBHOOK
+// 🌟 ADMIN APPROVE + INSTAGRAM AUTO-POST WEBHOOK (Carousel Safe Mode)
 app.post('/api/admin/approve-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(
@@ -670,21 +670,34 @@ app.post('/api/admin/approve-property/:id', async (req, res) => {
         if (property) {
             // Make.com Webhook Trigger
             try {
+                let imagesList = Array.isArray(property.images) ? [...property.images] : [];
+
+                // 🔴 Instagram Carousel Fix: Meta API strictly requires >= 2 images
+                if (imagesList.length === 0) {
+                    imagesList = [
+                        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1080",
+                        "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1080"
+                    ];
+                } else if (imagesList.length === 1) {
+                    // Agar 1 hi image hai, toh use duplicate kar do taaki Carousel rule satisfy ho jaye
+                    imagesList.push(imagesList[0]);
+                }
+
                 await fetch('https://hook.eu1.make.com/74j6gk5c2ywmtp3pzx4nyr5bavfgfkyq', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        id: property._id,
-                        title: property.title,
-                        purpose: property.purpose,
+                        id: property._id.toString(),
+                        title: property.title || "Property in Bhopal",
+                        purpose: property.purpose || "Sale/Rent",
                         price: property.purpose === 'Rent' ? `₹${property.price}/month` : `₹${property.price}`,
-                        location: property.location,
-                        images: property.images && property.images.length > 0 ? property.images : [],
+                        location: property.location || "Bhopal",
+                        images: imagesList,
                         propertyUrl: `https://bhopal-real-estate.onrender.com/property/${property._id}`,
-                        brokerEmail: property.brokerEmail
+                        brokerEmail: property.brokerEmail || "info@bhopal.com"
                     })
                 });
-                console.log(`🚀 Property ${property._id} approved & sent to Make.com`);
+                console.log(`🚀 Property ${property._id} approved & sent to Make.com Carousel!`);
             } catch (webhookErr) {
                 console.error("Make.com webhook trigger error:", webhookErr.message);
             }
