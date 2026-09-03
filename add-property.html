@@ -7,6 +7,9 @@
     <title>Add New Property - Bhopal Real Estate</title>
     <link rel="stylesheet" href="add-property-style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- 🌟 Client-Side Image Compression Library -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
 </head>
 
 <body>
@@ -110,7 +113,7 @@
             <div class="form-group">
                 <label for="propertyImages">प्रॉपर्टी की फोटो (Upload up to 3 Images)</label>
                 <input type="file" id="propertyImages" accept="image/*" multiple required>
-                <p style="font-size: 12px; color: #666; margin-top: 5px;">* आप एक साथ अधिकतम 3 फोटो सेलेक्ट कर सकते हैं</p>
+                <p id="compressionStatus" style="font-size: 12px; color: #0284c7; margin-top: 5px; font-weight: bold;">* आप एक साथ अधिकतम 3 फोटो सेलेक्ट कर सकते हैं</p>
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">Loading...</button>
@@ -126,6 +129,9 @@
         // 🌟 GPS COORDINATES VARIABLES
         let propLat = null;
         let propLng = null;
+
+        // 🌟 COMPRESSED FILES STORAGE
+        let compressedImages = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -194,6 +200,50 @@
             }
         }
 
+        // 🌟 AUTOMATIC IMAGE COMPRESSION ON FILE SELECTION
+        document.getElementById('propertyImages').addEventListener('change', async function(e) {
+            const files = e.target.files;
+            const statusBox = document.getElementById('compressionStatus');
+            const submitBtn = document.getElementById('submitBtn');
+            compressedImages = [];
+
+            if (files.length > 3) {
+                alert("❌ आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
+                this.value = '';
+                statusBox.innerText = "* आप एक साथ अधिकतम 3 फोटो सेलेक्ट कर सकते हैं";
+                statusBox.style.color = "#666";
+                return;
+            }
+
+            if (files.length === 0) return;
+
+            statusBox.innerText = "⏳ इमेजेस कंप्रेस हो रही हैं, कृपया रुकें...";
+            statusBox.style.color = "#d97706";
+            submitBtn.disabled = true;
+
+            const options = {
+                maxSizeMB: 0.3,          // Max 300KB per image
+                maxWidthOrHeight: 1280,  // HD Resolution Preserved
+                useWebWorker: true
+            };
+
+            try {
+                for (let i = 0; i < files.length; i++) {
+                    const compressed = await imageCompression(files[i], options);
+                    compressedImages.push(compressed);
+                }
+                statusBox.innerText = `✅ सभी ${compressedImages.length} इमेजेस सफलतापूर्वक कंप्रेस हो चुकी हैं (Ready to Upload)!`;
+                statusBox.style.color = "#16a34a";
+                submitBtn.disabled = false;
+            } catch (err) {
+                console.error("Compression Failed:", err);
+                statusBox.innerText = "⚠️ इमेज कंप्रेस करने में समस्या आई, मूल फाइलें इस्तेमाल होंगी।";
+                statusBox.style.color = "#dc2626";
+                compressedImages = Array.from(files);
+                submitBtn.disabled = false;
+            }
+        });
+
         async function handleFormSubmit(event) {
             event.preventDefault(); 
 
@@ -227,14 +277,13 @@
             formData.append('latitude', propLat);
             formData.append('longitude', propLng);
 
-            const imgInput = document.getElementById('propertyImages');
-            if (imgInput.files.length > 3) {
-                alert("❌ आप अधिकतम 3 फोटो ही अपलोड कर सकते हैं।");
-                resetButton(submitBtn, originalText);
-                return;
-            }
-
-            if (imgInput.files.length > 0) {
+            // 🌟 Append Compressed Images
+            if (compressedImages.length > 0) {
+                for (let i = 0; i < compressedImages.length; i++) {
+                    formData.append('propertyImages', compressedImages[i], compressedImages[i].name || `property_${i}.jpg`);
+                }
+            } else {
+                const imgInput = document.getElementById('propertyImages');
                 for (let i = 0; i < imgInput.files.length; i++) {
                     formData.append('propertyImages', imgInput.files[i]);
                 }
