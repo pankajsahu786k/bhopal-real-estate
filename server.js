@@ -9,7 +9,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const crypto = require('crypto'); 
 const helmet = require('helmet'); // 🔴 SECURITY: हैकर अटैक्स रोकने के लिए
 const rateLimit = require('express-rate-limit'); // 🔴 SECURITY: स्पैम रोकने के लिए
-const cron = require('node-cron'); // ⏰ Har 1 ya 3 ghante me scheduler chalane ke liye
+const cron = require('node-cron'); // ⏰ Smart Brain 3-Slot Scheduler
 
 const app = express();
 const bcrypt = require('bcrypt');
@@ -19,7 +19,7 @@ const jwt = require('jsonwebtoken');
 const activePayments = {};
 const pendingForms = {};
 
-// 🔴 सिक्योरिटी चाबी (इसे अपनी .env फाइल में भी डाल सकते हैं)
+// 🔴 सिक्योरिटी चाबी
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
 
 // ==========================================
@@ -29,12 +29,11 @@ app.use(helmet({
     contentSecurityPolicy: false, 
     crossOriginResourcePolicy: false 
 }));
-app.use(cors()); // इसे अभी ओपन रखा है ताकि आपकी साइट न टूटे
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// 🔴 SECURITY: 15 मिनट में 200 से ज्यादा रिक्वेस्ट आने पर ब्लॉक (एंटी-स्पैम)
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
     max: 200, 
@@ -43,7 +42,7 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 // ==========================================
-// ☁️ CLOUDINARY SETUP (Keys Hidden)
+// ☁️ CLOUDINARY SETUP
 // ==========================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -62,7 +61,7 @@ const upload = multer({ storage: imageStorage });
 const pdfUpload = multer({ storage: multer.memoryStorage() });
 
 // ==========================================
-// 1️⃣ MONGODB DATABASE CONNECTION (Keys Hidden)
+// 1️⃣ MONGODB DATABASE CONNECTION
 // ==========================================
 const mongoURI = process.env.MONGODB_URI;
 mongoose.connect(mongoURI, { family: 4 })
@@ -92,8 +91,8 @@ const propertySchema = new mongoose.Schema({
     transactionId: { type: String, default: 'FREE_BYPASS' },
     amountPaid: { type: Number, default: 0 },
     paymentStatus: { type: String, default: 'Free' },
-    latitude: { type: Number },  // 🌟 NAYA: Property GPS Lat
-    longitude: { type: Number }  // 🌟 NAYA: Property GPS Lng
+    latitude: { type: Number },
+    longitude: { type: Number }
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
@@ -102,8 +101,8 @@ const brokerProfileSchema = new mongoose.Schema({
     phone: String, 
     photo: String, 
     dealingAreas: [String],
-    latitude: { type: Number },   // 🌟 NAYA: GPS Latitude
-    longitude: { type: Number }   // 🌟 NAYA: GPS Longitude
+    latitude: { type: Number },
+    longitude: { type: Number }
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
@@ -168,7 +167,7 @@ const universalReceiptSchema = new mongoose.Schema({
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 
 // =========================================================================
-// 🏠 TENANT LEDGER SCHEMA (🔥 CORRECT STRUCTURE)
+// 🏠 TENANT LEDGER SCHEMA (SMART BOT ENGINE COMPATIBLE)
 // =========================================================================
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
@@ -184,10 +183,9 @@ const TenantLedgerSchema = new mongoose.Schema({
     jobStatus: String, 
     tenantEmail: String, 
     
-    // 🌟 Current Meter Reading
     currentMeterReading: { type: Number, default: 0 }, 
 
-    // 🌟 AUTOMATION & ALERT TRACKING FIELDS (Correct Position)
+    // 🌟 SMART BRAIN TRACKING FIELDS
     lastAlertSentAt: { type: Date, default: null },       
     alertCount: { type: Number, default: 0 },             
     needsAssistance: { type: Boolean, default: false },   
@@ -234,80 +232,109 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 });
 
 // =========================================================================
-// ⏰ AUTOMATION ENGINE & MACRODROID / WHATSAPP HELPER (Properly Independent)
+// 🧠 SMART BRAIN ENGINE: 9 AM | 12 PM | 8 PM BOT SYSTEM
 // =========================================================================
 async function sendAutomationWhatsApp(phone, message) {
     try {
-        console.log(`📡 Alert Triggered for ${phone}: ${message}`);
-        // 💡 Agar MacroDroid Webhook URL hai toh uncomment karein:
-        // await fetch(`https://trigger.macrodroid.com/YOUR_DEVICE_ID/send_wa?phone=${phone}&msg=${encodeURIComponent(message)}`);
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+        const MACRODROID_DEVICE_ID = process.env.MACRODROID_DEVICE_ID || "YOUR_DEVICE_ID_HERE"; 
+        const webhookUrl = `https://trigger.macrodroid.com/${MACRODROID_DEVICE_ID}/send_ledger_alert?phone=${cleanPhone}&msg=${encodeURIComponent(message)}`;
+
+        await fetch(webhookUrl);
+        console.log(`📡 Signal sent to MacroDroid for ${cleanPhone}`);
     } catch (err) {
-        console.error("Alert notification error:", err);
+        console.error("MacroDroid Webhook Error:", err.message);
     }
 }
 
-// ⏰ Har 1 ghante me check karega
-cron.schedule('0 * * * *', async () => {
-    console.log("🔍 Checking active tenant ledgers for monthly completion & 3-hr alerts...");
-
+async function processLedgerReminders(slotType) {
     try {
-        const activeTenants = await TenantLedger.find({ status: 'Active' });
         const today = new Date();
+        const currentDay = today.getDate();
+        const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
+
+        const activeTenants = await TenantLedger.find({ status: 'Active' });
 
         for (const tenant of activeTenants) {
             if (!tenant.joiningDate) continue;
 
             const joinDate = new Date(tenant.joiningDate);
-            const isBillingDue = (today.getDate() === joinDate.getDate());
+            const isBillingDay = (joinDate.getDate() === currentDay);
 
-            const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
-            const isUpdatedForThisMonth = tenant.monthlyEntries && tenant.monthlyEntries.some(entry => 
-                entry.monthDate && entry.monthDate.includes(currentMonthStr)
+            if (!isBillingDay) continue;
+
+            const isUpdated = tenant.monthlyEntries && tenant.monthlyEntries.some(entry => 
+                entry.monthDate && entry.monthDate.includes(currentMonthStr) && (entry.total > 0 || entry.rent > 0)
             );
 
-            // 1. Agar Month Due hai aur Owner ne update NAHI kiya:
-            if (isBillingDue && !isUpdatedForThisMonth) {
-                const now = new Date();
-                const lastSent = tenant.lastAlertSentAt ? new Date(tenant.lastAlertSentAt) : null;
-                const hoursPassed = lastSent ? (now - lastSent) / (1000 * 60 * 60) : 999;
+            // Agar ledger update nahi hua hai:
+            if (!isUpdated) {
+                const owner = await BrokerProfile.findOne({ brokerEmail: tenant.ownerEmail });
+                const phone = owner ? owner.phone : tenant.mobileNo;
 
-                // 🔔 Rule: Har 3 ghante me ek baar alert
-                if (hoursPassed >= 3) {
-                    const ownerMsg = `Namaste! Bhopal Properties Alert: Aapke ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka 1 month complete ho gaya hai. Kripya apna Ledger update karein taaki rent time par generate ho sake.\nPortal: https://bhopalproperties.com/owner-ledger.html`;
+                if (!phone) continue;
 
-                    const ownerProfile = await BrokerProfile.findOne({ brokerEmail: tenant.ownerEmail });
-                    if (ownerProfile && ownerProfile.phone) {
-                        await sendAutomationWhatsApp(ownerProfile.phone, ownerMsg);
-                    }
+                let messageText = "";
 
-                    tenant.alertCount = (tenant.alertCount || 0) + 1;
-                    tenant.lastAlertSentAt = now;
+                // 🌅 9:00 AM Vision Integration
+                if (slotType === 'morning_9am') {
+                    messageText = `Good morning sir, aaj aapke tenant (${tenant.roomOrFlatNo} - ${tenant.tenantName}) ka month complete ho gaya hai. Kripya apna ledger update karein taaki monthly rent time to time aapke account me aa sake. 🙏\nBhopal Properties`;
+                    tenant.alertCount = 1;
+                } 
+                // ☀️ 12:00 PM Vision Integration
+                else if (slotType === 'afternoon_12pm') {
+                    messageText = `Good afternoon sir, aapne abhi tak apna ledger update nahi kiya hai (${tenant.roomOrFlatNo} - ${tenant.tenantName}). Sir please apna ledger update karein taaki apna hisab clear rahe. 📊\nBhopal Properties`;
+                    tenant.alertCount = 2;
+                } 
+                // 🌙 8:00 PM Vision Integration (Support & Agent Offer)
+                else if (slotType === 'evening_8pm') {
+                    messageText = `Good evening sir, aapko ledger update karne me agar koi problem aa rahi hai toh hum aapko customer support provide kar sakte hain, ya kal hum apne agent ko bhej kar ledger update karwa dein? 🤝\nBhopal Properties Support`;
+                    tenant.alertCount = 3;
+                    tenant.needsAssistance = true;
 
-                    // 🚨 Rule: 8 alerts (24 ghante) tak koi action na ho, toh Employee ko notify karein
-                    if (tenant.alertCount >= 8 && !tenant.needsAssistance) {
-                        tenant.needsAssistance = true;
-
-                        const empAlertMsg = `🚨 EMPLOYEE ACTION REQUIRED:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} ka ledger 24 ghante se update nahi kiya hai. Kripya owner ko call karke setup/help provide karein! Tenant: ${tenant.tenantName}.`;
-
-                        const employeeMobile = "919993352339";
-                        await sendAutomationWhatsApp(employeeMobile, empAlertMsg);
-                    }
-
-                    await tenant.save();
+                    // Support employee ko alert send karna
+                    const employeeMobile = "919993352339"; 
+                    const empAlert = `🚨 CUSTOMER SUPPORT ACTION:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka ledger update nahi kiya hai. Kal subah call ya agent bhej kar update karwayen.`;
+                    await sendAutomationWhatsApp(employeeMobile, empAlert);
                 }
+
+                tenant.lastAlertSentAt = new Date();
+                await tenant.save();
+
+                await sendAutomationWhatsApp(phone, messageText);
             } 
-            // 2. Agar Owner ne update kar diya hai:
-            else if (isUpdatedForThisMonth && tenant.alertCount > 0) {
+            // Agar owner ne update kar diya hai:
+            else if (isUpdated && tenant.alertCount > 0) {
                 tenant.alertCount = 0;
                 tenant.lastAlertSentAt = null;
                 tenant.needsAssistance = false;
                 await tenant.save();
             }
         }
-    } catch (e) {
-        console.error("Cron Automation Error:", e);
+    } catch (err) {
+        console.error("Smart Brain Error:", err);
     }
-});
+}
+
+// ⏰ 1. SUBAH 9:00 AM (09:00 IST)
+cron.schedule('0 9 * * *', () => {
+    console.log("🌅 Running 9:00 AM Morning Check...");
+    processLedgerReminders('morning_9am');
+}, { timezone: "Asia/Kolkata" });
+
+// ⏰ 2. DOPAHER 12:00 PM (12:00 IST)
+cron.schedule('0 12 * * *', () => {
+    console.log("☀️ Running 12:00 PM Afternoon Check...");
+    processLedgerReminders('afternoon_12pm');
+}, { timezone: "Asia/Kolkata" });
+
+// ⏰ 3. SHAAM 8:00 PM (20:00 IST)
+cron.schedule('0 20 * * *', () => {
+    console.log("🌙 Running 8:00 PM Evening Check...");
+    processLedgerReminders('evening_8pm');
+}, { timezone: "Asia/Kolkata" });
 
 // =========================================================================
 // 🛠️ EMPLOYEE SUPPORT DASHBOARD API
@@ -324,10 +351,34 @@ app.get('/api/admin/pending-assistances', async (req, res) => {
     }
 });
 
-// 🌟 पेमेंट स्टेटस सेव करने के लिए 
-const paymentStatus = {}; 
+// 📊 PUBLIC READ-ONLY PASSBOOK API
+app.get('/api/public/tenant-ledger/:id', async (req, res) => {
+    try {
+        const tenantRecord = await TenantLedger.findById(req.params.id);
+        if (!tenantRecord) {
+            return res.status(404).json({ success: false, message: "रिकॉर्ड नहीं मिला!" });
+        }
 
-// 1. SMS RECEIVER BOT (Webhook)
+        res.json({
+            success: true,
+            data: {
+                roomOrFlatNo: tenantRecord.roomOrFlatNo,
+                tenantName: tenantRecord.tenantName,
+                mobileNo: tenantRecord.mobileNo,
+                joiningDate: tenantRecord.joiningDate,
+                unitRate: tenantRecord.unitRate,
+                monthlyEntries: tenantRecord.monthlyEntries || []
+            }
+        });
+    } catch (err) {
+        console.error("Public Ledger API Error:", err);
+        res.status(500).json({ success: false, message: "सर्वर एरर" });
+    }
+});
+
+// ==========================================
+// 3️⃣ OTHER API ROUTES
+// ==========================================
 app.post('/api/webhook', async (req, res) => {
     try {
         const smsText = req.body.smsText || ""; 
@@ -351,7 +402,6 @@ app.post('/api/webhook', async (req, res) => {
     }
 });
 
-// 2. CHECK PAYMENT STATUS (Polling API)
 app.get('/api/check-payment-status', (req, res) => {
     const checkAmount = req.query.amount;
     if (activePayments[checkAmount]) {
@@ -361,9 +411,6 @@ app.get('/api/check-payment-status', (req, res) => {
     }
 });
 
-// ==========================================
-// 3️⃣ OTHER API ROUTES (Old Functions Preserved)
-// ==========================================
 app.post('/api/save-rent-agreement', async (req, res) => {
     try {
         const { userEmail, agreementData } = req.body;
@@ -841,31 +888,6 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 📊 PUBLIC READ-ONLY PASSBOOK API
-app.get('/api/public/tenant-ledger/:id', async (req, res) => {
-    try {
-        const tenantRecord = await TenantLedger.findById(req.params.id);
-        if (!tenantRecord) {
-            return res.status(404).json({ success: false, message: "रिकॉर्ड नहीं मिला!" });
-        }
-
-        res.json({
-            success: true,
-            data: {
-                roomOrFlatNo: tenantRecord.roomOrFlatNo,
-                tenantName: tenantRecord.tenantName,
-                mobileNo: tenantRecord.mobileNo,
-                joiningDate: tenantRecord.joiningDate,
-                unitRate: tenantRecord.unitRate,
-                monthlyEntries: tenantRecord.monthlyEntries || []
-            }
-        });
-    } catch (err) {
-        console.error("Public Ledger API Error:", err);
-        res.status(500).json({ success: false, message: "सर्वर एरर" });
-    }
-});
-
 app.get('/api/owner/my-tenants', async (req, res) => {
     try {
         const { email } = req.query;
@@ -896,7 +918,6 @@ app.post('/api/tenant/login', async (req, res) => {
     }
 });
 
-// 🌟 ADMIN PAYMENTS FETCH API
 app.get('/api/admin/get-payments', async (req, res) => {
     try {
         const queryDate = req.query.date; 
@@ -925,7 +946,6 @@ app.get('/api/admin/get-payments', async (req, res) => {
     }
 });
 
-// 🌟 1. प्रॉपर्टी को ड्राफ्ट (RAM) में सेव करने वाला API
 app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async (req, res) => {
     try {
         const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
@@ -957,7 +977,6 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
     }
 });
 
-// 🌟 2. Finalize Record API
 app.post('/api/finalize-record', async (req, res) => {
     try {
         const { draftId, transactionId, amountPaid, userEmail } = req.body;
