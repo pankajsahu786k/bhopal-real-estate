@@ -9,10 +9,12 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const crypto = require('crypto'); 
 const helmet = require('helmet'); // 🔴 SECURITY: हैकर अटैक्स रोकने के लिए
 const rateLimit = require('express-rate-limit'); // 🔴 SECURITY: स्पैम रोकने के लिए
+const cron = require('node-cron'); // ⏰ Har 1 ya 3 ghante me scheduler chalane ke liye
 
 const app = express();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+
 // पेमेंट्स का रिकॉर्ड रखने के लिए (Database से पहले वाली टेम्पररी मेमोरी)
 const activePayments = {};
 const pendingForms = {};
@@ -166,7 +168,7 @@ const universalReceiptSchema = new mongoose.Schema({
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 
 // =========================================================================
-// 🏠 NEW FRESH TENANT LEDGER SCHEMA (🔥 RESET COLLECTION TO FIX ERRORS)
+// 🏠 TENANT LEDGER SCHEMA (🔥 CORRECT STRUCTURE)
 // =========================================================================
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
@@ -182,8 +184,13 @@ const TenantLedgerSchema = new mongoose.Schema({
     jobStatus: String, 
     tenantEmail: String, 
     
-    // 🔥 NEW FIELD SUCCESSFULLY ADDED IN SCHEMA
+    // 🌟 Current Meter Reading
     currentMeterReading: { type: Number, default: 0 }, 
+
+    // 🌟 AUTOMATION & ALERT TRACKING FIELDS (Correct Position)
+    lastAlertSentAt: { type: Date, default: null },       
+    alertCount: { type: Number, default: 0 },             
+    needsAssistance: { type: Boolean, default: false },   
 
     monthlyEntries: [{
         monthDate: String,
@@ -202,7 +209,9 @@ const TenantLedgerSchema = new mongoose.Schema({
 
 const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedger', TenantLedgerSchema);
 
+// =========================================================================
 // 🚀 MASTER API ROUTE: UPSERT ENGINE
+// =========================================================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
         const { ownerEmail, roomOrFlatNo, monthlyEntries, ...tenantDetails } = req.body;
@@ -223,31 +232,114 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
+
+// =========================================================================
+// ⏰ AUTOMATION ENGINE & MACRODROID / WHATSAPP HELPER (Properly Independent)
+// =========================================================================
+async function sendAutomationWhatsApp(phone, message) {
+    try {
+        console.log(`📡 Alert Triggered for ${phone}: ${message}`);
+        // 💡 Agar MacroDroid Webhook URL hai toh uncomment karein:
+        // await fetch(`https://trigger.macrodroid.com/YOUR_DEVICE_ID/send_wa?phone=${phone}&msg=${encodeURIComponent(message)}`);
+    } catch (err) {
+        console.error("Alert notification error:", err);
+    }
+}
+
+// ⏰ Har 1 ghante me check karega
+cron.schedule('0 * * * *', async () => {
+    console.log("🔍 Checking active tenant ledgers for monthly completion & 3-hr alerts...");
+
+    try {
+        const activeTenants = await TenantLedger.find({ status: 'Active' });
+        const today = new Date();
+
+        for (const tenant of activeTenants) {
+            if (!tenant.joiningDate) continue;
+
+            const joinDate = new Date(tenant.joiningDate);
+            const isBillingDue = (today.getDate() === joinDate.getDate());
+
+            const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
+            const isUpdatedForThisMonth = tenant.monthlyEntries && tenant.monthlyEntries.some(entry => 
+                entry.monthDate && entry.monthDate.includes(currentMonthStr)
+            );
+
+            // 1. Agar Month Due hai aur Owner ne update NAHI kiya:
+            if (isBillingDue && !isUpdatedForThisMonth) {
+                const now = new Date();
+                const lastSent = tenant.lastAlertSentAt ? new Date(tenant.lastAlertSentAt) : null;
+                const hoursPassed = lastSent ? (now - lastSent) / (1000 * 60 * 60) : 999;
+
+                // 🔔 Rule: Har 3 ghante me ek baar alert
+                if (hoursPassed >= 3) {
+                    const ownerMsg = `Namaste! Bhopal Properties Alert: Aapke ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka 1 month complete ho gaya hai. Kripya apna Ledger update karein taaki rent time par generate ho sake.\nPortal: https://bhopalproperties.com/owner-ledger.html`;
+
+                    const ownerProfile = await BrokerProfile.findOne({ brokerEmail: tenant.ownerEmail });
+                    if (ownerProfile && ownerProfile.phone) {
+                        await sendAutomationWhatsApp(ownerProfile.phone, ownerMsg);
+                    }
+
+                    tenant.alertCount = (tenant.alertCount || 0) + 1;
+                    tenant.lastAlertSentAt = now;
+
+                    // 🚨 Rule: 8 alerts (24 ghante) tak koi action na ho, toh Employee ko notify karein
+                    if (tenant.alertCount >= 8 && !tenant.needsAssistance) {
+                        tenant.needsAssistance = true;
+
+                        const empAlertMsg = `🚨 EMPLOYEE ACTION REQUIRED:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} ka ledger 24 ghante se update nahi kiya hai. Kripya owner ko call karke setup/help provide karein! Tenant: ${tenant.tenantName}.`;
+
+                        const employeeMobile = "919993352339";
+                        await sendAutomationWhatsApp(employeeMobile, empAlertMsg);
+                    }
+
+                    await tenant.save();
+                }
+            } 
+            // 2. Agar Owner ne update kar diya hai:
+            else if (isUpdatedForThisMonth && tenant.alertCount > 0) {
+                tenant.alertCount = 0;
+                tenant.lastAlertSentAt = null;
+                tenant.needsAssistance = false;
+                await tenant.save();
+            }
+        }
+    } catch (e) {
+        console.error("Cron Automation Error:", e);
+    }
+});
+
+// =========================================================================
+// 🛠️ EMPLOYEE SUPPORT DASHBOARD API
+// =========================================================================
+app.get('/api/admin/pending-assistances', async (req, res) => {
+    try {
+        const stuckTenants = await TenantLedger.find({ 
+            status: 'Active', 
+            needsAssistance: true 
+        });
+        res.json({ success: true, count: stuckTenants.length, data: stuckTenants });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
 // 🌟 पेमेंट स्टेटस सेव करने के लिए 
 const paymentStatus = {}; 
 
 // 1. SMS RECEIVER BOT (Webhook)
-// 1. NOTIFICATION RECEIVER BOT (Webhook - Updated for Fractional Amount)
 app.post('/api/webhook', async (req, res) => {
     try {
         const smsText = req.body.smsText || ""; 
         console.log(`📱 PhonePe Notification Aaya: ${smsText}`);
 
-        // यह Regex मैसेज में से पैसे (जैसे 149.45) निकालेगा
         const match = smsText.match(/(?:Rs|INR)?\s*(\d+\.\d{2})/i);
 
         if (match) {
-            const receivedAmount = match[1]; // ये "149.45" देगा
-            
-            // चेक करेंगे कि क्या यह अमाउंट हमारी मेमोरी में पेंडिंग है
+            const receivedAmount = match[1];
             if(activePayments[receivedAmount] && activePayments[receivedAmount].status === "pending") {
-                
-                // पेमेंट सक्सेसफुल! 
                 activePayments[receivedAmount].status = 'Success'; 
-                
                 console.log(`✅ SUCCESS! Payment Confirmed for Amount ₹${receivedAmount} 🚀`);
-                
-                // 💡 (भविष्य के लिए: यहाँ आप अपनी Property या UniversalReceipt DB में भी इसे सेव कर सकते हैं)
             } else {
                 console.log(`⚠️ ₹${receivedAmount} रिसीव हुआ, पर सर्वर पर कोई यूज़र पेंडिंग नहीं था।`);
             }
@@ -260,17 +352,15 @@ app.post('/api/webhook', async (req, res) => {
 });
 
 // 2. CHECK PAYMENT STATUS (Polling API)
-// 2. CHECK PAYMENT STATUS (Updated for Fractional Amount)
 app.get('/api/check-payment-status', (req, res) => {
-    const checkAmount = req.query.amount; // फ्रंटएंड से अमाउंट आएगा (जैसे 500.45)
-    
-    // हम अपनी 5-मिनट वाली मेमोरी में चेक करेंगे कि इस अमाउंट का स्टेटस क्या है
+    const checkAmount = req.query.amount;
     if (activePayments[checkAmount]) {
-        res.json({ status: activePayments[checkAmount].status }); // Pending या Success भेजेगा
+        res.json({ status: activePayments[checkAmount].status });
     } else {
         res.json({ status: 'Not Found' }); 
     }
 });
+
 // ==========================================
 // 3️⃣ OTHER API ROUTES (Old Functions Preserved)
 // ==========================================
@@ -356,12 +446,11 @@ app.post('/api/submit-verification', upload.fields([
 
         pendingForms[draftId] = { 
             ...req.body,
-            // 🌟 FIX 1: ईमेल हर हाल में सेव होगा
             userEmail: req.body.userEmail ? req.body.userEmail.toLowerCase().trim() : 'guest@bhopal.com',
             tenantPhoto: tenantPhotoUrl, 
             aadharFrontPhoto: aadharFrontUrl, 
             aadharBackPhoto: aadharBackUrl, 
-            status: 'Pending' // 🌟 FIX 2: इसे Pending किया ताकि एजेंट को दिखे
+            status: 'Pending'
         };
 
         setTimeout(() => { delete pendingForms[draftId]; }, 15 * 60 * 1000);
@@ -442,6 +531,7 @@ app.post('/api/track-click/:id', async (req, res) => {
     try { await Property.findByIdAndUpdate(req.params.id, { $inc: { clicks: 1 } }); res.json({ success: true }); } 
     catch (err) { res.status(500).json({ success: false }); }
 });
+
 app.post('/api/update-property/:id', upload.array('propertyImages', 3), async (req, res) => {
     try {
         const updateData = { ...req.body };
@@ -503,7 +593,6 @@ app.delete('/api/rk-delete-package/:category/:id', async (req, res) => {
     } catch (error) { console.error("DB Delete Error:", error); res.status(500).json({ success: false, message: 'Delete Operation Failed' }); }
 });
 
-// 🌍 Duri nikalne ka formula (Haversine Formula)
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
     if (!lat1 || !lon1 || !lat2 || !lon2) return null;
     const R = 6371; 
@@ -519,25 +608,22 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
 app.get('/api/get-properties', async(req, res) => {
     try {
         const brokerEmail = req.query.email;
-        const userLat = parseFloat(req.query.lat); // Customer ka Lat
-        const userLng = parseFloat(req.query.lng); // Customer ka Lng
+        const userLat = parseFloat(req.query.lat);
+        const userLng = parseFloat(req.query.lng);
 
         let properties = (brokerEmail && brokerEmail !== "undefined") 
             ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }).lean()
             : await Property.find({ status: 'approved' }).lean();
 
-        // 🌟 Agar customer ne apni location bheji hai, toh distance nikalo
         if (userLat && userLng) {
             properties = properties.map(prop => {
                 let distance = null;
-                // Pehle check karo property me GPS hai ya nahi
                 if (prop.latitude && prop.longitude) {
                     distance = getDistanceInKm(userLat, userLng, prop.latitude, prop.longitude);
                 }
                 return { ...prop, distance: distance };
             });
 
-            // Jinki distance null nahi hai, unhe paas se door ke hisaab se sort karo
             properties.sort((a, b) => {
                 if (a.distance === null) return 1;
                 if (b.distance === null) return -1;
@@ -559,6 +645,7 @@ app.get('/api/get-profile', async(req, res) => {
         res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [] });
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
+
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
         const { brokerEmail, phone, latitude, longitude } = req.body;
@@ -568,7 +655,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
         }
         const updateData = { phone: phone, dealingAreas: areas };
         
-        // 🌟 NAYA: अगर GPS डेटा आया है तो उसे भी सेव करें
         if (latitude) updateData.latitude = Number(latitude);
         if (longitude) updateData.longitude = Number(longitude);
         
@@ -585,12 +671,10 @@ app.post('/api/signup', async (req, res) => {
         const existingUser = await User.findOne({ email: emailLower });
         if (existingUser) return res.status(400).json({ success: false, message: 'Email registered!' });
 
-        // 🔴 पासवर्ड को Bcrypt से एन्क्रिप्ट (Hash) करें
         const hashedPassword = await bcrypt.hash(password, 10);
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
         
         await PendingUser.deleteMany({ email: emailLower });
-        // प्लेन पासवर्ड की जगह hashedPassword सेव करें
         const newPendingUser = new PendingUser({ name, email: emailLower, password: hashedPassword, otp });
         await newPendingUser.save();
         
@@ -619,7 +703,6 @@ app.post('/api/login', async (req, res) => {
 
         const user = await User.findOne({ email: emailLower });
         if (user) {
-            // 🔴 एन्क्रिप्टेड पासवर्ड को मैच करें (पुराने प्लेन पासवर्ड्स के लिए भी फॉलबैक है)
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch && password !== user.password) {
                 return res.status(401).json({ success: false, message: 'गलत पासवर्ड!' });
@@ -628,13 +711,11 @@ app.post('/api/login', async (req, res) => {
             let actualRole = user.role || 'user';
             if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
 
-            // 🔴 यूज़र के लिए एक सुरक्षित JWT टोकन (ID Card) बनाएँ
             const token = jwt.sign({ userId: user._id, role: actualRole, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
 
             return res.json({ success: true, name: user.name, email: user.email, role: actualRole, token: token });
         }
 
-        // किरायेदार का लॉगिन
         const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
         if (tenant) {
             const token = jwt.sign({ tenantId: tenant._id, role: 'tenant', email: tenant.tenantEmail }, JWT_SECRET, { expiresIn: '24h' });
@@ -658,7 +739,6 @@ app.post('/api/admin/change-role/:id', async (req, res) => {
     catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 🌟 ADMIN APPROVE + INSTAGRAM AUTO-POST WEBHOOK (Carousel Safe Mode)
 app.post('/api/admin/approve-property/:id', async (req, res) => {
     try {
         const property = await Property.findByIdAndUpdate(
@@ -668,18 +748,15 @@ app.post('/api/admin/approve-property/:id', async (req, res) => {
         );
 
         if (property) {
-            // Make.com Webhook Trigger
             try {
                 let imagesList = Array.isArray(property.images) ? [...property.images] : [];
 
-                // 🔴 Instagram Carousel Fix: Meta API strictly requires >= 2 images
                 if (imagesList.length === 0) {
                     imagesList = [
                         "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1080",
                         "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1080"
                     ];
                 } else if (imagesList.length === 1) {
-                    // Agar 1 hi image hai, toh use duplicate kar do taaki Carousel rule satisfy ho jaye
                     imagesList.push(imagesList[0]);
                 }
 
@@ -729,14 +806,10 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
         res.json({ success: true, message: 'Property and photos deleted permanently!' });
     } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
-// 🌟 डायनामिक अमाउंट जनरेटर API
+
 app.post('/api/create-payment', (req, res) => {
     const userId = req.body.userId; 
-    
-    // 🌟 पेंच फिक्स: अब बेस अमाउंट फ्रंटएंड से आएगा। अगर नहीं आया, तो डिफ़ॉल्ट 149 मान लेगा।
     const baseAmount = req.body.baseAmount ? parseFloat(req.body.baseAmount) : 149;
-
-    // इंजन चलाकर यूनिक अमाउंट निकाला (उदा: 500 आया तो 499.01 से 501.99 के बीच निकालेगा)
     const finalAmount = getUniquePaymentAmount(baseAmount, userId);
 
     if (!finalAmount) {
@@ -767,7 +840,8 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
         } else { res.status(404).json({ success: false, message: 'User not found' }); }
     } catch (error) { res.status(500).json({ success: false }); }
 });
-// 📊 PUBLIC READ-ONLY PASSBOOK API (Bina password ke tenant ledger dekhne ke liye)
+
+// 📊 PUBLIC READ-ONLY PASSBOOK API
 app.get('/api/public/tenant-ledger/:id', async (req, res) => {
     try {
         const tenantRecord = await TenantLedger.findById(req.params.id);
@@ -813,25 +887,21 @@ app.post('/api/tenant/login', async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: 'लॉगิน सफल!',
+            message: 'लॉगिन सफल!',
             role: 'tenant',
             tenantData: tenant
         });
     } catch (error) {
-        res.status(500).json({ success: 
-            false, message: 'Server Error' });
+        res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
-// ==========================================
-// 🌟 ADMIN PAYMENTS FETCH API (NEW)
-// ==========================================
+
+// 🌟 ADMIN PAYMENTS FETCH API
 app.get('/api/admin/get-payments', async (req, res) => {
     try {
         const queryDate = req.query.date; 
-        // यूनिवर्सल रसीद वाले डेटाबेस से सक्सेस पेमेंट्स निकालेंगे
         let filter = { paymentStatus: { $in: ['Paid', 'Success'] } }; 
 
-        // अगर एडमिन ने कैलेंडर से डेट सेलेक्ट की है
         if (queryDate) {
             const startDate = new Date(queryDate);
             startDate.setHours(0, 0, 0, 0);
@@ -839,10 +909,9 @@ app.get('/api/admin/get-payments', async (req, res) => {
             const endDate = new Date(queryDate);
             endDate.setHours(23, 59, 59, 999);
 
-            filter.createdAt = { $gte: startDate, $lte: endDate };
+            filter.createdAt = { $gte: startDate,$lte: endDate };
         }
 
-        // UniversalReceipt कलेक्शन से डेटा निकालें
         const paymentsData = await UniversalReceipt.find(filter).sort({ createdAt: -1 }); 
         
         res.json({
@@ -855,21 +924,20 @@ app.get('/api/admin/get-payments', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
+
 // 🌟 1. प्रॉपर्टी को ड्राफ्ट (RAM) में सेव करने वाला API
 app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async (req, res) => {
     try {
         const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
         const draftId = 'DRAFT_PROP_' + Math.floor(Math.random() * 1000000);
 
-        // डेटा को हवा (RAM) में रोक लिया
         pendingForms[draftId] = {
             ...req.body,
             images: imageUrls,
             brokerEmail: req.body.brokerEmail ? req.body.brokerEmail.toLowerCase().trim() : 'unknown',
-            status: 'pending' // पब्लिश होने के लिए पेंडिंग 
+            status: 'pending'
         };
 
-        // 15 मिनट बाद ऑटो-डिलीट (Garbage Collection)
         setTimeout(() => { delete pendingForms[draftId]; }, 15 * 60 * 1000);
 
         res.json({ success: true, draftId: draftId });
@@ -888,8 +956,8 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
-// 🌟 यह API सिर्फ तब चलेगा जब पेमेंट सक्सेसफुल हो जाएगा
-// 🌟 2. अपडेटेड Finalize Record API
+
+// 🌟 2. Finalize Record API
 app.post('/api/finalize-record', async (req, res) => {
     try {
         const { draftId, transactionId, amountPaid, userEmail } = req.body;
@@ -899,7 +967,6 @@ app.post('/api/finalize-record', async (req, res) => {
             finalData.transactionId = transactionId;
             finalData.amountPaid = amountPaid;
             
-            // 🌟 FIX 3: अगर पहले से ईमेल नहीं था, तो पेमेंट पेज वाला ईमेल डाल दो
             if (!finalData.userEmail && userEmail) {
                 finalData.userEmail = userEmail;
             }
@@ -922,25 +989,21 @@ app.post('/api/finalize-record', async (req, res) => {
         res.status(500).json({ success: false, message: "Error saving final record" });
     }
 });
+
 function getUniquePaymentAmount(baseAmount, userId) {
-    // रेंज: 148.01 से 150.99 (लगभग 300 यूनिक अमाउंट)
-    const min = (baseAmount - 1) * 100 + 1; // 14801 (पैसे में)
-    const max = (baseAmount + 1) * 100 + 99; // 15099 (पैसे में)
+    const min = (baseAmount - 1) * 100 + 1;
+    const max = (baseAmount + 1) * 100 + 99;
     
     let attempts = 0;
     const now = Date.now();
-    const FIVE_MINUTES = 5 * 60 * 1000; // 5 मिनट को मिलीसेकंड में बदला
+    const FIVE_MINUTES = 5 * 60 * 1000;
 
-    // हम 500 बार ट्राई करेंगे कोई खाली अमाउंट ढूँढने की
     while (attempts < 500) {
         let randomInt = Math.floor(Math.random() * (max - min + 1)) + min;
-        let amount = (randomInt / 100).toFixed(2); // इसे वापस रुपये में बदला, जैसे "149.45"
+        let amount = (randomInt / 100).toFixed(2);
 
-        // चेक 1: क्या यह अमाउंट पहले से किसी को दिया हुआ है?
         if (activePayments[amount]) {
-            // चेक 2: अगर दिया है, तो क्या उसके 5 मिनट पूरे (Expire) हो गए हैं?
             if (now > activePayments[amount].expiresAt) {
-                // हाँ, एक्सपायर हो गया! हम इसे पुराने यूज़र से छीन कर नए यूज़र को दे देंगे
                 activePayments[amount] = { 
                     userId: userId, 
                     expiresAt: now + FIVE_MINUTES, 
@@ -948,9 +1011,7 @@ function getUniquePaymentAmount(baseAmount, userId) {
                 };
                 return amount;
             }
-            // अगर 5 मिनट नहीं हुए, तो लूप वापस घूमेगा और नया अमाउंट ट्राई करेगा
         } else {
-            // यह अमाउंट एकदम फ्रेश और फ्री है!
             activePayments[amount] = { 
                 userId: userId, 
                 expiresAt: now + FIVE_MINUTES, 
@@ -960,7 +1021,7 @@ function getUniquePaymentAmount(baseAmount, userId) {
         }
         attempts++;
     }
-    return null; // अगर एक साथ 300 लोग आ गए और सब फुल हो गया (जो बहुत मुश्किल है)
+    return null;
 }
 
 const PORT = process.env.PORT || 3000;
