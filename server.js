@@ -767,6 +767,30 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
         } else { res.status(404).json({ success: false, message: 'User not found' }); }
     } catch (error) { res.status(500).json({ success: false }); }
 });
+// 📊 PUBLIC READ-ONLY PASSBOOK API (Bina password ke tenant ledger dekhne ke liye)
+app.get('/api/public/tenant-ledger/:id', async (req, res) => {
+    try {
+        const tenantRecord = await TenantLedger.findById(req.params.id);
+        if (!tenantRecord) {
+            return res.status(404).json({ success: false, message: "रिकॉर्ड नहीं मिला!" });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                roomOrFlatNo: tenantRecord.roomOrFlatNo,
+                tenantName: tenantRecord.tenantName,
+                mobileNo: tenantRecord.mobileNo,
+                joiningDate: tenantRecord.joiningDate,
+                unitRate: tenantRecord.unitRate,
+                monthlyEntries: tenantRecord.monthlyEntries || []
+            }
+        });
+    } catch (err) {
+        console.error("Public Ledger API Error:", err);
+        res.status(500).json({ success: false, message: "सर्वर एरर" });
+    }
+});
 
 app.get('/api/owner/my-tenants', async (req, res) => {
     try {

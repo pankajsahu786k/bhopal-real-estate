@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Digital Passbook - Bhopal Properties</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+        body { background: #f1f5f9; padding: 15px; color: #1e293b; }
+        .sheet-card { max-width: 900px; margin: auto; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; border: 1px solid #cbd5e1; }
+        .sheet-header { background: #107c41; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .sheet-header h2 { font-size: 16px; font-weight: 700; }
+        .badge { background: #fef08a; color: #854d0e; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .tenant-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 15px 20px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; font-size: 13px; }
+        .tenant-details div span { color: #64748b; font-weight: 600; }
+        .tenant-details div strong { color: #0f172a; display: block; font-size: 14px; margin-top: 3px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-family: 'Roboto Mono', monospace; font-size: 13px; text-align: center; }
+        th, td { border: 1px solid #cbd5e1; padding: 12px 10px; }
+        th { background: #f1f5f9; color: #334155; font-weight: 700; text-transform: uppercase; font-size: 12px; }
+        .highlight-total { font-weight: 700; color: #27ae60; background: #f0fdf4; }
+        .print-btn-bar { padding: 15px 20px; text-align: right; background: white; }
+        .btn-print { background: #0f172a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="sheet-card">
+    <div class="sheet-header">
+        <h2>📑 Tangent Digital Khata (Monthly Passbook)</h2>
+        <span class="badge">🔒 Read Only (Non-Editable)</span>
+    </div>
+
+    <div class="tenant-details">
+        <div><span>Room / Flat No:</span> <strong id="tRoom">...</strong></div>
+        <div><span>Tenant Name:</span> <strong id="tName">लोड हो रहा है...</strong></div>
+        <div><span>Mobile No:</span> <strong id="tMobile">...</strong></div>
+        <div><span>Power Unit Rate:</span> <strong id="tRate">₹10/unit</strong></div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date / Month</th>
+                    <th>Rent (₹)</th>
+                    <th>Elec. Unit</th>
+                    <th>Elec. Bill (₹)</th>
+                    <th>Water Bill (₹)</th>
+                    <th>Net Total (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="passbookTableBody">
+                <tr><td colspan="6" style="padding: 25px;">हिसाब लोड हो रहा है...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="print-btn-bar">
+        <button class="btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const tenantId = urlParams.get('id');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!tenantId) {
+            alert("अवैध लिंक!");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/public/tenant-ledger/${tenantId}`);
+            const result = await res.json();
+
+            if (!result.success || !result.data) {
+                document.getElementById('passbookTableBody').innerHTML = `<tr><td colspan="6" style="color:red; padding:20px;">${result.message || 'डेटा नहीं मिला'}</td></tr>`;
+                return;
+            }
+
+            const data = result.data;
+            document.getElementById('tRoom').innerText = data.roomOrFlatNo || 'N/A';
+            document.getElementById('tName').innerText = data.tenantName || 'N/A';
+            document.getElementById('tMobile').innerText = data.mobileNo || 'N/A';
+            document.getElementById('tRate').innerText = `₹${data.unitRate || 10}/unit`;
+
+            const tbody = document.getElementById('passbookTableBody');
+            tbody.innerHTML = '';
+
+            if (!data.monthlyEntries || data.monthlyEntries.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;">कोई मासिक एंट्री दर्ज नहीं है।</td></tr>';
+                return;
+            }
+
+            data.monthlyEntries.forEach(entry => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${entry.monthDate || '--/--/----'}</td>
+                        <td>₹${entry.rent || 0}</td>
+                        <td>${entry.electricityUnit || 0}</td>
+                        <td>₹${entry.billAmount || 0}</td>
+                        <td>₹${entry.waterBill || 0}</td>
+                        <td class="highlight-total">₹${entry.total || 0}</td>
+                    </tr>
+                `;
+            });
+        } catch (e) {
+            document.getElementById('passbookTableBody').innerHTML = '<tr><td colspan="6" style="color:red; padding:20px;">डेटा लोड करने में समस्या आई।</td></tr>';
+        }
+    });
+</script>
+
+</body>
+</html>

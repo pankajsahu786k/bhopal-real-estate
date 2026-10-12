@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tangent Digital Khata - Bhopal Properties</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -72,11 +71,12 @@
         .bottom-nav a { color: #bdc3c7; text-decoration: none; text-align: center; font-size: 11px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .bottom-nav a.active { color: #2ecc71; font-weight: bold; }
         .bottom-nav-icon { font-size: 20px; }
+
         /* 🌟 WhatsApp Phone Input Style */
-.phone-input-wrapper { display: flex; align-items: center; border: 2px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; }
-.phone-input-wrapper .fixed-code { background: #e2e8f0; padding: 10px 12px; font-weight: 700; color: #475569; border-right: 2px solid #cbd5e1; font-size: 14px; }
-.phone-input-wrapper input { border: none !important; padding: 10px 12px !important; flex: 1; outline: none; background: transparent; font-size: 14px; font-weight: 600; width: 100%; }
-.phone-input-wrapper:focus-within { border-color: #3498db; background: white; }
+        .phone-input-wrapper { display: flex; align-items: center; border: 2px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; }
+        .phone-input-wrapper .fixed-code { background: #e2e8f0; padding: 10px 12px; font-weight: 700; color: #475569; border-right: 2px solid #cbd5e1; font-size: 14px; }
+        .phone-input-wrapper input { border: none !important; padding: 10px 12px !important; flex: 1; outline: none; background: transparent; font-size: 14px; font-weight: 600; width: 100%; }
+        .phone-input-wrapper:focus-within { border-color: #3498db; background: white; }
 
         /* 📱 MOBILE RESPONSIVE HACK */
         @media (max-width: 768px) {
@@ -166,13 +166,13 @@
                     <div class="form-grid">
                         <div class="form-group"><label>1. Name *</label><input type="text" id="tName" required></div>
                         <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" required></div>
-                         <div class="form-group">
-    <label>3. Mobile No. *</label>
-    <div class="phone-input-wrapper">
-        <span class="fixed-code">+91</span>
-        <input type="tel" id="tMobile" placeholder="10 Digits" maxlength="10" pattern="[0-9]{10}" required>
-    </div>
-</div>
+                        <div class="form-group">
+                            <label>3. Mobile No. *</label>
+                            <div class="phone-input-wrapper">
+                                <span class="fixed-code">+91</span>
+                                <input type="tel" id="tMobile" placeholder="10 Digits" maxlength="10" pattern="[0-9]{10}" required>
+                            </div>
+                        </div>
                         <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required onchange="handleStartDateChange()"></div>
                         <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="10" required></div>
                         <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" value="1" required></div>
@@ -278,6 +278,7 @@
         let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
         let tenantNameMap = {};
         let globalArchivedData = []; 
+        let currentTenantId = null; // 🌟 Public Passbook Link ID
 
         function initRoomTabs() {
             const container = document.getElementById('roomContainer');
@@ -321,7 +322,6 @@
             }
         }
 
-        // 🔥 LOGIC UPDATE 1: Start date from NEXT MONTH
         function generateDynamicDates(startDateStr) {
             activeDynamicDates = [];
             if (!startDateStr) {
@@ -332,7 +332,6 @@
             let baseDate = new Date(parts[0], parts[1] - 1, parts[2]); 
             
             for (let i = 0; i < 12; i++) {
-                // (getMonth() + 1) किया है ताकि अगले महीने से बिल बनना शुरू हो
                 let currentMonthDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1 + i, baseDate.getDate());
                 
                 let day = String(currentMonthDate.getDate()).padStart(2, '0');
@@ -367,7 +366,6 @@
             });
         }
 
-        // 🔥 LOGIC UPDATE 2: Subtract Current Meter Reading in First Month
         function calculateExcelRow(idx) {
             const rent = Number(document.getElementById(`rent_${idx}`).value || 0);
             const currentUnits = Number(document.getElementById(`elecUnit_${idx}`).value || 0);
@@ -375,14 +373,11 @@
             
             let prevUnits = 0;
             if(idx > 0) {
-                // अगर दूसरा या तीसरा महीना है, तो पिछले महीने की रीडिंग लेगा
                 prevUnits = Number(document.getElementById(`elecUnit_${idx-1}`).value || 0);
             } else {
-                // अगर पहला महीना है (idx=0), तो शुरुआती "Current Meter Reading" को माइनस करेगा
                 prevUnits = Number(document.getElementById('currentMeterReading').value || 0);
             }
             
-            // अगर पुरानी रीडिंग नई रीडिंग से ज्यादा है, तो माइनस में बिल नहीं बनेगा, 0 रहेगा
             const unitsConsumed = Math.max(0, currentUnits - prevUnits);
             const elecBill = unitsConsumed * rate;
             document.getElementById(`elecBill_${idx}`).innerText = elecBill;
@@ -393,7 +388,6 @@
             document.getElementById(`total_${idx}`).innerText = netTotal;
             updateLiveReceiptView(idx, rent, unitsConsumed, elecBill, waterBill, netTotal);
             
-            // 🔥 CASCADE RECALCULATION: अगर हम पहले महीने की रीडिंग बदलते हैं, तो नीचे वाले महीनों का बिल भी अपने आप सही हो जाएगा
             if(idx < 11) {
                 const nextUnits = Number(document.getElementById(`elecUnit_${idx+1}`).value || 0);
                 if(nextUnits > 0) calculateExcelRow(idx + 1); 
@@ -432,6 +426,7 @@
             generateDynamicDates(""); 
             buildExcelGridUI();
             document.getElementById('liveReceiptView').innerHTML = '<div style="text-align: center; color: #94a3b8; margin-top: 120px; font-weight:600;">कृपया हिसाब अपडेट करें...</div>';
+            currentTenantId = null; 
 
             const savedAdvance = localStorage.getItem(`adv_${ownerEmail}_${activeRoom}`);
             if(savedAdvance) document.getElementById('advanceDeposit').value = savedAdvance;
@@ -451,6 +446,7 @@
 
                     const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
                     if (activeTenant) {
+                        currentTenantId = activeTenant._id; // 👈 🌟 ID सुरक्षित सेट की गई
                         isRegistered = true;
                         document.getElementById('regOverlay').style.display = 'flex';
                         document.getElementById('btnSaveRow').disabled = false;
@@ -577,7 +573,6 @@
             } catch(e) { alert("एरर आया।"); }
         }
 
-        // 🔥 History Modal Functions
         async function openHistoryModal() {
             document.getElementById('historyModal').style.display = 'flex';
             const tbody = document.querySelector('#historyTable tbody');
@@ -706,29 +701,34 @@
             }, 250);
         }
 
+        // 🌟 WHATSAPP MESSENGER FUNCTION (Clean & Integrated)
         function shareToWhatsAppMessenger() {
             const rawMobile = document.getElementById('tMobile').value;
             const txt = document.getElementById('liveReceiptView').innerText;
-            
+
             if(!rawMobile || rawMobile === '----------' || txt.includes('कृपया')) { 
                 alert("शेयर करने के लिए कोई रसीद जनरेट नहीं हुई है या मोबाइल नंबर खाली है!"); 
                 return; 
             }
 
-            // 1. अगर यूज़र ने कोई स्पेस या फालतू कैरेक्टर डाला है तो उसे हटा दो
             let cleanPhone = rawMobile.replace(/\D/g, ''); 
-
-            // 2. चेक करो कि नंबर 10 डिजिट का है
             if(cleanPhone.length !== 10) {
                 alert("कृपया सही 10-अंकों का मोबाइल नंबर दर्ज करें!");
                 return;
             }
 
-            // 🌟 3. ब्रह्मास्त्र: 91 को नंबर के आगे जोड़ना (यही मोबाइल WhatsApp का एरर फिक्स करेगा)
             const finalWhatsAppNumber = "91" + cleanPhone;
 
-            // 4. WhatsApp यूनिवर्सल API लिंक
-            window.open(`https://api.whatsapp.com/send?phone=${finalWhatsAppNumber}&text=${encodeURIComponent(txt)}`, '_blank');
+            // 🌟 Dynamic Passbook Link Integration
+            let passbookLinkText = "";
+            if (currentTenantId) {
+                const passbookUrl = `${window.location.origin}/passbook.html?id=${currentTenantId}`;
+                passbookLinkText = `\n\n📊 अपना पूरा मासिक कैलकुलेशन व लेजर पासबुक देखने के लिए यहाँ क्लिक करें:\n${passbookUrl}`;
+            }
+
+            const finalMessage = txt + passbookLinkText;
+
+            window.open(`https://api.whatsapp.com/send?phone=${finalWhatsAppNumber}&text=${encodeURIComponent(finalMessage)}`, '_blank');
         }
 
         window.onload = () => {
