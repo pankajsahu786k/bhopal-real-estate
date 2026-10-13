@@ -21,9 +21,7 @@ const pendingForms = {};
 
 // 🔴 सिक्योरिटी चाबी
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
-const { connectToWhatsApp, sendDirectWhatsApp } = require('./whatsappService');
 const { connectToWhatsApp, sendDirectWhatsApp, getLatestQr } = require('./whatsappService');
-
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
 // ==========================================
