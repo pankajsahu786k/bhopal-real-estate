@@ -1,27 +1,27 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
 const pino = require('pino');
-const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 
 let sock = null;
+let currentQrData = null; // Browser par dikhane ke liye
 
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
 
     sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false,
         logger: pino({ level: 'silent' })
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', (update) => {
+    sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
-            console.log('\n================ QR CODE FOR WHATSAPP ================');
-            qrcode.generate(qr, { small: true });
-            console.log('Scan this QR code from WhatsApp -> Linked Devices\n======================================================\n');
+            // QR string ko image DataURL me convert karein
+            currentQrData = await QRCode.toDataURL(qr);
+            console.log('📌 Naya QR code ready hai! Browser me /qr open karke scan karein.');
         }
 
         if (connection === 'close') {
@@ -31,12 +31,12 @@ async function connectToWhatsApp() {
                 connectToWhatsApp();
             }
         } else if (connection === 'open') {
+            currentQrData = null; // Connected hone par QR clear kar dein
             console.log('✅ WhatsApp Baileys successfully connected!');
         }
     });
 }
 
-// Direct Message Function with Clean Phone Formatting
 async function sendDirectWhatsApp(phone, text) {
     if (!sock) {
         console.error('❌ WhatsApp socket is not connected yet.');
@@ -57,4 +57,8 @@ async function sendDirectWhatsApp(phone, text) {
     }
 }
 
-module.exports = { connectToWhatsApp, sendDirectWhatsApp };
+function getLatestQr() {
+    return currentQrData;
+}
+
+module.exports = { connectToWhatsApp, sendDirectWhatsApp, getLatestQr };

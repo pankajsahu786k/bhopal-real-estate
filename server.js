@@ -22,6 +22,7 @@ const pendingForms = {};
 // 🔴 सिक्योरिटी चाबी
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
 const { connectToWhatsApp, sendDirectWhatsApp } = require('./whatsappService');
+const { connectToWhatsApp, sendDirectWhatsApp, getLatestQr } = require('./whatsappService');
 
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
@@ -379,6 +380,19 @@ app.get('/api/public/tenant-ledger/:id', async (req, res) => {
         console.error("Public Ledger API Error:", err);
         res.status(500).json({ success: false, message: "सर्वर एरर" });
     }
+});
+app.get('/qr', (req, res) => {
+    const qrData = getLatestQr();
+    if (!qrData) {
+        return res.send('<h2>WhatsApp pehle se connected hai ya QR load ho raha hai. Page refresh karein.</h2>');
+    }
+    res.send(`
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
+            <h2>Scan WhatsApp QR Code</h2>
+            <img src="${qrData}" alt="WhatsApp QR" style="width:300px;height:300px;border:1px solid #ccc;padding:10px;border-radius:8px;" />
+            <p>WhatsApp -> Linked Devices -> Link a Device</p>
+        </div>
+    `);
 });
 
 // ==========================================
