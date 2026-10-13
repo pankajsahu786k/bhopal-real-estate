@@ -965,6 +965,13 @@ app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async 
         res.status(500).json({ success: false, message: 'Server Error creating property draft' });
     }
 });
+// 🧪 MANUAL TEST TRIGGER ROUTE
+app.get('/api/test-reminders', async (req, res) => {
+    const slot = req.query.slot || 'morning_9am';
+    console.log(`Manual trigger initiated for slot: ${slot}`);
+    await processLedgerReminders(slot);
+    res.json({ success: true, message: `Processed reminders for ${slot}` });
+});
 
 app.get('/api/tenant/my-ledger', async (req, res) => {
     try {
