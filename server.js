@@ -21,6 +21,7 @@ const pendingForms = {};
 
 // 🔴 सिक्योरिटी चाबी
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
+const { connectToWhatsApp, sendDirectWhatsApp } = require('./whatsappService');
 
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
@@ -234,6 +235,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 // =========================================================================
 // 🧠 SMART BRAIN ENGINE: 9 AM | 12 PM | 8 PM BOT SYSTEM
 // =========================================================================
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function sendAutomationWhatsApp(phone, message) {
     try {
         let cleanPhone = phone.replace(/\D/g, '');
@@ -297,13 +300,15 @@ async function processLedgerReminders(slotType) {
                     // Support employee ko alert send karna
                     const employeeMobile = "919993352339"; 
                     const empAlert = `🚨 CUSTOMER SUPPORT ACTION:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka ledger update nahi kiya hai. Kal subah call ya agent bhej kar update karwayen.`;
-                    await sendAutomationWhatsApp(employeeMobile, empAlert);
+                    await sendDirectWhatsApp(employeeMobile, empAlert);
+                    await sleep(3000);
                 }
 
                 tenant.lastAlertSentAt = new Date();
                 await tenant.save();
 
-                await sendAutomationWhatsApp(phone, messageText);
+                await sendDirectWhatsApp(phone, messageText);
+                await sleep(3000); // 3 second safe delay for bulk tenants
             } 
             // Agar owner ne update kar diya hai:
             else if (isUpdated && tenant.alertCount > 0) {
@@ -850,7 +855,7 @@ app.delete('/api/admin/delete-property/:id', async (req, res) => {
             }
         }
         await Property.findByIdAndDelete(req.params.id);
-        res.json({ success: true, message: 'Property and photos deleted permanently!' });
+        res.json({ success: true, message: 'Property permanently deleted!' });
     } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
 });
 
@@ -965,6 +970,7 @@ app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async 
         res.status(500).json({ success: false, message: 'Server Error creating property draft' });
     }
 });
+
 // 🧪 MANUAL TEST TRIGGER ROUTE
 app.get('/api/test-reminders', async (req, res) => {
     const slot = req.query.slot || 'morning_9am';
@@ -1051,4 +1057,7 @@ function getUniquePaymentAmount(baseAmount, userId) {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`));
+app.listen(PORT, () => {
+    console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
+    connectToWhatsApp();
+});
