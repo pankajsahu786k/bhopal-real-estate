@@ -22,6 +22,7 @@ const pendingForms = {};
 // 🔴 सिक्योरिटी चाबी
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
 const { connectToWhatsApp, sendDirectWhatsApp, getLatestQr } = require('./whatsappService');
+
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
 // ==========================================
@@ -175,6 +176,7 @@ const TenantLedgerSchema = new mongoose.Schema({
     
     tenantName: String,
     tenantFatherName: String,
+    tenantDOB: { type: String, default: '' }, // 🎂 Birthday Wishes Integration
     mobileNo: String,
     joiningDate: String, 
     unitRate: Number,      
@@ -322,6 +324,99 @@ async function processLedgerReminders(slotType) {
     }
 }
 
+// =========================================================================
+// 🌐 SMART FESTIVAL & BIRTHDAY AUTO-ENGINE
+// =========================================================================
+let festivalCache = {};
+
+// 1. Internet se current year ke Indian festivals fetch karne ka function
+async function updateFestivalCalendar() {
+    try {
+        const currentYear = new Date().getFullYear();
+        const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
+        
+        if (!response.ok) throw new Error('API request failed');
+        
+        const holidays = await response.json();
+        const updatedHolidays = {};
+
+        holidays.forEach(holiday => {
+            const parts = holiday.date.split('-');
+            const key = `${parts[2]}-${parts[1]}`;
+            updatedHolidays[key] = holiday.localName || holiday.name;
+        });
+
+        festivalCache = updatedHolidays;
+        console.log(`✅ Internet se ${currentYear} ke ${holidays.length} festivals auto-load ho gaye!`);
+    } catch (err) {
+        console.error('❌ Festival auto-fetch error:', err.message);
+    }
+}
+
+// 2. Birthday aur Festival Wishes Dispatcher
+async function processGreetingsAndWishes() {
+    try {
+        const today = new Date();
+        const currentDay = String(today.getDate()).padStart(2, '0');
+        const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+        const todayKey = `${currentDay}-${currentMonth}`; // e.g. "13-10"
+
+        const activeTenants = await TenantLedger.find({ status: 'Active' });
+
+        // 🎂 CHECK 1: BIRTHDAY WISHES
+        for (const tenant of activeTenants) {
+            if (tenant.tenantDOB && tenant.mobileNo) {
+                const dobClean = tenant.tenantDOB.replace(/\//g, '-');
+                const parts = dobClean.split('-');
+                let dobDay = '', dobMonth = '';
+
+                if (parts[0].length === 4) { // Format: YYYY-MM-DD
+                    dobMonth = parts[1].padStart(2, '0');
+                    dobDay = parts[2].padStart(2, '0');
+                } else { // Format: DD-MM-YYYY
+                    dobDay = parts[0].padStart(2, '0');
+                    dobMonth = parts[1].padStart(2, '0');
+                }
+
+                if (dobDay === currentDay && dobMonth === currentMonth) {
+                    const bdayMsg = `🎂 Janamdin ki hardik shubhkaamnayein, ${tenant.tenantName} ji! 🎉\nBhopal Properties ki taraf se aapko swasthya aur khushiyon bhare saal ki shubhkaamnayein! 🌟`;
+                    await sendDirectWhatsApp(tenant.mobileNo, bdayMsg);
+                    console.log(`🎂 Birthday wish sent to ${tenant.tenantName}`);
+                    await sleep(3000);
+                }
+            }
+        }
+
+        // 🪔 CHECK 2: INTERNET FESTIVAL GREETINGS
+        if (festivalCache[todayKey]) {
+            const festivalName = festivalCache[todayKey];
+            const festivalMsg = `Aapko aur aapke parivaar ko ${festivalName} ki hardik shubhkaamnayein! 🪔✨\n- Bhopal Properties`;
+            console.log(`🎉 Aaj Tyohar hai: ${festivalName}. Sabhi ko wishes dispatch ho rahi hain...`);
+
+            for (const tenant of activeTenants) {
+                if (tenant.mobileNo) {
+                    await sendDirectWhatsApp(tenant.mobileNo, festivalMsg);
+                    await sleep(3000);
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Wishes Engine Error:", err);
+    }
+}
+
+// ⏰ Roz Subah 8:00 AM Cron Job (Wishes ke liye)
+cron.schedule('0 8 * * *', () => {
+    console.log("🌅 Running 8:00 AM Birthday & Festival Check...");
+    processGreetingsAndWishes();
+}, { timezone: "Asia/Kolkata" });
+
+// ⏰ Har Mahine ki 1 tareekh ko calendar sync
+cron.schedule('0 0 1 * *', () => {
+    console.log("🔄 Syncing holiday calendar from internet...");
+    updateFestivalCalendar();
+}, { timezone: "Asia/Kolkata" });
+
 // ⏰ 1. SUBAH 9:00 AM (09:00 IST)
 cron.schedule('0 9 * * *', () => {
     console.log("🌅 Running 9:00 AM Morning Check...");
@@ -379,16 +474,29 @@ app.get('/api/public/tenant-ledger/:id', async (req, res) => {
         res.status(500).json({ success: false, message: "सर्वर एरर" });
     }
 });
+
+// 📱 QR CODE DISPLAY ROUTE (FOR EASY SCANNING)
 app.get('/qr', (req, res) => {
     const qrData = getLatestQr();
     if (!qrData) {
-        return res.send('<h2>WhatsApp pehle se connected hai ya QR load ho raha hai. Page refresh karein.</h2>');
+        return res.send(`
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;font-family:Arial,sans-serif;text-align:center;">
+                <h2 style="color:#25D366;">WhatsApp Connection Status</h2>
+                <p>WhatsApp ya toh pehle se <b>Connected</b> hai, ya QR code generate ho raha hai.</p>
+                <p>Agar scan nahi hua hai toh 5 second baad page refresh karein.</p>
+                <button onclick="location.reload()" style="padding:10px 20px;font-size:16px;cursor:pointer;background:#25D366;color:#fff;border:none;border-radius:5px;">Refresh</button>
+            </div>
+        `);
     }
+
     res.send(`
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
-            <h2>Scan WhatsApp QR Code</h2>
-            <img src="${qrData}" alt="WhatsApp QR" style="width:300px;height:300px;border:1px solid #ccc;padding:10px;border-radius:8px;" />
-            <p>WhatsApp -> Linked Devices -> Link a Device</p>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;font-family:Arial,sans-serif;text-align:center;">
+            <h2>WhatsApp Web Scanner</h2>
+            <p>WhatsApp open karein > <b>Linked Devices</b> > <b>Link a Device</b> se scan karein</p>
+            <div style="padding:15px;background:#fff;border:2px solid #25D366;border-radius:12px;display:inline-block;box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+                <img src="${qrData}" alt="WhatsApp QR Code" style="width:280px;height:280px;display:block;" />
+            </div>
+            <p style="color:#666;font-size:13px;margin-top:12px;">QR expire hone par page refresh karein.</p>
         </div>
     `);
 });
@@ -496,6 +604,12 @@ app.post('/api/admin/toggle-payment', async (req, res) => {
         await Config.findOneAndUpdate({ key: 'bypassPayment' }, { value: bypass }, { new: true, upsert: true });
         res.json({ success: true, message: bypass ? "Payment BYPASSED (Free Mode Active) 🔓" : "Payment ENABLED (Paid Mode Active) 💳" });
     } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.get('/api/test-wishes', async (req, res) => {
+    console.log("Manual trigger for wishes & festivals...");
+    await processGreetingsAndWishes();
+    res.json({ success: true, message: "Wishes check completed!", loadedFestivals: festivalCache });
 });
 
 app.post('/api/submit-verification', upload.fields([
@@ -1072,4 +1186,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
     connectToWhatsApp();
+    updateFestivalCalendar(); // 🌐 Server start hote hi festivals auto-load honge
 });
