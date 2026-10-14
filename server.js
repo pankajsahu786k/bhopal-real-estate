@@ -358,9 +358,14 @@ async function updateFestivalCalendar() {
         console.log(`📡 Fetching live festival calendar for year ${currentYear}...`);
         
         const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
-        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
+        const text = await response.text(); // Pehle text check karein taaki JSON crash na ho
         
-        const holidays = await response.json();
+        if (!response.ok || !text) {
+            console.log(`ℹ️ External API returned empty data, using built-in Indian calendar.`);
+            return festivalCache;
+        }
+        
+        const holidays = JSON.parse(text);
         const updated = {};
 
         holidays.forEach(holiday => {
@@ -371,7 +376,7 @@ async function updateFestivalCalendar() {
             updated[key] = holiday.localName || holiday.name;
         });
 
-        festivalCache = updated;
+        festivalCache = { ...festivalCache, ...updated };
         console.log(`✅ Internet se ${currentYear} ke ${holidays.length} festivals auto-load ho gaye!`);
         return festivalCache;
     } catch (err) {
@@ -379,7 +384,6 @@ async function updateFestivalCalendar() {
         return festivalCache;
     }
 }
-
 async function processGreetingsAndWishes(forcedFestivalName = null) {
     try {
         if (Object.keys(festivalCache).length === 0) {
