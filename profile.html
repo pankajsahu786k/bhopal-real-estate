@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Settings - Bhopal Properties</title>
     <style>
-        /* 🎨 Dashboard Theme Styles */
         body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; }
         
         /* Sidebar Styling */
@@ -33,14 +32,16 @@
         
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-        .form-group input[type="text"], .form-group input[type="tel"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .form-group input[type="text"], .form-group input[type="tel"], .form-group input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
         .form-group input:focus { outline: none; border-color: #3498db; }
         
         .submit-btn { background-color: #2ecc71; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
         .submit-btn:hover { background-color: #27ae60; }
 
         .profile-preview-container { text-align: center; margin-bottom: 20px; }
-        .profile-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ccc; display: none; margin: 0 auto; }
+        .profile-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #2ecc71; display: none; margin: 0 auto; }
+        
+        .alert-box { background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba; font-size: 13px; }
     </style>
 </head>
 
@@ -68,6 +69,11 @@
         <div class="content-body">
             <div class="form-card">
                 <h3>अपनी प्रोफाइल जानकारी अपडेट करें</h3>
+
+                <div id="statusAlert" class="alert-box" style="display: none;">
+                    ⚠️ कृपया अपनी पूरी प्रोफाइल (फ़ोन, जन्मतिथि, फोटो और डीलिंग एरिया) भरें ताकि आपकी सर्विस एक्टिव हो सके।
+                </div>
+
                 <form id="profileForm">
                     
                     <div class="profile-preview-container">
@@ -79,12 +85,19 @@
                         <input type="tel" id="phone" placeholder="जैसे: 9876543210" required>
                     </div>
 
+                    <!-- 🎂 जन्मतिथि (DOB) Field -->
+                    <div class="form-group">
+                        <label>जन्मतिथि (Date of Birth) *</label>
+                        <input type="date" id="dob" required>
+                    </div>
+
                     <div class="form-group">
                         <label>डीलिंग एरिया (Dealing Areas) *</label>
                         <input type="text" id="dealingAreas" placeholder="जैसे: MP Nagar, Kolar, Arera Colony" required>
                         <p style="font-size: 12px; color: #7f8c8d; margin-top: 5px;">* एरिया के नाम के बीच में कॉमा (,) लगाएँ</p>
                     </div>
-                    <!-- 🌟 NAYA: GPS Tracker for Broker Office/Home -->
+
+                    <!-- 📍 GPS Tracker for Broker Office/Home -->
                     <div class="form-group" style="background: #e0f2fe; padding: 15px; border-radius: 8px; border: 1px dashed #0284c7;">
                         <label style="color: #0369a1; font-weight: bold; margin-bottom: 5px;">📍 ऑफिस / घर की लोकेशन (GPS)</label>
                         <p style="font-size: 11px; color: #0284c7; margin-bottom: 10px;">अपनी सटीक लोकेशन सेव करें ताकि सिस्टम ग्राहकों को आपके पास की प्रॉपर्टी दिखा सके।</p>
@@ -109,6 +122,9 @@
     </div>
 
     <script>
+        let userLat = null;
+        let userLng = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
             const email = localStorage.getItem('brokerEmail');
             const name = localStorage.getItem('brokerName') || 'User';
@@ -119,86 +135,6 @@
                 return;
             }
 
-            // Top Header Header me naam set karna
-            document.getElementById('welcomeName').innerText = `Welcome, Broker ${name}`;
-
-            // Purani details fetch karna
-            try {
-                const response = await fetch(`/api/get-profile?email=${email}`);
-                const data = await response.json();
-                
-                if (data.phone) document.getElementById('phone').value = data.phone;
-                
-                if (data.dealingAreas && data.dealingAreas.length > 0) {
-                    document.getElementById('dealingAreas').value = data.dealingAreas.join(', ');
-                }
-                
-                if (data.photo) {
-                    const img = document.getElementById('photoPreview');
-                    img.src = data.photo;
-                    img.style.display = 'block';
-                }
-            } catch (error) {
-                console.error("Error fetching profile:", error);
-            }
-        });
-
-        // Form Submit Logic
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerText = "Saving Please Wait... ⏳";
-            saveBtn.disabled = true;
-
-            const brokerEmail = localStorage.getItem('brokerEmail');
-            const formData = new FormData();
-            
-            formData.append('brokerEmail', brokerEmail);
-            formData.append('phone', document.getElementById('phone').value);
-            
-            const areasInput = document.getElementById('dealingAreas').value;
-            const areasArray = areasInput.split(',').map(area => area.trim());
-            formData.append('dealingAreas', JSON.stringify(areasArray)); 
-
-            const photoInput = document.getElementById('profilePhoto');
-            if (photoInput.files.length > 0) {
-                formData.append('profilePhoto', photoInput.files[0]);
-            }
-
-            try {
-                const response = await fetch('/api/update-profile', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert("✅ प्रोफाइल सफलतापूर्वक अपडेट हो गई!");
-                    window.location.href = 'dashboard.html'; 
-                } else {
-                    alert("❌ प्रोफाइल सेव नहीं हो पाई: " + result.message);
-                }
-            } catch (error) {
-                alert("❌ सर्वर एरर!");
-                console.error(error);
-            } finally {
-                saveBtn.innerText = "Save Profile Updates 💾";
-                saveBtn.disabled = false;
-            }
-        });
-        let userLat = null;
-        let userLng = null;
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const email = localStorage.getItem('brokerEmail');
-            const name = localStorage.getItem('brokerName') || 'User';
-            
-            if (!email) {
-                window.location.href = 'index.html';
-                return;
-            }
             document.getElementById('welcomeName').innerText = `Welcome, Broker ${name}`;
 
             try {
@@ -206,6 +142,7 @@
                 const data = await response.json();
                 
                 if (data.phone) document.getElementById('phone').value = data.phone;
+                if (data.dob) document.getElementById('dob').value = data.dob;
                 if (data.dealingAreas && data.dealingAreas.length > 0) {
                     document.getElementById('dealingAreas').value = data.dealingAreas.join(', ');
                 }
@@ -215,20 +152,26 @@
                     img.style.display = 'block';
                 }
 
-                // 🌟 NAYA: अगर पहले से लोकेशन सेव है, तो उसे दिखाओ
+                if (data.isProfileComplete === false) {
+                    document.getElementById('statusAlert').style.display = 'block';
+                }
+
                 if (data.latitude && data.longitude) {
                     userLat = data.latitude;
                     userLng = data.longitude;
                     const display = document.getElementById('locDisplay');
                     display.value = `✅ Lat: ${userLat.toFixed(4)}, Lng: ${userLng.toFixed(4)}`;
-                    display.style.color = "#15803d"; display.style.background = "#dcfce3";
+                    display.style.color = "#15803d"; 
+                    display.style.background = "#dcfce3";
                     document.getElementById('getLocBtn').innerText = "📍 Location Saved";
                     document.getElementById('getLocBtn').style.background = "#16a34a";
                 }
-            } catch (error) { console.error(error); }
+            } catch (error) { 
+                console.error("Error fetching profile:", error); 
+            }
         });
 
-        // 📍 NAYA: Location Detect Button Click Event
+        // 📍 GPS Location Detection
         document.getElementById('getLocBtn').addEventListener('click', function() {
             const btn = this;
             const display = document.getElementById('locDisplay');
@@ -240,8 +183,11 @@
                         userLat = position.coords.latitude;
                         userLng = position.coords.longitude;
                         display.value = `✅ Lat: ${userLat.toFixed(4)}, Lng: ${userLng.toFixed(4)}`;
-                        display.style.color = "#15803d"; display.style.background = "#dcfce3"; display.style.borderColor = "#86efac";
-                        btn.innerText = "📍 Location Saved"; btn.style.background = "#16a34a";
+                        display.style.color = "#15803d"; 
+                        display.style.background = "#dcfce3"; 
+                        display.style.borderColor = "#86efac";
+                        btn.innerText = "📍 Location Saved"; 
+                        btn.style.background = "#16a34a";
                     },
                     (error) => {
                         btn.innerText = "📍 Detect My Location";
@@ -254,35 +200,49 @@
             }
         });
 
-        // Form Submit Logic
+        // Form Submit
         document.getElementById('profileForm').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerText = "Saving Please Wait... ⏳"; saveBtn.disabled = true;
+            saveBtn.innerText = "Saving Please Wait... ⏳"; 
+            saveBtn.disabled = true;
 
             const formData = new FormData();
             formData.append('brokerEmail', localStorage.getItem('brokerEmail'));
             formData.append('phone', document.getElementById('phone').value);
+            formData.append('dob', document.getElementById('dob').value);
             formData.append('dealingAreas', JSON.stringify(document.getElementById('dealingAreas').value.split(',').map(a => a.trim()))); 
 
             const photoInput = document.getElementById('profilePhoto');
-            if (photoInput.files.length > 0) formData.append('profilePhoto', photoInput.files[0]);
+            if (photoInput.files.length > 0) {
+                formData.append('profilePhoto', photoInput.files[0]);
+            }
 
-            // 🌟 NAYA: GPS Data Form में जोड़ें
             if (userLat !== null) formData.append('latitude', userLat);
             if (userLng !== null) formData.append('longitude', userLng);
 
             try {
                 const response = await fetch('/api/update-profile', { method: 'POST', body: formData });
                 const result = await response.json();
+                
                 if (result.success) {
-                    alert("✅ प्रोफाइल सफलतापूर्वक अपडेट हो गई!");
-                    window.location.href = 'dashboard.html'; 
-                } else { alert("❌ प्रोफाइल सेव नहीं हो पाई: " + result.message); }
+                    alert(result.message);
+                    localStorage.setItem('isProfileComplete', result.isProfileComplete);
+                    
+                    if (result.isProfileComplete) {
+                        window.location.href = 'dashboard.html'; 
+                    } else {
+                        document.getElementById('statusAlert').style.display = 'block';
+                    }
+                } else { 
+                    alert("❌ प्रोफाइल सेव नहीं हो पाई: " + result.message); 
+                }
             } catch (error) {
                 alert("❌ सर्वर एरर!");
+                console.error(error);
             } finally {
-                saveBtn.innerText = "Save Profile Updates 💾"; saveBtn.disabled = false;
+                saveBtn.innerText = "Save Profile Updates 💾"; 
+                saveBtn.disabled = false;
             }
         });
 
