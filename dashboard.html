@@ -185,11 +185,32 @@
     </nav>
 
     <script>
-        const isProfileComplete = localStorage.getItem('isProfileComplete');
-if (isProfileComplete === 'false' || isProfileComplete === null) {
-    alert("⚠️ Kripya pehle apni profile poori complete karein!");
-    window.location.href = 'profile.html';
-}
+        document.addEventListener('DOMContentLoaded', async () => {
+    const email = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail');
+    if (!email) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    try {
+        // Server se live profile status verify karna
+        const res = await fetch(`/api/get-profile?email=${email}`);
+        const profileData = await res.json();
+
+        // Status ko browser memory me sync karna
+        localStorage.setItem('isProfileComplete', profileData.isProfileComplete || false);
+
+        if (!profileData.isProfileComplete) {
+            alert("⚠️ Kripya pehle apni profile poori complete karein!");
+            window.location.href = 'profile.html';
+            return;
+        }
+    } catch (err) {
+        console.error("Profile check error:", err);
+    }
+
+    // Yahan se aapka dashboard ka baaki purana load data logic chalega...
+});
         // 🌟 मोबाइल ऐप में PDF ज़बरदस्ती डाउनलोड करवाने वाला स्पेशल फंक्शन
         function downloadPoliceReport(pdfUrl) {
             if (!pdfUrl) {
