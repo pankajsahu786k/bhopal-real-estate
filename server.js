@@ -358,7 +358,7 @@ async function updateFestivalCalendar() {
         console.log(`📡 Fetching live festival calendar for year ${currentYear}...`);
         
         const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
-        const text = await response.text(); // Pehle text check karein taaki JSON crash na ho
+        const text = await response.text();
         
         if (!response.ok || !text) {
             console.log(`ℹ️ External API returned empty data, using built-in Indian calendar.`);
@@ -384,6 +384,7 @@ async function updateFestivalCalendar() {
         return festivalCache;
     }
 }
+
 async function processGreetingsAndWishes(forcedFestivalName = null) {
     try {
         if (Object.keys(festivalCache).length === 0) {
@@ -398,7 +399,6 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         const activeTenants = await TenantLedger.find({ status: 'Active' });
         const allBrokers = await BrokerProfile.find({ phone: { $exists: true, $ne: '' } });
 
-        // Helper DOB compare function
         const isBirthdayToday = (dobString) => {
             if (!dobString) return false;
             const clean = dobString.replace(/\//g, '-');
@@ -443,7 +443,6 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         if (festivalName) {
             console.log(`🎉 Tyohar Triggered: ${festivalName}. Broadcasting wishes...`);
 
-            // Tenants Greeting
             const tenantFestMsg = `आपको और आपके पूरे परिवार को ${festivalName} की हार्दिक शुभकामनाएँ! 🪔✨\nजीवन में सुख, शांति और समृद्धि बनी रहे।\n\n🌐 Visit: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
             for (const tenant of activeTenants) {
                 if (tenant.mobileNo) {
@@ -453,7 +452,6 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
                 }
             }
 
-            // Brokers Greeting
             for (const broker of allBrokers) {
                 if (broker.phone) {
                     const brokerUser = await User.findOne({ email: broker.brokerEmail });
@@ -904,7 +902,7 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// 🌟 UPGRADED: PROFILE UPDATE ROUTE (Duplicate Phone Check + DOB + Live Welcome Message Trigger)
+// 🌟 UPGRADED: PROFILE UPDATE ROUTE (Exact Number Targeting + Re-send on Phone Change)
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
         const { brokerEmail, phone, latitude, longitude, dob } = req.body;
@@ -914,11 +912,12 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             return res.status(400).json({ success: false, message: "Broker Email anivarya hai!" });
         }
 
+        const cleanInputPhone = phone ? phone.trim().replace(/\D/g, '').slice(-10) : '';
+
         // 🔍 CHECK 1: DUPLICATE PHONE NUMBER CHECK
-        if (phone) {
-            const cleanPhone = phone.trim().replace(/\D/g, '');
+        if (cleanInputPhone) {
             const existingProfile = await BrokerProfile.findOne({
-                phone: { $regex: cleanPhone },
+                phone: { $regex: cleanInputPhone },
                 brokerEmail: { $ne: cleanEmail }
             });
 
@@ -939,8 +938,12 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             }
         }
 
+        // Update se pehle purana record check karein
+        const currentProfile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
+        const oldPhoneClean = (currentProfile && currentProfile.phone) ? currentProfile.phone.replace(/\D/g, '').slice(-10) : '';
+
         const updateData = { 
-            phone: phone ? phone.trim() : '', 
+            phone: cleanInputPhone || oldPhoneClean, 
             dealingAreas: areas,
             dob: dob ? dob.trim() : ''
         };
@@ -949,9 +952,8 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
         if (longitude) updateData.longitude = Number(longitude);
         if (req.file) updateData.photo = req.file.path || req.file.url;
 
-        const currentProfile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
         const finalPhoto = updateData.photo || (currentProfile ? currentProfile.photo : '');
-        const finalPhone = updateData.phone || (currentProfile ? currentProfile.phone : '');
+        const finalPhone = updateData.phone;
         const finalDOB = updateData.dob || (currentProfile ? currentProfile.dob : '');
         const finalAreas = updateData.dealingAreas && updateData.dealingAreas.length > 0 
             ? updateData.dealingAreas 
@@ -964,24 +966,33 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             updateData.isProfileComplete = false;
         }
 
+        // 🔄 CHECK 3: Agar phone number change hua hai, toh welcomeSent false karein taaki naye number par welcome jaye
+        const isPhoneChanged = Boolean(cleanInputPhone && cleanInputPhone !== oldPhoneClean);
+        if (isPhoneChanged) {
+            updateData.welcomeSent = false;
+        }
+
         const updatedProfile = await BrokerProfile.findOneAndUpdate(
             { brokerEmail: cleanEmail }, 
             { $set: updateData }, 
             { new: true, upsert: true }
         );
 
-        // 🚀 LIVE TRIGGER: PROFILE UPDATE PAR TURANT WELCOME MESSAGE DISPATCH
-        if (updatedProfile.phone && !updatedProfile.welcomeSent) {
+        // 🚀 LIVE TRIGGER: SEEDHE NAYE PHONE NUMBER (finalPhone) PAR WELCOME MESSAGE BHEJEIN
+        if (finalPhone && (!updatedProfile.welcomeSent || isPhoneChanged)) {
             const user = await User.findOne({ email: cleanEmail });
             const brokerName = user ? user.name : 'Partner';
 
             const welcomeMsg = `नमस्ते ${brokerName} ji! 🙏\n\n*Bhopal Properties Partner Network* में आपका हार्दिक स्वागत है! 🏢✨\n\nआपकी प्रोफाइल सफलतापूर्वक अपडेट हो गई है। अब आप हमारे पोर्टल पर अपनी प्रॉपर्टीज लिस्ट कर सकते हैं, ग्राहकों से सीधे इन्क्वायरी पा सकते हैं, और डिजिटल लेजर का उपयोग कर सकते हैं।\n\nकिसी भी सहायता या जानकारी के लिए हम सदैव आपके साथ हैं। Wishing you great deals and success ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
 
-            sendDirectWhatsApp(updatedProfile.phone, welcomeMsg)
-                .then(async () => {
-                    updatedProfile.welcomeSent = true;
-                    await updatedProfile.save();
-                    console.log(`✅ Welcome WhatsApp message delivered to Broker: ${brokerName} (${updatedProfile.phone})`);
+            console.log(`📤 Dispatching Welcome WhatsApp to exact number: ${finalPhone}`);
+
+            sendDirectWhatsApp(finalPhone, welcomeMsg)
+                .then(async (sent) => {
+                    if (sent) {
+                        await BrokerProfile.updateOne({ brokerEmail: cleanEmail }, { $set: { welcomeSent: true } });
+                        console.log(`✅ Welcome WhatsApp message delivered to Broker: ${brokerName} (${finalPhone})`);
+                    }
                 })
                 .catch(err => console.error("Welcome WhatsApp delivery error:", err.message));
         }
@@ -1058,10 +1069,12 @@ app.post('/api/login', async (req, res) => {
                 const welcomeMsg = `नमस्ते ${user.name} ji! 🙏\n\n*Bhopal Properties Partner Network* में आपका हार्दिक स्वागत है! 🏢✨\n\nअब आप हमारे पोर्टल पर अपनी प्रॉपर्टीज लिस्ट कर सकते हैं, ग्राहकों से सीधे इन्क्वायरी पा सकते हैं, और डिजिटल लेजर का उपयोग कर सकते हैं।\n\nकिसी भी सहायता या जानकारी के लिए हम सदैव आपके साथ हैं। Wishing you great deals and success ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
                 
                 sendDirectWhatsApp(brokerProf.phone, welcomeMsg)
-                    .then(async () => {
-                        brokerProf.welcomeSent = true;
-                        await brokerProf.save();
-                        console.log(`✅ Welcome WhatsApp message delivered to Broker: ${user.name} (${brokerProf.phone})`);
+                    .then(async (sent) => {
+                        if (sent) {
+                            brokerProf.welcomeSent = true;
+                            await brokerProf.save();
+                            console.log(`✅ Welcome WhatsApp message delivered to Broker: ${user.name} (${brokerProf.phone})`);
+                        }
                     })
                     .catch(err => console.error("Welcome WhatsApp delivery error:", err.message));
             }
