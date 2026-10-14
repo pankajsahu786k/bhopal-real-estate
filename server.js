@@ -900,7 +900,7 @@ app.get('/api/get-profile', async(req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
-// 🌟 UPGRADED: PROFILE UPDATE ROUTE (Duplicate Phone Check + DOB + Full Profile Verification)
+// 🌟 UPGRADED: PROFILE UPDATE ROUTE (Duplicate Phone Check + DOB + Live Welcome Message Trigger)
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
         const { brokerEmail, phone, latitude, longitude, dob } = req.body;
@@ -965,6 +965,22 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             { $set: updateData }, 
             { new: true, upsert: true }
         );
+
+        // 🚀 LIVE TRIGGER: PROFILE UPDATE PAR TURANT WELCOME MESSAGE DISPATCH
+        if (updatedProfile.phone && !updatedProfile.welcomeSent) {
+            const user = await User.findOne({ email: cleanEmail });
+            const brokerName = user ? user.name : 'Partner';
+
+            const welcomeMsg = `नमस्ते ${brokerName} ji! 🙏\n\n*Bhopal Properties Partner Network* में आपका हार्दिक स्वागत है! 🏢✨\n\nआपकी प्रोफाइल सफलतापूर्वक अपडेट हो गई है। अब आप हमारे पोर्टल पर अपनी प्रॉपर्टीज लिस्ट कर सकते हैं, ग्राहकों से सीधे इन्क्वायरी पा सकते हैं, और डिजिटल लेजर का उपयोग कर सकते हैं।\n\nकिसी भी सहायता या जानकारी के लिए हम सदैव आपके साथ हैं। Wishing you great deals and success ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
+
+            sendDirectWhatsApp(updatedProfile.phone, welcomeMsg)
+                .then(async () => {
+                    updatedProfile.welcomeSent = true;
+                    await updatedProfile.save();
+                    console.log(`✅ Welcome WhatsApp message delivered to Broker: ${brokerName} (${updatedProfile.phone})`);
+                })
+                .catch(err => console.error("Welcome WhatsApp delivery error:", err.message));
+        }
 
         res.json({ 
             success: true, 
