@@ -185,6 +185,11 @@
     </nav>
 
     <script>
+        const isProfileComplete = localStorage.getItem('isProfileComplete');
+if (isProfileComplete === 'false' || isProfileComplete === null) {
+    alert("⚠️ Kripya pehle apni profile poori complete karein!");
+    window.location.href = 'profile.html';
+}
         // 🌟 मोबाइल ऐप में PDF ज़बरदस्ती डाउनलोड करवाने वाला स्पेशल फंक्शन
         function downloadPoliceReport(pdfUrl) {
             if (!pdfUrl) {

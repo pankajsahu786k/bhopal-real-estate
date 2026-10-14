@@ -97,13 +97,16 @@ const propertySchema = new mongoose.Schema({
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
+// 🌟 BROKER PROFILE SCHEMA (With DOB & Profile Complete Check)
 const brokerProfileSchema = new mongoose.Schema({
     brokerEmail: { type: String, unique: true, required: true },
     phone: String, 
     photo: String, 
     dealingAreas: [String],
+    dob: { type: String, default: '' }, // 🎂 Broker DOB (YYYY-MM-DD)
     latitude: { type: Number },
-    longitude: { type: Number }
+    longitude: { type: Number },
+    isProfileComplete: { type: Boolean, default: false } // 🔒 Guard Flag
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
@@ -210,6 +213,31 @@ const TenantLedgerSchema = new mongoose.Schema({
 const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedger', TenantLedgerSchema);
 
 // =========================================================================
+// 🛡️ MIDDLEWARE: BROKER PROFILE COMPLETION GUARD
+// =========================================================================
+async function requireCompleteProfile(req, res, next) {
+    try {
+        const email = (req.body.brokerEmail || req.query.email || '').toLowerCase().trim();
+        if (!email) {
+            return res.status(401).json({ success: false, message: "Broker Email anivarya hai!" });
+        }
+
+        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: email });
+        if (!brokerProfile || !brokerProfile.isProfileComplete) {
+            return res.status(403).json({ 
+                success: false, 
+                requireProfileCompletion: true, 
+                message: "Aapko pehle apni Profile poori complete karni hogi (Photo, Phone, DOB, Dealing Areas)!" 
+            });
+        }
+        next();
+    } catch (err) {
+        console.error("Profile Guard Error:", err);
+        res.status(500).json({ success: false, message: "Security Check Failed" });
+    }
+}
+
+// =========================================================================
 // 🚀 MASTER API ROUTE: UPSERT ENGINE
 // =========================================================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
@@ -273,7 +301,6 @@ async function processLedgerReminders(slotType) {
                 entry.monthDate && entry.monthDate.includes(currentMonthStr) && (entry.total > 0 || entry.rent > 0)
             );
 
-            // Agar ledger update nahi hua hai:
             if (!isUpdated) {
                 const owner = await BrokerProfile.findOne({ brokerEmail: tenant.ownerEmail });
                 const phone = owner ? owner.phone : tenant.mobileNo;
@@ -282,23 +309,19 @@ async function processLedgerReminders(slotType) {
 
                 let messageText = "";
 
-                // 🌅 9:00 AM Vision Integration
                 if (slotType === 'morning_9am') {
                     messageText = `Good morning sir, aaj aapke tenant (${tenant.roomOrFlatNo} - ${tenant.tenantName}) ka month complete ho gaya hai. Kripya apna ledger update karein taaki monthly rent time to time aapke account me aa sake. 🙏\nBhopal Properties`;
                     tenant.alertCount = 1;
                 } 
-                // ☀️ 12:00 PM Vision Integration
                 else if (slotType === 'afternoon_12pm') {
                     messageText = `Good afternoon sir, aapne abhi tak apna ledger update nahi kiya hai (${tenant.roomOrFlatNo} - ${tenant.tenantName}). Sir please apna ledger update karein taaki apna hisab clear rahe. 📊\nBhopal Properties`;
                     tenant.alertCount = 2;
                 } 
-                // 🌙 8:00 PM Vision Integration (Support & Agent Offer)
                 else if (slotType === 'evening_8pm') {
                     messageText = `Good evening sir, aapko ledger update karne me agar koi problem aa rahi hai toh hum aapko customer support provide kar sakte hain, ya kal hum apne agent ko bhej kar ledger update karwa dein? 🤝\nBhopal Properties Support`;
                     tenant.alertCount = 3;
                     tenant.needsAssistance = true;
 
-                    // Support employee ko alert send karna
                     const employeeMobile = "919993352339"; 
                     const empAlert = `🚨 CUSTOMER SUPPORT ACTION:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka ledger update nahi kiya hai. Kal subah call ya agent bhej kar update karwayen.`;
                     await sendDirectWhatsApp(employeeMobile, empAlert);
@@ -309,9 +332,8 @@ async function processLedgerReminders(slotType) {
                 await tenant.save();
 
                 await sendDirectWhatsApp(phone, messageText);
-                await sleep(3000); // 3 second safe delay for bulk tenants
+                await sleep(3000);
             } 
-            // Agar owner ne update kar diya hai:
             else if (isUpdated && tenant.alertCount > 0) {
                 tenant.alertCount = 0;
                 tenant.lastAlertSentAt = null;
@@ -325,37 +347,44 @@ async function processLedgerReminders(slotType) {
 }
 
 // =========================================================================
-// 🌐 SMART FESTIVAL & BIRTHDAY AUTO-ENGINE
+// 🌐 100% FULLY AUTOMATED INTERNET FESTIVAL & BIRTHDAY ENGINE
 // =========================================================================
 let festivalCache = {};
 
-// 1. Internet se current year ke Indian festivals fetch karne ka function
 async function updateFestivalCalendar() {
     try {
         const currentYear = new Date().getFullYear();
-        const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
+        console.log(`📡 Fetching live festival calendar for year ${currentYear}...`);
         
-        if (!response.ok) throw new Error('API request failed');
+        const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
+        if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
         
         const holidays = await response.json();
-        const updatedHolidays = {};
+        const updated = {};
 
         holidays.forEach(holiday => {
             const parts = holiday.date.split('-');
-            const key = `${parts[2]}-${parts[1]}`;
-            updatedHolidays[key] = holiday.localName || holiday.name;
+            const day = parts[2].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const key = `${day}-${month}`;
+            updated[key] = holiday.localName || holiday.name;
         });
 
-        festivalCache = updatedHolidays;
+        festivalCache = updated;
         console.log(`✅ Internet se ${currentYear} ke ${holidays.length} festivals auto-load ho gaye!`);
+        return festivalCache;
     } catch (err) {
         console.error('❌ Festival auto-fetch error:', err.message);
+        return festivalCache;
     }
 }
 
-// 2. Birthday aur Festival Wishes Dispatcher
-async function processGreetingsAndWishes() {
+async function processGreetingsAndWishes(forcedFestivalName = null) {
     try {
+        if (Object.keys(festivalCache).length === 0) {
+            await updateFestivalCalendar();
+        }
+
         const today = new Date();
         const currentDay = String(today.getDate()).padStart(2, '0');
         const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
@@ -363,7 +392,7 @@ async function processGreetingsAndWishes() {
 
         const activeTenants = await TenantLedger.find({ status: 'Active' });
 
-        // 🎂 CHECK 1: BIRTHDAY WISHES
+        // 🎂 CHECK 1: AUTOMATED BIRTHDAY WISHES
         for (const tenant of activeTenants) {
             if (tenant.tenantDOB && tenant.mobileNo) {
                 const dobClean = tenant.tenantDOB.replace(/\//g, '-');
@@ -387,31 +416,35 @@ async function processGreetingsAndWishes() {
             }
         }
 
-        // 🪔 CHECK 2: INTERNET FESTIVAL GREETINGS
-        if (festivalCache[todayKey]) {
-            const festivalName = festivalCache[todayKey];
+        // 🪔 CHECK 2: AUTOMATED INTERNET FESTIVAL GREETINGS
+        const festivalName = forcedFestivalName || festivalCache[todayKey];
+
+        if (festivalName) {
+            console.log(`🎉 Tyohar Triggered: ${festivalName}. Broadcasting wishes...`);
             const festivalMsg = `Aapko aur aapke parivaar ko ${festivalName} ki hardik shubhkaamnayein! 🪔✨\n- Bhopal Properties`;
-            console.log(`🎉 Aaj Tyohar hai: ${festivalName}. Sabhi ko wishes dispatch ho rahi hain...`);
 
             for (const tenant of activeTenants) {
                 if (tenant.mobileNo) {
                     await sendDirectWhatsApp(tenant.mobileNo, festivalMsg);
+                    console.log(`📤 Festival wish sent to ${tenant.tenantName} (${tenant.mobileNo})`);
                     await sleep(3000);
                 }
             }
+        } else {
+            console.log(`ℹ️ Aaj (${todayKey}) koi festival scheduled nahi hai.`);
         }
     } catch (err) {
         console.error("Wishes Engine Error:", err);
     }
 }
 
-// ⏰ Roz Subah 8:00 AM Cron Job (Wishes ke liye)
+// ⏰ Roz Subah 8:00 AM Cron Job (Automated Daily Check)
 cron.schedule('0 8 * * *', () => {
     console.log("🌅 Running 8:00 AM Birthday & Festival Check...");
     processGreetingsAndWishes();
 }, { timezone: "Asia/Kolkata" });
 
-// ⏰ Har Mahine ki 1 tareekh ko calendar sync
+// ⏰ Har Mahine ki 1 tareekh ko auto calendar sync
 cron.schedule('0 0 1 * *', () => {
     console.log("🔄 Syncing holiday calendar from internet...");
     updateFestivalCalendar();
@@ -608,8 +641,20 @@ app.post('/api/admin/toggle-payment', async (req, res) => {
 
 app.get('/api/test-wishes', async (req, res) => {
     console.log("Manual trigger for wishes & festivals...");
-    await processGreetingsAndWishes();
-    res.json({ success: true, message: "Wishes check completed!", loadedFestivals: festivalCache });
+    
+    if (Object.keys(festivalCache).length === 0) {
+        await updateFestivalCalendar();
+    }
+    
+    const forcedFestival = req.query.force === 'true' ? "Deepavali Utsav (Test)" : null;
+    await processGreetingsAndWishes(forcedFestival);
+    
+    res.json({ 
+        success: true, 
+        message: forcedFestival ? "Forced festival test executed!" : "Wishes check completed!", 
+        totalFestivals: Object.keys(festivalCache).length,
+        loadedFestivals: festivalCache 
+    });
 });
 
 app.post('/api/submit-verification', upload.fields([
@@ -820,26 +865,89 @@ app.get('/api/get-profile', async(req, res) => {
     try {
         const email = req.query.email;
         let profile = await BrokerProfile.findOne({ brokerEmail: email.toLowerCase().trim() });
-        res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [] });
+        res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [], dob: '', isProfileComplete: false });
     } catch (error) { res.status(500).json({ message: 'Error' }); }
 });
 
+// 🌟 UPGRADED: PROFILE UPDATE ROUTE (Duplicate Phone Check + DOB + Full Profile Verification)
 app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) => {
     try {
-        const { brokerEmail, phone, latitude, longitude } = req.body;
+        const { brokerEmail, phone, latitude, longitude, dob } = req.body;
+        const cleanEmail = brokerEmail ? brokerEmail.toLowerCase().trim() : '';
+
+        if (!cleanEmail) {
+            return res.status(400).json({ success: false, message: "Broker Email anivarya hai!" });
+        }
+
+        // 🔍 CHECK 1: DUPLICATE PHONE NUMBER CHECK
+        if (phone) {
+            const cleanPhone = phone.trim().replace(/\D/g, '');
+            const existingProfile = await BrokerProfile.findOne({
+                phone: { $regex: cleanPhone },
+                brokerEmail: { $ne: cleanEmail } // Dusre broker ke account me to nahi hai?
+            });
+
+            if (existingProfile) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "❌ Yeh phone number pehle se kisi aur broker ke account me registered hai! Kripya apna number daalein." 
+                });
+            }
+        }
+
         let areas = [];
         if (req.body.dealingAreas) {
-            try { areas = JSON.parse(req.body.dealingAreas); } catch (e) { areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); }
+            try { 
+                areas = JSON.parse(req.body.dealingAreas); 
+            } catch (e) { 
+                areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); 
+            }
         }
-        const updateData = { phone: phone, dealingAreas: areas };
+
+        const updateData = { 
+            phone: phone ? phone.trim() : '', 
+            dealingAreas: areas,
+            dob: dob ? dob.trim() : ''
+        };
         
         if (latitude) updateData.latitude = Number(latitude);
         if (longitude) updateData.longitude = Number(longitude);
-        
         if (req.file) updateData.photo = req.file.path || req.file.url;
-        await BrokerProfile.findOneAndUpdate({ brokerEmail: brokerEmail.toLowerCase().trim() }, { $set: updateData }, { new: true, upsert: true });
-        res.json({ success: true });
-    } catch (error) { res.status(500).json({ success: false }); }
+
+        // Current profile fetch karein
+        const currentProfile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
+        const finalPhoto = updateData.photo || (currentProfile ? currentProfile.photo : '');
+        const finalPhone = updateData.phone || (currentProfile ? currentProfile.phone : '');
+        const finalDOB = updateData.dob || (currentProfile ? currentProfile.dob : '');
+        const finalAreas = updateData.dealingAreas && updateData.dealingAreas.length > 0 
+            ? updateData.dealingAreas 
+            : (currentProfile ? currentProfile.dealingAreas : []);
+
+        // 🔒 CHECK 2: MANDATORY PROFILE COMPLETION
+        if (finalPhone && finalPhoto && finalDOB && finalAreas.length > 0) {
+            updateData.isProfileComplete = true;
+        } else {
+            updateData.isProfileComplete = false;
+        }
+
+        const updatedProfile = await BrokerProfile.findOneAndUpdate(
+            { brokerEmail: cleanEmail }, 
+            { $set: updateData }, 
+            { new: true, upsert: true }
+        );
+
+        res.json({ 
+            success: true, 
+            message: updateData.isProfileComplete 
+                ? "✅ प्रोफाइल सफलतापूर्वक पूरी अपडेट हो गई!" 
+                : "⚠️ प्रोफाइल सेव हुई, लेकिन कृपया फोटो, फ़ोन, जन्मतिथि और एरिया पूरी तरह भरें।",
+            isProfileComplete: updatedProfile.isProfileComplete,
+            data: updatedProfile
+        });
+    } catch (error) { 
+        console.error("Profile update error:", error);
+        res.status(500).json({ success: false, message: "Server Error" }); 
+    }
 });
 
 app.post('/api/signup', async (req, res) => {
@@ -874,6 +982,7 @@ app.post('/api/verify-otp', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
+// 🌟 UPGRADED: LOGIN (Returns isProfileComplete status)
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -891,7 +1000,18 @@ app.post('/api/login', async (req, res) => {
 
             const token = jwt.sign({ userId: user._id, role: actualRole, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
 
-            return res.json({ success: true, name: user.name, email: user.email, role: actualRole, token: token });
+            // Check if profile is complete
+            const brokerProf = await BrokerProfile.findOne({ brokerEmail: emailLower });
+            const isProfileComplete = brokerProf ? Boolean(brokerProf.isProfileComplete) : false;
+
+            return res.json({ 
+                success: true, 
+                name: user.name, 
+                email: user.email, 
+                role: actualRole, 
+                token: token,
+                isProfileComplete: isProfileComplete 
+            });
         }
 
         const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
@@ -1077,7 +1197,8 @@ app.get('/api/admin/get-payments', async (req, res) => {
     }
 });
 
-app.post('/api/submit-property-draft', upload.array('propertyImages', 3), async (req, res) => {
+// 🔒 GUARDED: Broker must complete profile before adding property draft
+app.post('/api/submit-property-draft', requireCompleteProfile, upload.array('propertyImages', 3), async (req, res) => {
     try {
         const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
         const draftId = 'DRAFT_PROP_' + Math.floor(Math.random() * 1000000);
@@ -1186,5 +1307,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
     connectToWhatsApp();
-    updateFestivalCalendar(); // 🌐 Server start hote hi festivals auto-load honge
+    updateFestivalCalendar();
 });
