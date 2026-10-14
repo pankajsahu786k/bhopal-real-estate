@@ -97,7 +97,7 @@ const propertySchema = new mongoose.Schema({
 }, { timestamps: true });
 const Property = mongoose.model('Property', propertySchema);
 
-// 🌟 BROKER PROFILE SCHEMA (With DOB & Profile Complete Check)
+// 🌟 BROKER PROFILE SCHEMA (With DOB, Completion Guard & Welcome Sent Flag)
 const brokerProfileSchema = new mongoose.Schema({
     brokerEmail: { type: String, unique: true, required: true },
     phone: String, 
@@ -106,7 +106,8 @@ const brokerProfileSchema = new mongoose.Schema({
     dob: { type: String, default: '' }, // 🎂 Broker DOB (YYYY-MM-DD)
     latitude: { type: Number },
     longitude: { type: Number },
-    isProfileComplete: { type: Boolean, default: false } // 🔒 Guard Flag
+    isProfileComplete: { type: Boolean, default: false },
+    welcomeSent: { type: Boolean, default: false } // 👈 Naye broker ko pehli baar welcome message bhejne ke liye
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
@@ -310,15 +311,15 @@ async function processLedgerReminders(slotType) {
                 let messageText = "";
 
                 if (slotType === 'morning_9am') {
-                    messageText = `Good morning sir, aaj aapke tenant (${tenant.roomOrFlatNo} - ${tenant.tenantName}) ka month complete ho gaya hai. Kripya apna ledger update karein taaki monthly rent time to time aapke account me aa sake. 🙏\nBhopal Properties`;
+                    messageText = `Good morning sir, aaj aapke tenant (${tenant.roomOrFlatNo} - ${tenant.tenantName}) ka month complete ho gaya hai. Kripya apna ledger update karein taaki monthly rent time to time aapke account me aa sake. 🙏\n\n🔗 Update Ledger: https://bhopal-real-estate.onrender.com\nBhopal Properties`;
                     tenant.alertCount = 1;
                 } 
                 else if (slotType === 'afternoon_12pm') {
-                    messageText = `Good afternoon sir, aapne abhi tak apna ledger update nahi kiya hai (${tenant.roomOrFlatNo} - ${tenant.tenantName}). Sir please apna ledger update karein taaki apna hisab clear rahe. 📊\nBhopal Properties`;
+                    messageText = `Good afternoon sir, aapne abhi tak apna ledger update nahi kiya hai (${tenant.roomOrFlatNo} - ${tenant.tenantName}). Sir please apna ledger update karein taaki apna hisab clear rahe. 📊\n\n🔗 Update Ledger: https://bhopal-real-estate.onrender.com\nBhopal Properties`;
                     tenant.alertCount = 2;
                 } 
                 else if (slotType === 'evening_8pm') {
-                    messageText = `Good evening sir, aapko ledger update karne me agar koi problem aa rahi hai toh hum aapko customer support provide kar sakte hain, ya kal hum apne agent ko bhej kar ledger update karwa dein? 🤝\nBhopal Properties Support`;
+                    messageText = `Good evening sir, aapko ledger update karne me agar koi problem aa rahi hai toh hum aapko customer support provide kar sakte hain, ya kal hum apne agent ko bhej kar ledger update karwa dein? 🤝\n\n🌐 Support: https://bhopal-real-estate.onrender.com\nBhopal Properties Support`;
                     tenant.alertCount = 3;
                     tenant.needsAssistance = true;
 
@@ -347,7 +348,7 @@ async function processLedgerReminders(slotType) {
 }
 
 // =========================================================================
-// 🌐 100% FULLY AUTOMATED INTERNET FESTIVAL & BIRTHDAY ENGINE
+// 🌐 100% FULLY AUTOMATED INTERNET FESTIVAL & BIRTHDAY ENGINE (TENANTS + BROKERS)
 // =========================================================================
 let festivalCache = {};
 
@@ -388,45 +389,75 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         const today = new Date();
         const currentDay = String(today.getDate()).padStart(2, '0');
         const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
-        const todayKey = `${currentDay}-${currentMonth}`; // e.g. "13-10"
+        const todayKey = `${currentDay}-${currentMonth}`; // DD-MM format
 
         const activeTenants = await TenantLedger.find({ status: 'Active' });
+        const allBrokers = await BrokerProfile.find({ phone: { $exists: true, $ne: '' } });
 
-        // 🎂 CHECK 1: AUTOMATED BIRTHDAY WISHES
+        // Helper DOB compare function
+        const isBirthdayToday = (dobString) => {
+            if (!dobString) return false;
+            const clean = dobString.replace(/\//g, '-');
+            const parts = clean.split('-');
+            let d = '', m = '';
+            if (parts[0].length === 4) { // YYYY-MM-DD
+                m = parts[1].padStart(2, '0');
+                d = parts[2].padStart(2, '0');
+            } else { // DD-MM-YYYY
+                d = parts[0].padStart(2, '0');
+                m = parts[1].padStart(2, '0');
+            }
+            return (d === currentDay && m === currentMonth);
+        };
+
+        // 🎂 1. BIRTHDAY WISHES: TENANTS
         for (const tenant of activeTenants) {
-            if (tenant.tenantDOB && tenant.mobileNo) {
-                const dobClean = tenant.tenantDOB.replace(/\//g, '-');
-                const parts = dobClean.split('-');
-                let dobDay = '', dobMonth = '';
-
-                if (parts[0].length === 4) { // Format: YYYY-MM-DD
-                    dobMonth = parts[1].padStart(2, '0');
-                    dobDay = parts[2].padStart(2, '0');
-                } else { // Format: DD-MM-YYYY
-                    dobDay = parts[0].padStart(2, '0');
-                    dobMonth = parts[1].padStart(2, '0');
-                }
-
-                if (dobDay === currentDay && dobMonth === currentMonth) {
-                    const bdayMsg = `🎂 Janamdin ki hardik shubhkaamnayein, ${tenant.tenantName} ji! 🎉\nBhopal Properties ki taraf se aapko swasthya aur khushiyon bhare saal ki shubhkaamnayein! 🌟`;
-                    await sendDirectWhatsApp(tenant.mobileNo, bdayMsg);
-                    console.log(`🎂 Birthday wish sent to ${tenant.tenantName}`);
-                    await sleep(3000);
-                }
+            if (tenant.tenantDOB && tenant.mobileNo && isBirthdayToday(tenant.tenantDOB)) {
+                const bdayMsg = `🎂 जन्मदिन की हार्दिक शुभकामनाएँ, ${tenant.tenantName} ji! 🎉\n\nभोपाल प्रॉपर्टीज परिवार की तरफ से आपके उत्तम स्वास्थ्य, दीर्घायु और खुशियों भरे वर्ष की मंगलकामना करते हैं। Have a fantastic day ahead! 🌟\n\n🌐 Visit Us: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
+                await sendDirectWhatsApp(tenant.mobileNo, bdayMsg);
+                console.log(`🎂 Birthday wish sent to Tenant: ${tenant.tenantName}`);
+                await sleep(3000);
             }
         }
 
-        // 🪔 CHECK 2: AUTOMATED INTERNET FESTIVAL GREETINGS
+        // 🎂 2. BIRTHDAY WISHES: BROKERS
+        for (const broker of allBrokers) {
+            if (broker.dob && broker.phone && isBirthdayToday(broker.dob)) {
+                const brokerUser = await User.findOne({ email: broker.brokerEmail });
+                const brokerName = brokerUser ? brokerUser.name : 'Partner';
+
+                const brokerBdayMsg = `🎂 जन्मदिन की ढेरों शुभकामनाएँ, ${brokerName} ji! 🎉💐\n\nBhopal Properties की पूरी टीम की ओर से आपको जन्मदिन की हार्दिक बधाई। ईश्वर आपको व्यवसाय में नई ऊँचाइयाँ, उत्तम स्वास्थ्य और अपार सफलता प्रदान करें। 🌟🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Bhopal Properties Business Network`;
+                await sendDirectWhatsApp(broker.phone, brokerBdayMsg);
+                console.log(`🎂 Birthday wish sent to Broker: ${brokerName} (${broker.phone})`);
+                await sleep(3000);
+            }
+        }
+
+        // 🪔 3. FESTIVAL GREETINGS: TENANTS + BROKERS
         const festivalName = forcedFestivalName || festivalCache[todayKey];
 
         if (festivalName) {
             console.log(`🎉 Tyohar Triggered: ${festivalName}. Broadcasting wishes...`);
-            const festivalMsg = `Aapko aur aapke parivaar ko ${festivalName} ki hardik shubhkaamnayein! 🪔✨\n- Bhopal Properties`;
 
+            // Tenants Greeting
+            const tenantFestMsg = `आपको और आपके पूरे परिवार को ${festivalName} की हार्दिक शुभकामनाएँ! 🪔✨\nजीवन में सुख, शांति और समृद्धि बनी रहे।\n\n🌐 Visit: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
             for (const tenant of activeTenants) {
                 if (tenant.mobileNo) {
-                    await sendDirectWhatsApp(tenant.mobileNo, festivalMsg);
-                    console.log(`📤 Festival wish sent to ${tenant.tenantName} (${tenant.mobileNo})`);
+                    await sendDirectWhatsApp(tenant.mobileNo, tenantFestMsg);
+                    console.log(`📤 Festival wish sent to Tenant: ${tenant.tenantName}`);
+                    await sleep(3000);
+                }
+            }
+
+            // Brokers Greeting
+            for (const broker of allBrokers) {
+                if (broker.phone) {
+                    const brokerUser = await User.findOne({ email: broker.brokerEmail });
+                    const brokerName = brokerUser ? brokerUser.name : 'Partner';
+
+                    const brokerFestMsg = `नमस्ते ${brokerName} ji! 🙏\n\nआपको और आपके परिवार को ${festivalName} के पावन अवसर पर Bhopal Properties की ओर से हार्दिक शुभकामनाएँ! 🪔✨\n\nयह त्योहार आपके व्यापार में नई खुशियाँ, तरक्की और नए अवसर लेकर आए। 💼📈\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
+                    await sendDirectWhatsApp(broker.phone, brokerFestMsg);
+                    console.log(`📤 Festival wish sent to Broker: ${brokerName}`);
                     await sleep(3000);
                 }
             }
@@ -884,7 +915,7 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             const cleanPhone = phone.trim().replace(/\D/g, '');
             const existingProfile = await BrokerProfile.findOne({
                 phone: { $regex: cleanPhone },
-                brokerEmail: { $ne: cleanEmail } // Dusre broker ke account me to nahi hai?
+                brokerEmail: { $ne: cleanEmail }
             });
 
             if (existingProfile) {
@@ -914,7 +945,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
         if (longitude) updateData.longitude = Number(longitude);
         if (req.file) updateData.photo = req.file.path || req.file.url;
 
-        // Current profile fetch karein
         const currentProfile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
         const finalPhoto = updateData.photo || (currentProfile ? currentProfile.photo : '');
         const finalPhone = updateData.phone || (currentProfile ? currentProfile.phone : '');
@@ -982,7 +1012,7 @@ app.post('/api/verify-otp', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false }); }
 });
 
-// 🌟 UPGRADED: LOGIN (Returns isProfileComplete status)
+// 🌟 UPGRADED: LOGIN (Returns isProfileComplete status + Sends First-time Welcome WhatsApp)
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -1000,9 +1030,21 @@ app.post('/api/login', async (req, res) => {
 
             const token = jwt.sign({ userId: user._id, role: actualRole, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
 
-            // Check if profile is complete
             const brokerProf = await BrokerProfile.findOne({ brokerEmail: emailLower });
             const isProfileComplete = brokerProf ? Boolean(brokerProf.isProfileComplete) : false;
+
+            // 🚀 FIRST-TIME WELCOME WHATSAPP MESSAGE FOR NEW BROKER
+            if (brokerProf && brokerProf.phone && !brokerProf.welcomeSent) {
+                const welcomeMsg = `नमस्ते ${user.name} ji! 🙏\n\n*Bhopal Properties Partner Network* में आपका हार्दिक स्वागत है! 🏢✨\n\nअब आप हमारे पोर्टल पर अपनी प्रॉपर्टीज लिस्ट कर सकते हैं, ग्राहकों से सीधे इन्क्वायरी पा सकते हैं, और डिजिटल लेजर का उपयोग कर सकते हैं।\n\nकिसी भी सहायता या जानकारी के लिए हम सदैव आपके साथ हैं। Wishing you great deals and success ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
+                
+                sendDirectWhatsApp(brokerProf.phone, welcomeMsg)
+                    .then(async () => {
+                        brokerProf.welcomeSent = true;
+                        await brokerProf.save();
+                        console.log(`✅ Welcome WhatsApp message delivered to Broker: ${user.name} (${brokerProf.phone})`);
+                    })
+                    .catch(err => console.error("Welcome WhatsApp delivery error:", err.message));
+            }
 
             return res.json({ 
                 success: true, 
@@ -1021,7 +1063,9 @@ app.post('/api/login', async (req, res) => {
         }
 
         return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड!' });
-    } catch (error) { res.status(500).json({ success: false, message: 'Server Error' }); }
+    } catch (error) { 
+        res.status(500).json({ success: false, message: 'Server Error' }); 
+    }
 });
 
 app.get('/api/admin/all-data', async (req, res) => {
