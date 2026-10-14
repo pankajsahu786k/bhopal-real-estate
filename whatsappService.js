@@ -1,40 +1,136 @@
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { 
+    default: makeWASocket, 
+    DisconnectReason, 
+    initAuthCreds, 
+    BufferJSON 
+} = require('@whiskeysockets/baileys');
+const mongoose = require('mongoose');
 const pino = require('pino');
 const QRCode = require('qrcode');
 
 let sock = null;
 let currentQrData = null; // Browser par dikhane ke liye
 
-async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
+// =========================================================================
+// 🗄️ MONGODB WHATSAPP SESSION SCHEMA (PERMANENT STORAGE)
+// =========================================================================
+const whatsappAuthSchema = new mongoose.Schema({
+    _id: String,
+    data: String
+}, { collection: 'whatsapp_baileys_auth' });
 
-    sock = makeWASocket({
-        auth: state,
-        logger: pino({ level: 'silent' })
-    });
+const WhatsAppAuth = mongoose.models.WhatsAppAuth || mongoose.model('WhatsAppAuth', whatsappAuthSchema);
 
-    sock.ev.on('creds.update', saveCreds);
+// Custom MongoDB Auth State Adapter (No extra npm package needed)
+async function useMongoDBAuthState() {
+    const writeData = async (id, data) => {
+        const serialized = JSON.stringify(data, BufferJSON.replacer);
+        await WhatsAppAuth.findByIdAndUpdate(
+            id, 
+            { _id: id, data: serialized }, 
+            { upsert: true }
+        );
+    };
 
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        
-        if (qr) {
-            // QR string ko image DataURL me convert karein
-            currentQrData = await QRCode.toDataURL(qr);
-            console.log('📌 Naya QR code ready hai! Browser me /qr open karke scan karein.');
+    const readData = async (id) => {
+        try {
+            const doc = await WhatsAppAuth.findById(id);
+            if (!doc || !doc.data) return null;
+            return JSON.parse(doc.data, BufferJSON.reviver);
+        } catch (err) {
+            return null;
         }
+    };
 
-        if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('WhatsApp connection closed. Reconnecting:', shouldReconnect);
-            if (shouldReconnect) {
-                connectToWhatsApp();
+    const removeData = async (id) => {
+        try {
+            await WhatsAppAuth.findByIdAndDelete(id);
+        } catch (err) {}
+    };
+
+    // Purana session database se load karein ya naya banayein
+    const creds = (await readData('creds')) || initAuthCreds();
+
+    return {
+        state: {
+            creds,
+            keys: {
+                get: async (type, ids) => {
+                    const data = {};
+                    await Promise.all(
+                        ids.map(async (id) => {
+                            let value = await readData(`${type}-${id}`);
+                            data[id] = value;
+                        })
+                    );
+                    return data;
+                },
+                set: async (data) => {
+                    const tasks = [];
+                    for (const category in data) {
+                        for (const id in data[category]) {
+                            const value = data[category][id];
+                            const key = `${category}-${id}`;
+                            tasks.push(value ? writeData(key, value) : removeData(key));
+                        }
+                    }
+                    await Promise.all(tasks);
+                }
             }
-        } else if (connection === 'open') {
-            currentQrData = null; // Connected hone par QR clear kar dein
-            console.log('✅ WhatsApp Baileys successfully connected!');
+        },
+        saveCreds: () => writeData('creds', creds)
+    };
+}
+
+// =========================================================================
+// 📱 WHATSAPP CONNECTION ENGINE
+// =========================================================================
+async function connectToWhatsApp() {
+    try {
+        // Ensure MongoDB connected ho tabhi session uthaye
+        if (mongoose.connection.readyState !== 1) {
+            console.log('⏳ Waiting for MongoDB connection before starting WhatsApp...');
+            await new Promise(resolve => mongoose.connection.once('connected', resolve));
         }
-    });
+
+        const { state, saveCreds } = await useMongoDBAuthState();
+
+        sock = makeWASocket({
+            auth: state,
+            logger: pino({ level: 'silent' }),
+            printQRInTerminal: false
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect, qr } = update;
+            
+            if (qr) {
+                currentQrData = await QRCode.toDataURL(qr);
+                console.log('📌 Naya QR code ready hai! Browser me /qr open karke scan karein.');
+            }
+
+            if (connection === 'close') {
+                const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+                console.log('WhatsApp connection closed. Reconnecting:', shouldReconnect);
+                
+                if (statusCode === DisconnectReason.loggedOut) {
+                    console.log('⚠️ Device logged out from mobile! Clearing old session from MongoDB...');
+                    await WhatsAppAuth.deleteMany({});
+                    connectToWhatsApp();
+                } else if (shouldReconnect) {
+                    setTimeout(() => connectToWhatsApp(), 3000);
+                }
+            } else if (connection === 'open') {
+                currentQrData = null; // Connected hone par QR clear kar dein
+                console.log('✅ WhatsApp Baileys successfully connected (Saved in MongoDB Permanently)!');
+            }
+        });
+    } catch (err) {
+        console.error('WhatsApp Init Error:', err.message);
+    }
 }
 
 async function sendDirectWhatsApp(phone, text) {
