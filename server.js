@@ -1402,39 +1402,46 @@ app.post('/api/reset-password', async (req, res) => {
 });
 
 // 🌟 UPGRADED: LOGIN (Returns isProfileComplete status + Sends First-time Welcome WhatsApp)
+// 🌟 UPGRADED: LOGIN ROUTE (100% Accurate Password Check & Sync)
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ success: false, message: 'Kripya Email aur Password dono bharein!' });
+        }
+
         const emailLower = email.toLowerCase().trim();
 
-        const user = await User.findOne({ email: emailLower });
+        const user = await User.findOne({ email: { $regex: new RegExp(`^${emailLower}$`, 'i') } });
         if (user) {
+            // Check password using bcrypt (with fallback for plain text if any old account exists)
             const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch && password !== user.password) {
-                return res.status(401).json({ success: false, message: 'गलत पासवर्ड!' });
+            const isPlainMatch = (password === user.password);
+
+            if (!isMatch && !isPlainMatch) {
+                return res.status(401).json({ success: false, message: 'Galat Password! Kripya dobara koshish karein.' });
             }
 
             let actualRole = user.role || 'user';
-            if (user.email === "devilking786k@sahu.com") actualRole = 'admin';
+            if (user.email.toLowerCase() === "devilking786k@sahu.com") actualRole = 'admin';
 
             const token = jwt.sign({ userId: user._id, role: actualRole, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
 
-            const brokerProf = await BrokerProfile.findOne({ brokerEmail: emailLower });
+            const brokerProf = await BrokerProfile.findOne({ brokerEmail: user.email });
             const isProfileComplete = brokerProf ? Boolean(brokerProf.isProfileComplete) : false;
 
-            // 🚀 FIRST-TIME WELCOME WHATSAPP MESSAGE FOR NEW BROKER
+            // Welcome WhatsApp message check
             if (brokerProf && brokerProf.phone && !brokerProf.welcomeSent) {
-                const welcomeMsg = `नमस्ते ${user.name} ji! 🙏\n\n*Bhopal Properties Partner Network* में आपका हार्दिक स्वागत है! 🏢✨\n\nअब आप हमारे पोर्टल पर अपनी प्रॉपर्टीज लिस्ट कर सकते हैं, ग्राहकों से सीधे इन्क्वायरी पा सकते हैं, और डिजिटल लेजर का उपयोग कर सकते हैं।\n\nकिसी भी सहायता या जानकारी के लिए हम सदैव आपके साथ हैं। Wishing you great deals and success ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
+                const welcomeMsg = `Namaste ${user.name} ji! 🙏\n\n*Bhopal Properties Partner Network* me aapka hardik swagat hai! 🏢✨\n\nAb aap apne portal par properties list kar sakte hain. Wishing you great deals ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
                 
                 sendDirectWhatsApp(brokerProf.phone, welcomeMsg)
                     .then(async (sent) => {
                         if (sent) {
                             brokerProf.welcomeSent = true;
                             await brokerProf.save();
-                            console.log(`✅ Welcome WhatsApp message delivered to Broker: ${user.name} (${brokerProf.phone})`);
                         }
                     })
-                    .catch(err => console.error("Welcome WhatsApp delivery error:", err.message));
+                    .catch(() => {});
             }
 
             return res.json({ 
@@ -1447,14 +1454,15 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        const tenant = await TenantLedger.findOne({ tenantEmail: emailLower, tenantPassword: password });
+        const tenant = await TenantLedger.findOne({ tenantEmail: { $regex: new RegExp(`^${emailLower}$`, 'i') }, tenantPassword: password });
         if (tenant) {
             const token = jwt.sign({ tenantId: tenant._id, role: 'tenant', email: tenant.tenantEmail }, JWT_SECRET, { expiresIn: '24h' });
             return res.json({ success: true, name: tenant.tenantName, email: tenant.tenantEmail, role: 'tenant', token: token, tenantData: tenant });
         }
 
-        return res.status(401).json({ success: false, message: 'गलत ईमेल या पासवर्ड!' });
+        return res.status(401).json({ success: false, message: 'Galat Email ya Password!' });
     } catch (error) { 
+        console.error("Login Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' }); 
     }
 });
