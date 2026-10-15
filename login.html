@@ -9,41 +9,115 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
         body { background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)), url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .login-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(15px); padding: 40px 30px; border-radius: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 100%; max-width: 420px; text-align: center; }
-        .logo { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 20px; }
-        .input-group { margin-bottom: 20px; text-align: left; }
+        .logo { font-size: 28px; font-weight: 700; color: #2c3e50; margin-bottom: 10px; }
+        .logo span { color: #27ae60; }
+        .subtitle { font-size: 13px; color: #576574; margin-bottom: 20px; }
+        .input-group { margin-bottom: 18px; text-align: left; }
         .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 14px; }
-        .input-group input { width: 100%; padding: 15px; border: 2px solid transparent; border-radius: 12px; outline: none; font-size: 14px; }
-        .form-group input:focus { border-color: #f59e0b; }
-        .save-btn { background: #10b981; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
-        .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; width: 100%; }
-        .logout-btn:hover { background-color: #c0392b; }
+        .input-group input { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; outline: none; font-size: 14px; background: #f8fafc; transition: 0.2s; }
+        .input-group input:focus { border-color: #27ae60; background: white; }
+        .logout-btn { background-color: #27ae60; color: white; border: none; padding: 14px 15px; cursor: pointer; border-radius: 12px; font-weight: 600; font-size: 16px; width: 100%; transition: 0.2s; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.25); }
+        .logout-btn:hover { background-color: #219653; transform: translateY(-2px); }
+        .forgot-link { display: inline-block; font-size: 13px; color: #e67e22; font-weight: 600; text-decoration: none; cursor: pointer; margin-bottom: 15px; }
+        .forgot-link:hover { text-decoration: underline; }
+        .msg-box { padding: 10px 12px; border-radius: 8px; margin-bottom: 18px; display: none; font-size: 13px; font-weight: 500; }
+        .msg-error { background: #ffeaa7; color: #d63031; border-left: 4px solid #d63031; }
+        .msg-success { background: #dff9fb; color: #16a34a; border-left: 4px solid #16a34a; }
     </style>
 </head>
 <body>
     <div class="login-card">
         <div class="logo">Bhopal <span>Properties</span> 🏠</div>
-        <div id="errorMsg" style="background: #ffeaa7; color: #d63031; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: none; font-size: 14px;"></div>
-        <form id="loginForm">
-            <div class="input-group">
-                <label>Email Address</label>
-                <input type="email" id="email" placeholder="name@example.com" required>
+        <p class="subtitle" id="cardSubtitle">Welcome back! Please login to your account.</p>
+
+        <div id="errorMsg" class="msg-box msg-error"></div>
+
+        <!-- 🔐 SECTION 1: MAIN LOGIN FORM -->
+        <div id="loginSection">
+            <form id="loginForm">
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="name@example.com" required>
+                </div>
+                <div class="input-group" style="margin-bottom: 8px;">
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <div style="text-align: right;">
+                    <span class="forgot-link" onclick="showForgotSection()">Forgot Password? 🔑</span>
+                </div>
+                <button type="submit" class="logout-btn" id="loginBtn">Log In 🚀</button>
+            </form>
+            <div class="bottom-link" style="margin-top: 20px; font-size: 14px; color: #576574;">
+                Don't have an account? <a href="signup.html" style="color: #2980b9; text-decoration: none; font-weight: bold;">Sign Up here</a>
             </div>
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+
+        <!-- 📲 SECTION 2: FORGOT PASSWORD - STEP 1 (SEND WHATSAPP OTP) -->
+        <div id="forgotStep1" style="display: none;">
+            <form id="forgotRequestForm">
+                <div class="input-group">
+                    <label>Registered Email OR WhatsApp No.</label>
+                    <input type="text" id="resetIdentifier" placeholder="Email या 10-अंकों का मोबाइल नंबर" required>
+                </div>
+                <button type="submit" class="logout-btn" id="sendResetOtpBtn" style="background-color: #3498db;">Send OTP on WhatsApp 📲</button>
+            </form>
+            <div style="margin-top: 15px;">
+                <span class="forgot-link" style="color: #576574;" onclick="showLoginSection()">⬅️ Back to Login</span>
             </div>
-            <button type="submit" class="logout-btn" id="loginBtn" style="background-color: #27ae60;">Log In 🚀</button>
-        </form>
-        <div class="bottom-link" style="margin-top: 20px; font-size: 14px; color: #576574;">
-            Don't have an account? <a href="signup.html" style="color: #2980b9; text-decoration: none; font-weight: bold;">Sign Up here</a>
+        </div>
+
+        <!-- 🔑 SECTION 3: FORGOT PASSWORD - STEP 2 (VERIFY OTP & SET NEW PASSWORD) -->
+        <div id="forgotStep2" style="display: none;">
+            <form id="forgotVerifyForm">
+                <div class="input-group">
+                    <label style="text-align: center;">Enter 4-Digit WhatsApp OTP</label>
+                    <input type="text" id="resetOtpCode" placeholder="••••" maxlength="4" pattern="[0-9]{4}" required style="text-align: center; font-size: 24px; letter-spacing: 10px; font-weight: bold; color: #16a34a;">
+                </div>
+                <div class="input-group">
+                    <label>New Password</label>
+                    <input type="password" id="newResetPassword" placeholder="Min 6 characters" minlength="6" required>
+                </div>
+                <button type="submit" class="logout-btn" id="resetPassBtn" style="background-color: #16a34a;">Update Password ✅</button>
+            </form>
+            <div style="margin-top: 15px;">
+                <span class="forgot-link" style="color: #576574;" onclick="showForgotSection()">🔄 Resend OTP</span>
+            </div>
         </div>
     </div>
 
     <script>
+        const errorMsg = document.getElementById('errorMsg');
+        let resetTargetEmail = "";
+
+        function showStatus(text, isSuccess = false) {
+            errorMsg.innerHTML = text;
+            errorMsg.className = isSuccess ? "msg-box msg-success" : "msg-box msg-error";
+            errorMsg.style.display = "block";
+        }
+
+        function showForgotSection() {
+            errorMsg.style.display = "none";
+            document.getElementById('loginSection').style.display = "none";
+            document.getElementById('forgotStep2').style.display = "none";
+            document.getElementById('forgotStep1').style.display = "block";
+            document.getElementById('cardSubtitle').innerText = "पासवर्ड रीसेट करने के लिए अपना रजिस्टर्ड ईमेल या WhatsApp नंबर डालें।";
+        }
+
+        function showLoginSection() {
+            errorMsg.style.display = "none";
+            document.getElementById('forgotStep1').style.display = "none";
+            document.getElementById('forgotStep2').style.display = "none";
+            document.getElementById('loginSection').style.display = "block";
+            document.getElementById('cardSubtitle').innerText = "Welcome back! Please login to your account.";
+        }
+
+        // ==========================================
+        // 1️⃣ MAIN LOGIN HANDLER (Aapka Purana Logic 100% Intact)
+        // ==========================================
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('loginBtn');
-            const errorMsg = document.getElementById('errorMsg');
             btn.innerText = "Verifying...";
             errorMsg.style.display = "none";
             
@@ -68,9 +142,8 @@
                         localStorage.setItem('tenantEmail', data.tenantData.tenantEmail);
                         localStorage.setItem('userRole', 'tenant');
                         localStorage.setItem('brokerName', data.tenantData.tenantName);
-                        // 🔴 किरायेदार का सुरक्षित टोकन यहाँ सेव हो रहा है
                         localStorage.setItem('authToken', data.token);
-                        window.location.href = 'tenant-dashboard.html'; // सीधे रीड-ओनली खाता पोर्टल पर भेजें
+                        window.location.href = 'tenant-dashboard.html';
                         return;
                     }
 
@@ -78,8 +151,8 @@
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
                     localStorage.setItem('userRole', data.role);
-                    // 🔴 एडमिन / यूजर का सुरक्षित टोकन यहाँ सेव हो रहा है
                     localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('isProfileComplete', data.isProfileComplete);
 
                     const cleanRole = data.role ? data.role.trim() : '';
 
@@ -100,15 +173,86 @@
                         window.location.replace('dashboard.html');
                     }
                 } else {
-                    errorMsg.innerText = "❌ " + (data.message || "लॉगिन विफल!");
-                    errorMsg.style.display = "block";
+                    showStatus("❌ " + (data.message || "लॉगिन विफल!"), false);
                     btn.innerText = "Log In 🚀";
                 }
             } catch (err) {
                 console.error(err);
-                errorMsg.innerText = "❌ Server Error!";
-                errorMsg.style.display = "block";
+                showStatus("❌ Server Error!", false);
                 btn.innerText = "Log In 🚀";
+            }
+        });
+
+        // ==========================================
+        // 2️⃣ FORGOT PASSWORD: SEND WHATSAPP OTP
+        // ==========================================
+        document.getElementById('forgotRequestForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('sendResetOtpBtn');
+            btn.innerText = "Sending OTP... ⏳";
+            errorMsg.style.display = "none";
+
+            const identifier = document.getElementById('resetIdentifier').value.trim();
+
+            try {
+                const res = await fetch('/api/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    resetTargetEmail = data.email;
+                    document.getElementById('forgotStep1').style.display = "none";
+                    document.getElementById('forgotStep2').style.display = "block";
+                    document.getElementById('resetOtpCode').value = "";
+                    document.getElementById('newResetPassword').value = "";
+                    showStatus(data.message, true);
+                } else {
+                    showStatus("❌ " + (data.message || "अकाउंट नहीं मिला!"), false);
+                }
+            } catch (err) {
+                showStatus("❌ Server Error! Please try again.", false);
+            } finally {
+                btn.innerText = "Send OTP on WhatsApp 📲";
+            }
+        });
+
+        // ==========================================
+        // 3️⃣ FORGOT PASSWORD: VERIFY OTP & UPDATE PASSWORD
+        // ==========================================
+        document.getElementById('forgotVerifyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('resetPassBtn');
+            btn.innerText = "Updating Password... ⏳";
+            errorMsg.style.display = "none";
+
+            const otp = document.getElementById('resetOtpCode').value.trim();
+            const newPassword = document.getElementById('newResetPassword').value;
+
+            try {
+                const res = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetTargetEmail, otp, newPassword })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showStatus(data.message || "✅ पासवर्ड बदल गया! अब लॉगिन करें।", true);
+                    setTimeout(() => {
+                        showLoginSection();
+                        document.getElementById('email').value = resetTargetEmail;
+                        showStatus("✅ पासवर्ड सफलतापूर्वक बदल गया है! कृपया नए पासवर्ड से लॉगिन करें।", true);
+                    }, 1800);
+                } else {
+                    showStatus("❌ " + (data.message || "गलत OTP!"), false);
+                }
+            } catch (err) {
+                showStatus("❌ Server Error!", false);
+            } finally {
+                btn.innerText = "Update Password ✅";
             }
         });
     </script>

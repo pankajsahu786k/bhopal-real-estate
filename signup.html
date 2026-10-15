@@ -16,10 +16,17 @@
         .input-group label { display: block; font-weight: 600; color: #2c3e50; margin-bottom: 8px; font-size: 13px; }
         .input-group input { width: 100%; padding: 14px; border: 2px solid transparent; border-radius: 12px; font-size: 15px; transition: all 0.3s ease; outline: none; background: #f1f2f6; color: #2c3e50; font-weight: 500; }
         .input-group input:focus { border-color: #3498db; background: white; box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15); }
+        
+        /* 📱 WhatsApp Phone Wrapper */
+        .phone-wrapper { display: flex; align-items: center; background: #f1f2f6; border-radius: 12px; border: 2px solid transparent; overflow: hidden; transition: all 0.3s ease; }
+        .phone-wrapper:focus-within { border-color: #25D366; background: white; box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.15); }
+        .phone-prefix { background: #e2e8f0; padding: 14px 12px; font-weight: 700; color: #2c3e50; font-size: 15px; border-right: 1px solid #cbd5e1; }
+        .phone-wrapper input { border: none !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; }
+
         .action-btn { width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2); }
         .action-btn:hover { background: #2980b9; transform: translateY(-2px); }
-        .action-btn.success { background: #27ae60; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2); }
-        .action-btn.success:hover { background: #219653; }
+        .action-btn.success { background: #25D366; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3); }
+        .action-btn.success:hover { background: #1ebe5d; }
         .bottom-link { margin-top: 20px; font-size: 14px; color: #576574; }
         .bottom-link a { color: #2c3e50; text-decoration: none; font-weight: 700; transition: color 0.3s ease; }
         .bottom-link a:hover { color: #3498db; text-decoration: underline; }
@@ -27,34 +34,51 @@
         .msg-error { background: #ffeaa7; color: #d63031; border-left: 4px solid #d63031; }
         .msg-success { background: #dff9fb; color: #27ae60; border-left: 4px solid #27ae60; }
         #step2 { display: none; }
-        @media (max-width: 480px) { .signup-card { padding: 25px 20px; border-radius: 20px; } .logo { font-size: 24px; } .subtitle { font-size: 13px; margin-bottom: 20px; } .input-group input { padding: 12px; font-size: 14px; } .action-btn { padding: 14px; font-size: 15px; } #otpCode { font-size: 24px !important; letter-spacing: 8px !important; } }
+        @media (max-width: 480px) { .signup-card { padding: 25px 20px; border-radius: 20px; } .logo { font-size: 24px; } .subtitle { font-size: 13px; margin-bottom: 20px; } .input-group input { padding: 12px; font-size: 14px; } .phone-prefix { padding: 12px; font-size: 14px; } .action-btn { padding: 14px; font-size: 15px; } #otpCode { font-size: 24px !important; letter-spacing: 8px !important; } }
     </style>
 </head>
 <body>
 
     <div class="signup-card">
         <div class="logo">Create <span>Account</span> ✨</div>
-        <p class="subtitle" id="formSubtitle">Register as a broker and start managing properties.</p>
+        <p class="subtitle" id="formSubtitle">Register as a broker and verify via WhatsApp OTP.</p>
         
         <div id="messageBox"></div>
         
         <form id="signupForm">
             <div id="step1">
-                <div class="input-group"><label>Full Name</label><input type="text" id="name" placeholder="John Doe" required></div>
-                <div class="input-group"><label>Email Address</label><input type="email" id="email" placeholder="name@example.com" required></div>
-                <div class="input-group"><label>Create Password</label><input type="password" id="password" placeholder="Min 6 characters" required minlength="6"></div>
-                <button type="submit" class="action-btn" id="signupBtn">Sign Up Now</button>
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="name" placeholder="Enter your full name" required>
+                </div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="name@example.com" required>
+                </div>
+                <div class="input-group">
+                    <label style="color: #16a34a;">WhatsApp Mobile Number *</label>
+                    <div class="phone-wrapper">
+                        <span class="phone-prefix">+91</span>
+                        <input type="tel" id="phone" placeholder="10-Digit WhatsApp Number" maxlength="10" pattern="[0-9]{10}" required>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Create Password</label>
+                    <input type="password" id="password" placeholder="Min 6 characters" required minlength="6">
+                </div>
+                <button type="submit" class="action-btn" id="signupBtn">Send WhatsApp OTP 📲</button>
             </div>
         </form>
 
         <form id="otpForm">
             <div id="step2">
                 <div class="input-group">
-                    <label>Enter OTP Code</label>
-                    <input type="text" id="otpCode" placeholder="••••" required autocomplete="off" maxlength="4" style="text-align: center; font-size: 28px; letter-spacing: 12px; font-weight: bold; color: #27ae60;">
-                    <p style="font-size: 12px; color: #576574; margin-top: 8px; text-align: center;">* OTP has been auto-filled for testing.</p>
+                    <label style="text-align: center;">Enter 4-Digit WhatsApp OTP</label>
+                    <input type="text" id="otpCode" placeholder="••••" required autocomplete="off" maxlength="4" pattern="[0-9]{4}" style="text-align: center; font-size: 28px; letter-spacing: 12px; font-weight: bold; color: #27ae60;">
+                    <p style="font-size: 12px; color: #576574; margin-top: 8px; text-align: center;">📲 कृपया अपने WhatsApp पर आया हुआ 4-अंकों का OTP दर्ज करें।</p>
                 </div>
-                <button type="submit" class="action-btn success" id="verifyBtn">Verify Account</button>
+                <button type="submit" class="action-btn success" id="verifyBtn">Verify & Create Account ✅</button>
+                <button type="button" onclick="backToStep1()" style="background:none; border:none; color:#3498db; font-size:13px; font-weight:600; margin-top:12px; cursor:pointer; text-decoration:underline;">✏️ Change Number / Resend OTP</button>
             </div>
         </form>
         
@@ -71,22 +95,31 @@
             msgBox.className = isError ? "msg-error" : "msg-success";
         }
 
+        function backToStep1() {
+            document.getElementById('step2').style.display = "none";
+            document.getElementById('step1').style.display = "block";
+            document.getElementById('signupBtn').innerText = "Send WhatsApp OTP 📲";
+            document.getElementById('signupBtn').style.opacity = "1";
+            msgBox.style.display = "none";
+        }
+
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('signupBtn');
-            btn.innerText = "Creating Account... ⏳";
+            btn.innerText = "Sending OTP on WhatsApp... ⏳";
             btn.style.opacity = "0.8";
             msgBox.style.display = "none";
             
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
             const password = document.getElementById('password').value;
             
             try {
                 const res = await fetch('/api/signup', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ name, email, phone, password })
                 });
                 
                 const data = await res.json();
@@ -95,20 +128,19 @@
                     userEmailForOtp = email;
                     document.getElementById('step1').style.display = "none";
                     document.getElementById('step2').style.display = "block";
+                    document.getElementById('otpCode').value = "";
+                    document.getElementById('otpCode').focus();
                     
-                    // 🚨 जादू: OTP स्क्रीन पर दिखाओ और डब्बे में अपने आप भर दो!
-                    document.getElementById('formSubtitle').innerHTML = `Testing Mode Active!`;
-                    showMessage(`✅ Your OTP is: <strong>${data.generatedOtp}</strong>`);
-                    document.getElementById('otpCode').value = data.generatedOtp;
-                    
+                    document.getElementById('formSubtitle').innerHTML = `OTP sent to WhatsApp <b>+91 ${phone}</b>`;
+                    showMessage(data.message || `✅ आपके WhatsApp नंबर पर OTP भेज दिया गया है!`);
                 } else {
-                    showMessage("❌ " + data.message, true);
-                    btn.innerText = "Sign Up Now";
+                    showMessage("❌ " + (data.message || "साइनअप विफल!"), true);
+                    btn.innerText = "Send WhatsApp OTP 📲";
                     btn.style.opacity = "1";
                 }
             } catch (error) {
                 showMessage("❌ Server Error! Please try again.", true);
-                btn.innerText = "Sign Up Now";
+                btn.innerText = "Send WhatsApp OTP 📲";
                 btn.style.opacity = "1";
             }
         });
@@ -116,11 +148,11 @@
         document.getElementById('otpForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('verifyBtn');
-            btn.innerText = "Verifying... ⏳";
+            btn.innerText = "Verifying OTP... ⏳";
             btn.style.opacity = "0.8";
             msgBox.style.display = "none";
             
-            const otp = document.getElementById('otpCode').value;
+            const otp = document.getElementById('otpCode').value.trim();
             
             try {
                 const res = await fetch('/api/verify-otp', {
@@ -132,17 +164,17 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    btn.innerText = "Account Created! ✅";
-                    showMessage("🎉 " + data.message);
-                    setTimeout(() => { window.location.href = 'login.html'; }, 2000);
+                    btn.innerText = "Account Verified! ✅";
+                    showMessage(data.message || "🎉 आपका अकाउंट सफलतापूर्वक बन गया!");
+                    setTimeout(() => { window.location.href = 'login.html'; }, 1800);
                 } else {
-                    showMessage("❌ " + data.message, true);
-                    btn.innerText = "Verify Account";
+                    showMessage(data.message || "❌ गलत OTP! कृपया दोबारा जांचें।", true);
+                    btn.innerText = "Verify & Create Account ✅";
                     btn.style.opacity = "1";
                 }
             } catch (error) {
                 showMessage("❌ Server Error during verification.", true);
-                btn.innerText = "Verify Account";
+                btn.innerText = "Verify & Create Account ✅";
                 btn.style.opacity = "1";
             }
         });
