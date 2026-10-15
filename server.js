@@ -1214,16 +1214,13 @@ app.post('/api/verify-otp', async (req, res) => {
     }
 });
 // =========================================================================
-// 🔑 FORGOT PASSWORD & RESET VIA WHATSAPP OTP
-// =========================================================================
-// =========================================================================
-// 🔑 SMART FORGOT PASSWORD / FIND USER ID VIA WHATSAPP OTP (3-STEP FLOW)
+// 🔑 SMART FORGOT PASSWORD / FIND USER ID VIA WHATSAPP OTP (UNIVERSAL LOOKUP)
 // =========================================================================
 app.post('/api/forgot-password', async (req, res) => {
     try {
         const { identifier } = req.body;
         if (!identifier) {
-            return res.status(400).json({ success: false, message: 'Kripya apna email ya mobile number dalein!' });
+            return res.status(400).json({ success: false, message: 'कृपया अपना ईमेल या मोबाइल नंबर डालें!' });
         }
 
         const cleanInput = identifier.toString().trim().toLowerCase();
@@ -1236,41 +1233,50 @@ app.post('/api/forgot-password', async (req, res) => {
         // 1. Agar user ne Email dala hai
         if (cleanInput.includes('@')) {
             targetEmail = cleanInput;
+            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
+            if (userDoc) {
+                targetName = userDoc.name || targetName;
+                targetPhone = userDoc.phone || '';
+            }
+            if (brokerDoc && brokerDoc.phone && !targetPhone) {
+                targetPhone = brokerDoc.phone;
+            }
         } 
         // 2. Agar user ne 10-digit Mobile Number dala hai
         else if (digitsOnly.length === 10) {
-            // Sabse pehle BrokerProfile me check karein (kyunki wahan mobile number save hota hai)
-            const brokerProf = await BrokerProfile.findOne({ phone: { $regex: digitsOnly } });
+            // Sabse pehle BrokerProfile me check karein
+            let brokerProf = await BrokerProfile.findOne({ phone: { $regex: digitsOnly } });
+            let userDoc = await User.findOne({ phone: { $regex: digitsOnly } });
+
             if (brokerProf && brokerProf.brokerEmail) {
                 targetEmail = brokerProf.brokerEmail.toLowerCase().trim();
                 targetPhone = brokerProf.phone;
+            } else if (userDoc) {
+                targetEmail = userDoc.email.toLowerCase().trim();
+                targetPhone = userDoc.phone;
+                targetName = userDoc.name;
             } else {
-                // Agar BrokerProfile me nahi mila toh User table me check karein
-                const userDoc = await User.findOne({ phone: { $regex: digitsOnly } });
-                if (userDoc) {
-                    targetEmail = userDoc.email.toLowerCase().trim();
-                    targetPhone = userDoc.phone;
-                    targetName = userDoc.name;
+                // Tenant ledger me bhi check kar lo agar wahan number hai
+                const tenantDoc = await TenantLedger.findOne({ mobileNo: { $regex: digitsOnly }, status: 'Active' });
+                if (tenantDoc && tenantDoc.tenantEmail) {
+                    targetEmail = tenantDoc.tenantEmail.toLowerCase().trim();
+                    targetPhone = tenantDoc.mobileNo;
+                    targetName = tenantDoc.tenantName;
                 }
             }
-        }
 
-        // User ya BrokerProfile se naam aur phone verify karein
-        const userObj = await User.findOne({ email: targetEmail });
-        if (userObj) {
-            targetName = userObj.name || targetName;
-            if (!targetPhone) targetPhone = userObj.phone;
-        }
-
-        const brokerObj = await BrokerProfile.findOne({ brokerEmail: targetEmail });
-        if (brokerObj && brokerObj.phone && !targetPhone) {
-            targetPhone = brokerObj.phone;
+            // Name verify karne ke liye
+            if (targetEmail) {
+                const uCheck = await User.findOne({ email: targetEmail });
+                if (uCheck && uCheck.name) targetName = uCheck.name;
+            }
         }
 
         if (!targetEmail || !targetPhone) {
             return res.status(404).json({ 
                 success: false, 
-                message: 'Is mobile number ya email se koi account nahi mila! Kripya sahi details dalein.' 
+                message: 'इस मोबाइल नंबर या ईमेल से कोई अकाउंट नहीं मिला! कृपया सही डिटेल्स डालें।' 
             });
         }
 
@@ -1286,18 +1292,18 @@ app.post('/api/forgot-password', async (req, res) => {
         });
         await resetRecord.save();
 
-        const resetMsg = `🔑 *Bhopal Properties Account Recovery*\n\nNamaste *${targetName}* ji,\nAapki User ID evam password recovery ka OTP hai: *${otp}*\n\nYeh code 10 minute ke liye manya hai.\n🌐 https://bhopal-real-estate.onrender.com`;
+        const resetMsg = `🔑 *Bhopal Properties Account Recovery*\n\nनमस्ते *${targetName}* ji,\nआपकी User ID एवं पासवर्ड रिकवरी का OTP है: *${otp}*\n\nयह कोड 10 मिनट के लिए मान्य है।\n🌐 https://bhopal-real-estate.onrender.com`;
 
         const isSent = await sendDirectWhatsApp(targetPhone, resetMsg);
         if (!isSent) {
-            return res.status(500).json({ success: false, message: 'WhatsApp server busy hai, kripya thodi der baad koshish karein.' });
+            return res.status(500).json({ success: false, message: 'WhatsApp सर्वर अभी व्यस्त है, कृपया कुछ सेकंड बाद प्रयास करें।' });
         }
 
         const maskedPhone = targetPhone.slice(-4).padStart(10, '*');
         res.json({ 
             success: true, 
             email: targetEmail,
-            message: `✅ Aapke WhatsApp number (${maskedPhone}) par 4-ankon ka OTP bhej diya gaya hai!` 
+            message: `✅ आपके WhatsApp नंबर (${maskedPhone}) पर 4-अंकों का OTP भेज दिया गया है!` 
         });
     } catch (error) {
         console.error("Forgot Password Error:", error);
