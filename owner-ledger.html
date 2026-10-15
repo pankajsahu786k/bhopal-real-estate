@@ -16,8 +16,8 @@
         .nav-links a:hover, .nav-links a.active { background-color: #334155; color: white; border-left-color: #f59e0b; }
 
         .workspace { flex: 1; display: flex; height: 100vh; overflow: hidden; }
-        .left-panel { flex: 7.2; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100vh; }
-        .right-panel { flex: 2.8; padding: 20px; background: #ffffff; border-left: 3px solid #cbd5e1; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
+        .left-panel { flex: 7.4; padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: 100vh; }
+        .right-panel { flex: 2.6; padding: 20px; background: #ffffff; border-left: 3px solid #cbd5e1; display: flex; flex-direction: column; gap: 15px; height: 100vh; overflow-y: auto; }
 
         .header-box { background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border-left: 5px solid #3498db; display: flex; justify-content: space-between; align-items: center; }
         
@@ -31,7 +31,9 @@
         .card { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         .reg-card { border-top: 5px solid #3498db; position: relative; }
         
-        .locked-overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.92); z-index: 5; border-radius: 14px; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #ef4444; border: 2px dashed #ef4444; }
+        /* 🔒 Smart Lock Banner (Overlay ki jagah top badge taaki Mobile No. edit ho sake) */
+        .locked-banner { display: none; background: #fef2f2; color: #dc2626; border: 1px dashed #ef4444; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; margin-bottom: 12px; align-items: center; justify-content: space-between; }
+        .locked-input { background-color: #e2e8f0 !important; color: #64748b !important; cursor: not-allowed; }
 
         .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
@@ -40,9 +42,9 @@
         .form-group input:focus { border-color: #3498db; background: white; }
 
         .excel-container { background: white; border-radius: 8px; border: 2px solid #cbd5e1; overflow: auto; flex-grow: 1; min-height: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .excel-table { width: 100%; border-collapse: collapse; font-size: 14px; font-weight: 600; text-align: center; }
-        .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 10px 8px; }
-        .excel-table th { background: #f1f5f9; color: #334155; position: sticky; top: 0; font-weight: 800; text-transform: uppercase; font-size: 12px; z-index: 2; }
+        .excel-table { width: 100%; border-collapse: collapse; font-size: 13px; font-weight: 600; text-align: center; }
+        .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 10px 6px; }
+        .excel-table th { background: #f1f5f9; color: #334155; position: sticky; top: 0; font-weight: 800; text-transform: uppercase; font-size: 11px; z-index: 2; }
         .excel-table td input { width: 100%; border: none; outline: none; background: transparent; text-align: center; font-size: 14px; font-weight: 700; color: #1e293b; }
         .excel-table td input:focus { background: #e0f2fe; border-radius: 4px; }
         .read-only-cell { background: #f8fafc; color: #475569; font-weight: 700; }
@@ -54,7 +56,7 @@
         .btn-red { background: #e74c3c; color: white; box-shadow: 0 4px 10px rgba(231,76,60,0.3); }
         .btn-whatsapp { background: #25D366; color: white; width: 100%; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 15px; margin-top: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(37,211,102,0.4); }
 
-        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 20px; background: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #2c3e50; line-height: 1.6; min-height: 300px; }
+        .receipt-box { border: 2px dashed #3498db; border-radius: 8px; padding: 20px; background: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 13px; color: #2c3e50; line-height: 1.6; min-height: 320px; }
         .receipt-header { text-align: center; font-weight: 900; border-bottom: 2px dashed #cbd5e1; padding-bottom: 10px; margin-bottom: 10px; font-family: 'Poppins', sans-serif; font-size: 16px; color: #1e293b; }
 
         /* 📜 History Modal UI */
@@ -73,10 +75,10 @@
         .bottom-nav-icon { font-size: 20px; }
 
         /* 🌟 WhatsApp Phone Input Style */
-        .phone-input-wrapper { display: flex; align-items: center; border: 2px solid #cbd5e1; border-radius: 6px; background: #f8fafc; overflow: hidden; }
-        .phone-input-wrapper .fixed-code { background: #e2e8f0; padding: 10px 12px; font-weight: 700; color: #475569; border-right: 2px solid #cbd5e1; font-size: 14px; }
-        .phone-input-wrapper input { border: none !important; padding: 10px 12px !important; flex: 1; outline: none; background: transparent; font-size: 14px; font-weight: 600; width: 100%; }
-        .phone-input-wrapper:focus-within { border-color: #3498db; background: white; }
+        .phone-input-wrapper { display: flex; align-items: center; border: 2px solid #22c55e; border-radius: 6px; background: #f0fdf4; overflow: hidden; }
+        .phone-input-wrapper .fixed-code { background: #dcfce7; padding: 10px 12px; font-weight: 700; color: #15803d; border-right: 2px solid #22c55e; font-size: 14px; }
+        .phone-input-wrapper input { border: none !important; padding: 10px 12px !important; flex: 1; outline: none; background: transparent; font-size: 14px; font-weight: 700; color: #166534; width: 100%; }
+        .phone-input-wrapper:focus-within { border-color: #16a34a; background: white; }
 
         /* 📱 MOBILE RESPONSIVE HACK */
         @media (max-width: 768px) {
@@ -157,46 +159,53 @@
             <div class="room-container" id="roomContainer"></div>
 
             <div class="card reg-card" id="regCardComponent">
-                <div class="locked-overlay" id="regOverlay">
-                    <span style="background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">🔒 REGISTRATION LOCKED (Profile Fixed)</span>
+                <!-- 🔒 Smart Lock Banner: Baki fields lock rahengi, par Mobile No. & DOB edit ho sakenge -->
+                <div class="locked-banner" id="regOverlay">
+                    <span>🔒 REGISTRATION LOCKED (प्रोफ़ाइल लॉक है — केवल मोबाइल नंबर और जन्मतिथि अपडेट कर सकते हैं)</span>
                 </div>
                 
                 <h3 style="font-size: 15px; font-weight: 800; color: #2c3e50;">📝 Step 1: Add Room Tangent Detail (किरायेदार पंजीकरण फॉर्म)</h3>
                 <form id="regForm">
                     <div class="form-grid">
-                        <div class="form-group"><label>1. Name *</label><input type="text" id="tName" required></div>
-                        <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" required></div>
+                        <div class="form-group"><label>1. Name *</label><input type="text" id="tName" class="lockable" required></div>
+                        <div class="form-group"><label>2. Father Name *</label><input type="text" id="tFatherName" class="lockable" required></div>
                         <div class="form-group">
-                            <label>3. Mobile No. *</label>
+                            <label style="color:#15803d;">3. Mobile No. (Always Editable) ✏️ *</label>
                             <div class="phone-input-wrapper">
                                 <span class="fixed-code">+91</span>
                                 <input type="tel" id="tMobile" placeholder="10 Digits" maxlength="10" pattern="[0-9]{10}" required>
                             </div>
                         </div>
-                        <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" required onchange="handleStartDateChange()"></div>
-                        <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" value="10" required></div>
-                        <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" value="1" required></div>
+                        <div class="form-group"><label>4. Room Rent Start Date *</label><input type="date" id="rentStartDate" class="lockable" required onchange="handleStartDateChange()"></div>
+                        <div class="form-group"><label>5. Electricity Unit Rate *</label><input type="number" id="unitRate" class="lockable" value="10" required></div>
+                        <div class="form-group"><label>6. Family Members *</label><input type="number" id="familyMembers" class="lockable" value="1" required></div>
                         
                         <div class="form-group">
                             <label>7. ID Number *</label>
-                            <input type="text" id="tAadhar" placeholder="Enter Government ID" required>
+                            <input type="text" id="tAadhar" class="lockable" placeholder="Enter Government ID" required>
                         </div>
                         <div class="form-group">
                             <label>8. Job Status / Student *</label>
-                            <select id="jobStatus">
+                            <select id="jobStatus" class="lockable">
                                 <option value="Student">Student</option>
                                 <option value="Job Holder">Job Holder</option>
                                 <option value="Business">Business</option>
                             </select>
                         </div>
-                        <div class="form-group"><label>9. Advance Deposit *</label><input type="number" id="advanceDeposit" value="0" required oninput="calculateExcelRow(0)"></div>
+                        <div class="form-group"><label>9. Advance Deposit *</label><input type="number" id="advanceDeposit" class="lockable" value="0" required oninput="calculateExcelRow(0)"></div>
                         
                         <div class="form-group">
                             <label style="color:#d35400;">10. Current Meter Reading *</label>
-                            <input type="number" id="currentMeterReading" placeholder="0" required style="border-color:#e67e22; background:#fdf2e9;" oninput="calculateExcelRow(0)">
+                            <input type="number" id="currentMeterReading" class="lockable" placeholder="0" required style="border-color:#e67e22; background:#fdf2e9;" oninput="calculateExcelRow(0)">
+                        </div>
+
+                        <!-- 🎂 NAYA: 11. Tenant Date of Birth (DOB) -->
+                        <div class="form-group">
+                            <label style="color:#0284c7;">11. Date of Birth (जन्मतिथि) 🎂</label>
+                            <input type="date" id="tDOB" style="border-color:#38bdf8; background:#f0f9ff;">
                         </div>
                     </div>
-                    <button type="button" class="btn btn-blue" style="width:100%; margin-top:20px;" onclick="confirmAndRegister()">🔒 Confirm & Register Tenant</button>
+                    <button type="button" class="btn btn-blue" id="btnConfirmReg" style="width:100%; margin-top:20px;" onclick="confirmAndRegister()">🔒 Confirm & Register Tenant</button>
                 </form>
             </div>
 
@@ -205,13 +214,15 @@
                 <table class="excel-table">
                     <thead>
                         <tr>
-                            <th style="width: 15%;">Date</th>
-                            <th style="width: 12%;">Rent</th>
-                            <th style="width: 15%;">Electricity Unit</th>
-                            <th style="width: 12%;">Bill Amount</th>
-                            <th style="width: 15%;">Water Unit</th>
-                            <th style="width: 12%;">Water Bill</th>
-                            <th style="width: 15%;">Total</th>
+                            <th style="width: 11%;">Date</th>
+                            <th style="width: 11%;">Rent</th>
+                            <th style="width: 12%;">Electricity Unit</th>
+                            <th style="width: 11%;">Bill Amount</th>
+                            <th style="width: 10%;">Water Unit</th>
+                            <th style="width: 11%;">Water Bill</th>
+                            <th style="width: 11%;">Total</th>
+                            <th style="width: 12%; background:#dcfce7; color:#166534;">Paid Amount</th>
+                            <th style="width: 11%; background:#fee2e2; color:#991b1b;">Balance</th>
                         </tr>
                     </thead>
                     <tbody id="excelGridBody"></tbody>
@@ -220,7 +231,7 @@
             
             <div style="display:flex; justify-content: space-between; margin-top: 10px;">
                 <button type="button" class="btn btn-red" onclick="triggerLeaveRoom()">🚪 LEAVE ROOM (Archive Data)</button>
-                <button type="button" class="btn btn-green" id="btnSaveRow" disabled onclick="saveExcelRowData()">💾 Save All Progress</button>
+                <button type="button" class="btn btn-green" id="btnSaveRow" disabled onclick="saveExcelRowData()">💾 Save All Progress (Send WhatsApp)</button>
             </div>
         </div>
 
@@ -261,7 +272,7 @@
     </div>
 
     <div class="modal-overlay" id="ledgerViewModal" style="z-index: 1010;">
-        <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-content" style="max-width: 950px;">
             <div id="printableLedgerArea"></div>
             <div style="text-align: right; margin-top: 20px; display:flex; justify-content:flex-end; gap:10px;">
                 <button class="btn btn-blue" onclick="downloadPDF()">🖨️ Download / Save PDF</button>
@@ -278,7 +289,24 @@
         let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
         let tenantNameMap = {};
         let globalArchivedData = []; 
-        let currentTenantId = null; // 🌟 Public Passbook Link ID
+        let currentTenantId = null;
+
+        // 🔒 Lock/Unlock Helper (Mobile No. aur DOB hamesha unlocked rahenge)
+        function setProfileLockState(locked) {
+            isRegistered = locked;
+            document.getElementById('regOverlay').style.display = locked ? 'flex' : 'none';
+            document.getElementById('btnConfirmReg').style.display = locked ? 'none' : 'block';
+            document.getElementById('btnSaveRow').disabled = !locked;
+
+            document.querySelectorAll('.lockable').forEach(el => {
+                el.disabled = locked;
+                if (locked) {
+                    el.classList.add('locked-input');
+                } else {
+                    el.classList.remove('locked-input');
+                }
+            });
+        }
 
         function initRoomTabs() {
             const container = document.getElementById('roomContainer');
@@ -362,43 +390,80 @@
                         <td><input type="number" id="waterUnit_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
                         <td><input type="number" id="waterBill_${idx}" value="0" oninput="calculateExcelRow(${idx})"></td>
                         <td id="total_${idx}" class="read-only-cell" style="font-weight:800; color:#27ae60;">0</td>
+                        <td style="background:#f0fdf4;"><input type="number" id="paid_${idx}" value="0" style="color:#15803d;" oninput="calculateExcelRow(${idx})"></td>
+                        <td id="balance_${idx}" class="read-only-cell" style="font-weight:800; color:#dc2626; background:#fef2f2;">0</td>
                     </tr>`;
             });
         }
 
-        function calculateExcelRow(idx) {
-            const rent = Number(document.getElementById(`rent_${idx}`).value || 0);
-            const currentUnits = Number(document.getElementById(`elecUnit_${idx}`).value || 0);
+        // 🧮 AUTO CARRY-FORWARD MATH ENGINE
+        function calculateExcelRow(changedIdx = 0) {
             const rate = Number(document.getElementById('unitRate').value || 10);
-            
-            let prevUnits = 0;
-            if(idx > 0) {
-                prevUnits = Number(document.getElementById(`elecUnit_${idx-1}`).value || 0);
-            } else {
-                prevUnits = Number(document.getElementById('currentMeterReading').value || 0);
+            const initialMeter = Number(document.getElementById('currentMeterReading').value || 0);
+
+            let carryForwardBalance = 0;
+            let lastActiveRow = 0;
+
+            for (let idx = 0; idx < 12; idx++) {
+                const rent = Number(document.getElementById(`rent_${idx}`).value || 0);
+                const currentUnits = Number(document.getElementById(`elecUnit_${idx}`).value || 0);
+                const waterBill = Number(document.getElementById(`waterBill_${idx}`).value || 0);
+                const paidAmount = Number(document.getElementById(`paid_${idx}`).value || 0);
+
+                // Pichle mahine ki electricity reading nikalna
+                let prevUnits = initialMeter;
+                if (idx > 0) {
+                    const prevRowUnit = Number(document.getElementById(`elecUnit_${idx - 1}`).value || 0);
+                    prevUnits = prevRowUnit > 0 ? prevRowUnit : initialMeter;
+                }
+
+                const unitsConsumed = currentUnits > 0 ? Math.max(0, currentUnits - prevUnits) : 0;
+                const elecBill = unitsConsumed * rate;
+                document.getElementById(`elecBill_${idx}`).innerText = elecBill;
+
+                const currentMonthCharges = rent + elecBill + waterBill;
+
+                // Agar is mahine ki entry chalu hai (Rent, Light, Water ya Paid > 0 hai)
+                if (currentMonthCharges > 0 || paidAmount > 0) {
+                    const netTotal = currentMonthCharges + carryForwardBalance;
+                    const rowBalance = netTotal - paidAmount;
+
+                    document.getElementById(`total_${idx}`).innerText = netTotal;
+                    document.getElementById(`balance_${idx}`).innerText = rowBalance;
+
+                    // Agle mahine ke liye bacha hua balance carry-forward karein
+                    carryForwardBalance = rowBalance;
+                    lastActiveRow = idx;
+
+                    if (idx === changedIdx) {
+                        updateLiveReceiptView(idx, rent, unitsConsumed, elecBill, waterBill, netTotal, paidAmount, rowBalance);
+                    }
+                } else {
+                    document.getElementById(`total_${idx}`).innerText = 0;
+                    document.getElementById(`balance_${idx}`).innerText = 0;
+                }
             }
-            
-            const unitsConsumed = Math.max(0, currentUnits - prevUnits);
-            const elecBill = unitsConsumed * rate;
-            document.getElementById(`elecBill_${idx}`).innerText = elecBill;
-            
-            const waterBill = Number(document.getElementById(`waterBill_${idx}`).value || 0);
-            const netTotal = rent + elecBill + waterBill;
-            
-            document.getElementById(`total_${idx}`).innerText = netTotal;
-            updateLiveReceiptView(idx, rent, unitsConsumed, elecBill, waterBill, netTotal);
-            
-            if(idx < 11) {
-                const nextUnits = Number(document.getElementById(`elecUnit_${idx+1}`).value || 0);
-                if(nextUnits > 0) calculateExcelRow(idx + 1); 
+
+            // Agar changedIdx me 0 tha, toh latest active row ki receipt dikhao
+            const checkTotal = Number(document.getElementById(`total_${changedIdx}`).innerText || 0);
+            if (checkTotal === 0 && lastActiveRow >= 0) {
+                const r = Number(document.getElementById(`rent_${lastActiveRow}`).value || 0);
+                const e = Number(document.getElementById(`elecBill_${lastActiveRow}`).innerText || 0);
+                const w = Number(document.getElementById(`waterBill_${lastActiveRow}`).value || 0);
+                const t = Number(document.getElementById(`total_${lastActiveRow}`).innerText || 0);
+                const p = Number(document.getElementById(`paid_${lastActiveRow}`).value || 0);
+                const b = Number(document.getElementById(`balance_${lastActiveRow}`).innerText || 0);
+                const u = e / (rate || 1);
+                if (t > 0) updateLiveReceiptView(lastActiveRow, r, u, e, w, t, p, b);
             }
         }
 
-        function updateLiveReceiptView(idx, rent, units, elec, water, total) {
+        function updateLiveReceiptView(idx, rent, units, elec, water, total, paid, balance) {
             const name = document.getElementById('tName').value || '----------';
             const mobile = document.getElementById('tMobile').value || '----------';
             const advance = document.getElementById('advanceDeposit').value || '0';
             const currentDateStr = activeDynamicDates[idx] || '--/--/----';
+            const prevCarry = total - (rent + elec + water);
             
             document.getElementById('liveReceiptView').innerHTML = `
                 <div class="receipt-header">TANGENT DIGITAL KHATA</div>
@@ -412,17 +477,19 @@
                 • Power Units Added : ${units}<br>
                 • Light Bill Total  : ₹${elec}<br>
                 • Water Bill Charges: ₹${water}<br>
+                • Prev. Balance     : ₹${prevCarry}<br>
                 ------------------------------<br>
-                <b style="font-size:16px; color:#27ae60;">NET PAYABLE  : ₹${total}</b><br>
+                <b style="font-size:15px; color:#27ae60;">TOTAL PAYABLE: ₹${total}</b><br>
+                <b style="font-size:14px; color:#0284c7;">PAID AMOUNT  : ₹${paid}</b><br>
+                <b style="font-size:15px; color:#dc2626;">NET BALANCE  : ₹${balance}</b><br>
                 ------------------------------<br>
-                Status: Shareable Invoice Matrix Active
+                Status: Automated WhatsApp Ledger Active
             `;
         }
 
         async function loadRoomConfigurationData() {
             document.getElementById('regForm').reset();
-            document.getElementById('regOverlay').style.display = 'none';
-            document.getElementById('btnSaveRow').disabled = true;
+            setProfileLockState(false);
             generateDynamicDates(""); 
             buildExcelGridUI();
             document.getElementById('liveReceiptView').innerHTML = '<div style="text-align: center; color: #94a3b8; margin-top: 120px; font-weight:600;">कृपया हिसाब अपडेट करें...</div>';
@@ -446,14 +513,13 @@
 
                     const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
                     if (activeTenant) {
-                        currentTenantId = activeTenant._id; // 👈 🌟 ID सुरक्षित सेट की गई
-                        isRegistered = true;
-                        document.getElementById('regOverlay').style.display = 'flex';
-                        document.getElementById('btnSaveRow').disabled = false;
+                        currentTenantId = activeTenant._id;
+                        setProfileLockState(true);
                         
                         document.getElementById('tName').value = activeTenant.tenantName || '';
                         document.getElementById('tFatherName').value = activeTenant.tenantFatherName || '';
                         document.getElementById('tMobile').value = activeTenant.mobileNo || '';
+                        document.getElementById('tDOB').value = activeTenant.tenantDOB || '';
                         
                         if (activeTenant.joiningDate) {
                             document.getElementById('rentStartDate').value = activeTenant.joiningDate;
@@ -465,7 +531,6 @@
                         document.getElementById('familyMembers').value = activeTenant.familyMembers || 1;
                         document.getElementById('tAadhar').value = activeTenant.aadharNumber || '';
                         document.getElementById('jobStatus').value = activeTenant.jobStatus || 'Student';
-                        
                         document.getElementById('currentMeterReading').value = activeTenant.currentMeterReading || 0;
 
                         if (activeTenant.monthlyEntries && activeTenant.monthlyEntries.length > 0) {
@@ -475,8 +540,11 @@
                                     document.getElementById(`rent_${i}`).value = entry.rent || 0;
                                     document.getElementById(`elecUnit_${i}`).value = entry.electricityUnit || 0;
                                     document.getElementById(`elecBill_${i}`).innerText = entry.billAmount || 0;
+                                    document.getElementById(`waterUnit_${i}`).value = entry.waterUnit || 0;
                                     document.getElementById(`waterBill_${i}`).value = entry.waterBill || 0;
                                     document.getElementById(`total_${i}`).innerText = entry.total || 0;
+                                    document.getElementById(`paid_${i}`).value = entry.paidAmount || 0;
+                                    document.getElementById(`balance_${i}`).innerText = entry.balance || 0;
                                 }
                             });
                         }
@@ -492,9 +560,7 @@
                 return;
             }
             localStorage.setItem(`adv_${ownerEmail}_${activeRoom}`, document.getElementById('advanceDeposit').value);
-            isRegistered = true;
-            document.getElementById('regOverlay').style.display = 'flex';
-            document.getElementById('btnSaveRow').disabled = false;
+            setProfileLockState(true);
             await saveExcelRowData();
         }
 
@@ -502,19 +568,27 @@
             if(!isRegistered) { alert("कृपया पहले पंजीकरण करें!"); return; }
             localStorage.setItem(`adv_${ownerEmail}_${activeRoom}`, document.getElementById('advanceDeposit').value);
 
+            // Save se pehle saari rows ka carry-forward math pakka कर lein
+            calculateExcelRow(0);
+
             let entries = [];
             for(let i = 0; i < 12; i++) {
                 let rentVal = Number(document.getElementById(`rent_${i}`).value || 0);
                 let totalVal = Number(document.getElementById(`total_${i}`).innerText || 0);
+                let paidVal = Number(document.getElementById(`paid_${i}`).value || 0);
+                let balVal = Number(document.getElementById(`balance_${i}`).innerText || 0);
 
-                if (totalVal > 0 || rentVal > 0) {
+                if (totalVal > 0 || rentVal > 0 || paidVal > 0) {
                     entries.push({
                         monthDate: document.getElementById(`dateCell_${i}`).innerText,
                         rent: rentVal,
                         electricityUnit: Number(document.getElementById(`elecUnit_${i}`).value || 0),
                         billAmount: Number(document.getElementById(`elecBill_${i}`).innerText || 0),
+                        waterUnit: Number(document.getElementById(`waterUnit_${i}`).value || 0),
                         waterBill: Number(document.getElementById(`waterBill_${i}`).value || 0), 
-                        total: totalVal
+                        total: totalVal,
+                        paidAmount: paidVal,
+                        balance: balVal
                     });
                 }
             }
@@ -524,6 +598,7 @@
                 roomOrFlatNo: activeRoom,
                 tenantName: document.getElementById('tName').value,
                 tenantFatherName: document.getElementById('tFatherName').value,
+                tenantDOB: document.getElementById('tDOB').value,
                 mobileNo: document.getElementById('tMobile').value,
                 joiningDate: document.getElementById('rentStartDate').value,
                 unitRate: Number(document.getElementById('unitRate').value || 10),
@@ -542,7 +617,7 @@
                 });
                 const data = await res.json();
                 if(data.success) {
-                    alert("✅ 12 महीनों की पूरी प्रोग्रेस डेटाबेस में सुरक्षित सेव हो गई है!");
+                    alert(data.message || "✅ प्रोग्रेस डेटाबेस में सेव हो गई है!");
                     loadRoomConfigurationData();
                 } else {
                     alert("त्रुटि: " + data.message);
@@ -629,10 +704,10 @@
                     <div><span>Tenant Name:</span> ${tenant.tenantName}</div>
                     <div><span>Father's Name:</span> ${tenant.tenantFatherName || 'N/A'}</div>
                     <div><span>Mobile:</span> ${tenant.mobileNo}</div>
+                    <div><span>DOB:</span> ${tenant.tenantDOB || 'N/A'}</div>
                     <div><span>ID Number:</span> ${tenant.aadharNumber || 'N/A'}</div>
                     <div><span>Joining Date:</span> ${tenant.joiningDate || 'N/A'}</div>
                     <div><span>Unit Rate:</span> ₹${tenant.unitRate || 10}</div>
-                    <div><span>Family Members:</span> ${tenant.familyMembers || 1}</div>
                 </div>
                 <h3 style="margin-bottom: 10px; color:#2c3e50;">12-Month Account Statement</h3>
                 <table class="excel-table">
@@ -644,6 +719,8 @@
                             <th>Bill Amount (₹)</th>
                             <th>Water Bill (₹)</th>
                             <th>Total (₹)</th>
+                            <th>Paid (₹)</th>
+                            <th>Balance (₹)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -659,11 +736,13 @@
                             <td>${entry.billAmount || 0}</td>
                             <td>${entry.waterBill || 0}</td>
                             <td style="font-weight:bold; color:#27ae60;">${entry.total || 0}</td>
+                            <td style="font-weight:bold; color:#0284c7;">${entry.paidAmount || 0}</td>
+                            <td style="font-weight:bold; color:#dc2626;">${entry.balance || 0}</td>
                         </tr>
                     `;
                 });
             } else {
-                tableHTML += `<tr><td colspan="6">No monthly entries found for this tenant.</td></tr>`;
+                tableHTML += `<tr><td colspan="8">No monthly entries found for this tenant.</td></tr>`;
             }
 
             tableHTML += `</tbody></table>`;
@@ -686,9 +765,9 @@
                     .print-header { border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 20px; text-align: center; }
                     .print-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; }
                     .print-grid div span { font-weight: 700; color: #475569; }
-                    .excel-table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: center; margin-top: 10px; }
-                    .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 10px 8px; }
-                    .excel-table th { background: #f1f5f9; color: #334155; font-weight: 800; text-transform: uppercase; font-size: 12px; }
+                    .excel-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; margin-top: 10px; }
+                    .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 8px 6px; }
+                    .excel-table th { background: #f1f5f9; color: #334155; font-weight: 800; text-transform: uppercase; font-size: 11px; }
                 </style>
             `);
             printWindow.document.write('</head><body>');
@@ -701,7 +780,6 @@
             }, 250);
         }
 
-        // 🌟 WHATSAPP MESSENGER FUNCTION (Clean & Integrated)
         function shareToWhatsAppMessenger() {
             const rawMobile = document.getElementById('tMobile').value;
             const txt = document.getElementById('liveReceiptView').innerText;
@@ -719,7 +797,6 @@
 
             const finalWhatsAppNumber = "91" + cleanPhone;
 
-            // 🌟 Dynamic Passbook Link Integration
             let passbookLinkText = "";
             if (currentTenantId) {
                 const passbookUrl = `${window.location.origin}/passbook.html?id=${currentTenantId}`;

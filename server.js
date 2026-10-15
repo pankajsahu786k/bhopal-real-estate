@@ -107,7 +107,7 @@ const brokerProfileSchema = new mongoose.Schema({
     latitude: { type: Number },
     longitude: { type: Number },
     isProfileComplete: { type: Boolean, default: false },
-    welcomeSent: { type: Boolean, default: false } // 👈 Naye broker ko pehli baar welcome message bhejne ke liye
+    welcomeSent: { type: Boolean, default: false }
 }, { timestamps: true });
 const BrokerProfile = mongoose.model('BrokerProfile', brokerProfileSchema);
 
@@ -172,7 +172,7 @@ const universalReceiptSchema = new mongoose.Schema({
 const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSchema);
 
 // =========================================================================
-// 🏠 TENANT LEDGER SCHEMA (SMART BOT ENGINE COMPATIBLE)
+// 🏠 TENANT LEDGER SCHEMA (WITH PAID AMOUNT, BALANCE & WHATSAPP FLAGS)
 // =========================================================================
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
@@ -201,8 +201,13 @@ const TenantLedgerSchema = new mongoose.Schema({
         rent: Number,
         electricityUnit: Number,
         billAmount: Number,
+        waterUnit: { type: Number, default: 0 },
         waterBill: Number,
         total: Number,
+        paidAmount: { type: Number, default: 0 }, // 💵 Kitna paisa jama hua
+        balance: { type: Number, default: 0 },    // ⚖️ Kitna baki raha (Carry Forward)
+        billNotified: { type: Boolean, default: false }, // 📤 Bill WhatsApp gaya ya nahi
+        paidNotified: { type: Boolean, default: false }, // ✅ Receipt WhatsApp gayi ya nahi
         isLocked: { type: Boolean, default: false }
     }],
     status: { type: String, enum: ['Active', 'Left'], default: 'Active' }
@@ -239,12 +244,60 @@ async function requireCompleteProfile(req, res, next) {
 }
 
 // =========================================================================
-// 🚀 MASTER API ROUTE: UPSERT ENGINE
+// 🚀 MASTER API ROUTE: UPSERT ENGINE + AUTOMATIC WHATSAPP BILL & RECEIPT
 // =========================================================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
         const { ownerEmail, roomOrFlatNo, monthlyEntries, ...tenantDetails } = req.body;
         
+        // Agar room Leave ho raha hai, toh seedhe update karein
+        if (tenantDetails.status === 'Left') {
+            await TenantLedger.updateOne(
+                { ownerEmail, roomOrFlatNo, status: 'Active' },
+                { $set: { status: 'Left' } }
+            );
+            return res.json({ success: true, message: "🚪 रूम खाली कर दिया गया और हिस्ट्री में सेव हो गया!" });
+        }
+
+        const existingRecord = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
+
+        if (Array.isArray(monthlyEntries)) {
+            for (let i = 0; i < monthlyEntries.length; i++) {
+                const entry = monthlyEntries[i];
+                const oldEntry = (existingRecord && existingRecord.monthlyEntries) ? existingRecord.monthlyEntries[i] : null;
+
+                if (oldEntry) {
+                    entry.billNotified = oldEntry.billNotified || false;
+                    entry.paidNotified = oldEntry.paidNotified || false;
+                }
+
+                const passbookId = existingRecord ? existingRecord._id : '';
+                const passbookUrl = passbookId 
+                    ? `https://bhopal-real-estate.onrender.com/passbook.html?id=${passbookId}`
+                    : `https://bhopal-real-estate.onrender.com`;
+
+                // 📲 1. AUTOMATIC BILL WHATSAPP (Jab Owner hisab banaye: Total > 0 aur pehle msg na gaya ho)
+                if (Number(entry.total) > 0 && !entry.billNotified && tenantDetails.mobileNo) {
+                    const prevBal = i > 0 ? (Number(monthlyEntries[i - 1].balance) || 0) : 0;
+                    const billMsg = `📊 *मासिक किराया एवं बिल हिसाब (Bhopal Properties)*\n\nनमस्ते *${tenantDetails.tenantName}* जी (रूम/फ्लैट: *${roomOrFlatNo}*),\nआपका *${entry.monthDate}* का लेजर बिल अपडेट हो गया है:\n\n🏠 मासिक किराया: ₹${entry.rent || 0}\n⚡ बिजली बिल: ₹${entry.billAmount || 0} (Reading: ${entry.electricityUnit || 0})\n💧 पानी बिल: ₹${entry.waterBill || 0}\n🔄 पिछला बकाया: ₹${prevBal}\n----------------------\n💰 *कुल देय राशि (Total): ₹${entry.total}*\n💵 जमा राशि (Paid): ₹${entry.paidAmount || 0}\n⚖️ *शेष बकाया (Balance): ₹${entry.balance || 0}*\n\nकृपया समय पर पेमेंट ट्रांसफर कर अपने मकान मालिक को सूचित करें। 🙏\n🌐 Passbook: ${passbookUrl}`;
+
+                    sendDirectWhatsApp(tenantDetails.mobileNo, billMsg).catch(e => console.error(e));
+                    entry.billNotified = true;
+                }
+
+                // 📲 2. AUTOMATIC PAYMENT RECEIPT WHATSAPP (Jab Owner Paid Amount me entry kare)
+                const oldPaid = oldEntry ? (Number(oldEntry.paidAmount) || 0) : 0;
+                const newPaid = Number(entry.paidAmount) || 0;
+
+                if (newPaid > 0 && newPaid !== oldPaid && tenantDetails.mobileNo) {
+                    const receiptMsg = `✅ *पेमेंट प्राप्त रसीद (Payment Received)*\n\nनमस्ते *${tenantDetails.tenantName}* जी (${roomOrFlatNo}),\n*${entry.monthDate}* के कुल बिल (₹${entry.total}) में से आपकी *₹${newPaid}* की राशि प्राप्त हो गई है।\n\n⚖️ *शेष बकाया (Balance): ₹${entry.balance || 0}*\n(यदि कोई शेष राशि है, तो वह अगले माह के बिल में जुड़कर आएगी)\n\nधन्यवाद! 🙏\n🌐 Passbook: ${passbookUrl}`;
+
+                    sendDirectWhatsApp(tenantDetails.mobileNo, receiptMsg).catch(e => console.error(e));
+                    entry.paidNotified = true;
+                }
+            }
+        }
+
         await TenantLedger.updateOne(
             { ownerEmail, roomOrFlatNo, status: 'Active' },
             { 
@@ -255,7 +308,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             },
             { upsert: true }
         );
-        res.json({ success: true, message: "✅ डेटा सफलतापूर्ण सेव हो गया!" });
+        res.json({ success: true, message: "✅ डेटा सफलतापूर्वक सेव हो गया और WhatsApp पर हिसाब अपडेट भेज दिया गया!" });
     } catch (error) {
         console.error("Database Save Error:", error);
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
@@ -263,7 +316,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 });
 
 // =========================================================================
-// 🧠 SMART BRAIN ENGINE: 9 AM | 12 PM | 8 PM BOT SYSTEM
+// 🧠 SMART BRAIN ENGINE: 9 AM | 12 PM | 8 PM BOT SYSTEM (OWNER + TENANT)
 // =========================================================================
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -291,55 +344,90 @@ async function processLedgerReminders(slotType) {
         const activeTenants = await TenantLedger.find({ status: 'Active' });
 
         for (const tenant of activeTenants) {
-            if (!tenant.joiningDate) continue;
+            // Sabse latest active month entry nikalein jisme bill bana ho (total > 0)
+            const activeEntries = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0);
+            const latestEntry = activeEntries.length > 0 ? activeEntries[activeEntries.length - 1] : null;
 
-            const joinDate = new Date(tenant.joiningDate);
-            const isBillingDay = (joinDate.getDate() === currentDay);
+            // =================================================================
+            // 1️⃣ OWNER REMINDER: Billing date par agar Owner ne ledger update nahi kiya
+            // =================================================================
+            if (tenant.joiningDate) {
+                const joinDate = new Date(tenant.joiningDate);
+                const isBillingDay = (joinDate.getDate() === currentDay);
 
-            if (!isBillingDay) continue;
+                const isUpdated = tenant.monthlyEntries && tenant.monthlyEntries.some(entry => 
+                    entry.monthDate && entry.monthDate.includes(currentMonthStr) && (entry.total > 0 || entry.rent > 0)
+                );
 
-            const isUpdated = tenant.monthlyEntries && tenant.monthlyEntries.some(entry => 
-                entry.monthDate && entry.monthDate.includes(currentMonthStr) && (entry.total > 0 || entry.rent > 0)
-            );
+                if (isBillingDay && !isUpdated) {
+                    const owner = await BrokerProfile.findOne({ brokerEmail: tenant.ownerEmail });
+                    const ownerPhone = owner ? owner.phone : null;
 
-            if (!isUpdated) {
-                const owner = await BrokerProfile.findOne({ brokerEmail: tenant.ownerEmail });
-                const phone = owner ? owner.phone : tenant.mobileNo;
+                    if (ownerPhone) {
+                        let messageText = "";
 
-                if (!phone) continue;
+                        if (slotType === 'morning_9am') {
+                            messageText = `Good morning sir, aaj aapke tenant (${tenant.roomOrFlatNo} - ${tenant.tenantName}) ka month complete ho gaya hai. Kripya apna ledger update karein taaki monthly rent time to time aapke account me aa sake. 🙏\n\n🔗 Update Ledger: https://bhopal-real-estate.onrender.com\nBhopal Properties`;
+                            tenant.alertCount = 1;
+                        } 
+                        else if (slotType === 'afternoon_12pm') {
+                            messageText = `Good afternoon sir, aapne abhi tak apna ledger update nahi kiya hai (${tenant.roomOrFlatNo} - ${tenant.tenantName}). Sir please apna ledger update karein taaki apna hisab clear rahe. 📊\n\n🔗 Update Ledger: https://bhopal-real-estate.onrender.com\nBhopal Properties`;
+                            tenant.alertCount = 2;
+                        } 
+                        else if (slotType === 'evening_8pm') {
+                            messageText = `Good evening sir, aapko ledger update karne me agar koi problem aa rahi hai toh hum aapko customer support provide kar sakte hain, ya kal hum apne agent ko bhej kar ledger update karwa dein? 🤝\n\n🌐 Support: https://bhopal-real-estate.onrender.com\nBhopal Properties Support`;
+                            tenant.alertCount = 3;
+                            tenant.needsAssistance = true;
 
-                let messageText = "";
+                            const employeeMobile = "919993352339"; 
+                            const empAlert = `🚨 CUSTOMER SUPPORT ACTION:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka ledger update nahi kiya hai. Kal subah call ya agent bhej kar update karwayen.`;
+                            await sendDirectWhatsApp(employeeMobile, empAlert);
+                            await sleep(3000);
+                        }
+
+                        tenant.lastAlertSentAt = new Date();
+                        await tenant.save();
+
+                        await sendDirectWhatsApp(ownerPhone, messageText);
+                        await sleep(3000);
+                    }
+                } else if (isUpdated && tenant.alertCount > 0) {
+                    tenant.alertCount = 0;
+                    tenant.lastAlertSentAt = null;
+                    tenant.needsAssistance = false;
+                    await tenant.save();
+                }
+            }
+
+            // =================================================================
+            // 2️⃣ TENANT PAYMENT CHASER (9 AM, 12 PM, 8 PM)
+            // Rule: Owner ne bill bana diya hai (total > 0), par Paid Amount abhi 0 hai!
+            // Jaise hi Owner Paid Amount me kuch bhi dalega (paidAmount > 0), Balance chahe kuch bhi ho, reminder NAHI jayega!
+            // =================================================================
+            if (
+                latestEntry && 
+                Number(latestEntry.total) > 0 && 
+                Number(latestEntry.paidAmount || 0) === 0 && 
+                tenant.mobileNo
+            ) {
+                let tenantReminderMsg = "";
+                const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
 
                 if (slotType === 'morning_9am') {
-                    messageText = `Good morning sir, aaj aapke tenant (${tenant.roomOrFlatNo} - ${tenant.tenantName}) ka month complete ho gaya hai. Kripya apna ledger update karein taaki monthly rent time to time aapke account me aa sake. 🙏\n\n🔗 Update Ledger: https://bhopal-real-estate.onrender.com\nBhopal Properties`;
-                    tenant.alertCount = 1;
+                    tenantReminderMsg = `🌅 सुप्रभात *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nआपका *${latestEntry.monthDate}* का कुल किराया एवं बिल *₹${latestEntry.total}* जनरेट हो चुका है। कृपया आज अपने मकान मालिक को पेमेंट ट्रांसफर करने का कष्ट करें। 🙏\n\n🌐 Passbook: ${passbookUrl}\n- Bhopal Properties`;
                 } 
                 else if (slotType === 'afternoon_12pm') {
-                    messageText = `Good afternoon sir, aapne abhi tak apna ledger update nahi kiya hai (${tenant.roomOrFlatNo} - ${tenant.tenantName}). Sir please apna ledger update karein taaki apna hisab clear rahe. 📊\n\n🔗 Update Ledger: https://bhopal-real-estate.onrender.com\nBhopal Properties`;
-                    tenant.alertCount = 2;
+                    tenantReminderMsg = `☀️ नमस्ते *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nरिमाइंडर: आपके *${latestEntry.monthDate}* के बिल की राशि *₹${latestEntry.total}* अभी पेंडिंग दिखा रही है। यदि आपने पेमेंट कर दिया है, तो कृपया अपने मकान मालिक को लेजर में Paid Amount अपडेट करने के लिए सूचित करें। 📊\n\n🌐 Passbook: ${passbookUrl}`;
                 } 
                 else if (slotType === 'evening_8pm') {
-                    messageText = `Good evening sir, aapko ledger update karne me agar koi problem aa rahi hai toh hum aapko customer support provide kar sakte hain, ya kal hum apne agent ko bhej kar ledger update karwa dein? 🤝\n\n🌐 Support: https://bhopal-real-estate.onrender.com\nBhopal Properties Support`;
-                    tenant.alertCount = 3;
-                    tenant.needsAssistance = true;
-
-                    const employeeMobile = "919993352339"; 
-                    const empAlert = `🚨 CUSTOMER SUPPORT ACTION:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka ledger update nahi kiya hai. Kal subah call ya agent bhej kar update karwayen.`;
-                    await sendDirectWhatsApp(employeeMobile, empAlert);
-                    await sleep(3000);
+                    tenantReminderMsg = `🌙 शुभ संध्या *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nआपका इस माह का *₹${latestEntry.total}* का भुगतान अभी तक लेजर में दर्ज नहीं हुआ है। कृपया जल्द से जल्द भुगतान करें ताकि आपका डिजिटल खाता क्लियर रहे। सहयोग के लिए धन्यवाद! 🤝\n\n🌐 Passbook: ${passbookUrl}\n- Bhopal Properties`;
                 }
 
-                tenant.lastAlertSentAt = new Date();
-                await tenant.save();
-
-                await sendDirectWhatsApp(phone, messageText);
-                await sleep(3000);
-            } 
-            else if (isUpdated && tenant.alertCount > 0) {
-                tenant.alertCount = 0;
-                tenant.lastAlertSentAt = null;
-                tenant.needsAssistance = false;
-                await tenant.save();
+                if (tenantReminderMsg) {
+                    await sendDirectWhatsApp(tenant.mobileNo, tenantReminderMsg);
+                    console.log(`📤 Tenant Rent Reminder (${slotType}) sent to: ${tenant.tenantName} (${tenant.mobileNo})`);
+                    await sleep(3000);
+                }
             }
         }
     } catch (err) {
@@ -414,43 +502,37 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
             return (d === currentDay && m === currentMonth);
         };
 
-        // 🎂 1. BIRTHDAY WISHES: TENANTS
-        for (const tenant of activeTenants) {
-            if (tenant.tenantDOB && tenant.mobileNo && isBirthdayToday(tenant.tenantDOB)) {
-                const bdayMsg = `🎂 जन्मदिन की हार्दिक शुभकामनाएँ, ${tenant.tenantName} ji! 🎉\n\nभोपाल प्रॉपर्टीज परिवार की तरफ से आपके उत्तम स्वास्थ्य, दीर्घायु और खुशियों भरे वर्ष की मंगलकामना करते हैं। Have a fantastic day ahead! 🌟\n\n🌐 Visit Us: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
-                await sendDirectWhatsApp(tenant.mobileNo, bdayMsg);
-                console.log(`🎂 Birthday wish sent to Tenant: ${tenant.tenantName}`);
-                await sleep(3000);
+        // 🎂 1 & 2. BIRTHDAY WISHES (Sirf tab chalega jab force festival test NA ho raha ho)
+        if (!forcedFestivalName) {
+            // Brokers Birthday
+            for (const broker of allBrokers) {
+                if (broker.dob && broker.phone && isBirthdayToday(broker.dob)) {
+                    const brokerUser = await User.findOne({ email: broker.brokerEmail });
+                    const brokerName = brokerUser ? brokerUser.name : 'Partner';
+
+                    const brokerBdayMsg = `🎂 जन्मदिन की ढेरों शुभकामनाएँ, ${brokerName} ji! 🎉💐\n\nBhopal Properties की पूरी टीम की ओर से आपको जन्मदिन की हार्दिक बधाई। ईश्वर आपको व्यवसाय में नई ऊँचाइयाँ, उत्तम स्वास्थ्य और अपार सफलता प्रदान करें। 🌟🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Bhopal Properties Business Network`;
+                    await sendDirectWhatsApp(broker.phone, brokerBdayMsg);
+                    console.log(`🎂 Birthday wish sent to Broker: ${brokerName} (${broker.phone})`);
+                    await sleep(3000);
+                }
+            }
+
+            // Tenants Birthday
+            for (const tenant of activeTenants) {
+                if (tenant.tenantDOB && tenant.mobileNo && isBirthdayToday(tenant.tenantDOB)) {
+                    const bdayMsg = `🎂 जन्मदिन की हार्दिक शुभकामनाएँ, ${tenant.tenantName} ji! 🎉\n\nभोपाल प्रॉपर्टीज परिवार की तरफ से आपके उत्तम स्वास्थ्य, दीर्घायु और खुशियों भरे वर्ष की मंगलकामना करते हैं। Have a fantastic day ahead! 🌟\n\n🌐 Visit Us: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
+                    await sendDirectWhatsApp(tenant.mobileNo, bdayMsg);
+                    console.log(`🎂 Birthday wish sent to Tenant: ${tenant.tenantName}`);
+                    await sleep(3000);
+                }
             }
         }
 
-        // 🎂 2. BIRTHDAY WISHES: BROKERS
-        for (const broker of allBrokers) {
-            if (broker.dob && broker.phone && isBirthdayToday(broker.dob)) {
-                const brokerUser = await User.findOne({ email: broker.brokerEmail });
-                const brokerName = brokerUser ? brokerUser.name : 'Partner';
-
-                const brokerBdayMsg = `🎂 जन्मदिन की ढेरों शुभकामनाएँ, ${brokerName} ji! 🎉💐\n\nBhopal Properties की पूरी टीम की ओर से आपको जन्मदिन की हार्दिक बधाई। ईश्वर आपको व्यवसाय में नई ऊँचाइयाँ, उत्तम स्वास्थ्य और अपार सफलता प्रदान करें। 🌟🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Bhopal Properties Business Network`;
-                await sendDirectWhatsApp(broker.phone, brokerBdayMsg);
-                console.log(`🎂 Birthday wish sent to Broker: ${brokerName} (${broker.phone})`);
-                await sleep(3000);
-            }
-        }
-
-        // 🪔 3. FESTIVAL GREETINGS: TENANTS + BROKERS
+        // 🪔 3. FESTIVAL GREETINGS: BROKERS FIRST, THEN TENANTS
         const festivalName = forcedFestivalName || festivalCache[todayKey];
 
         if (festivalName) {
             console.log(`🎉 Tyohar Triggered: ${festivalName}. Broadcasting wishes...`);
-
-            const tenantFestMsg = `आपको और आपके पूरे परिवार को ${festivalName} की हार्दिक शुभकामनाएँ! 🪔✨\nजीवन में सुख, शांति और समृद्धि बनी रहे।\n\n🌐 Visit: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
-            for (const tenant of activeTenants) {
-                if (tenant.mobileNo) {
-                    await sendDirectWhatsApp(tenant.mobileNo, tenantFestMsg);
-                    console.log(`📤 Festival wish sent to Tenant: ${tenant.tenantName}`);
-                    await sleep(3000);
-                }
-            }
 
             for (const broker of allBrokers) {
                 if (broker.phone) {
@@ -460,6 +542,15 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
                     const brokerFestMsg = `नमस्ते ${brokerName} ji! 🙏\n\nआपको और आपके परिवार को ${festivalName} के पावन अवसर पर Bhopal Properties की ओर से हार्दिक शुभकामनाएँ! 🪔✨\n\nयह त्योहार आपके व्यापार में नई खुशियाँ, तरक्की और नए अवसर लेकर आए। 💼📈\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
                     await sendDirectWhatsApp(broker.phone, brokerFestMsg);
                     console.log(`📤 Festival wish sent to Broker: ${brokerName}`);
+                    await sleep(3000);
+                }
+            }
+
+            const tenantFestMsg = `आपको और आपके पूरे परिवार को ${festivalName} की हार्दिक शुभकामनाएँ! 🪔✨\nजीवन में सुख, शांति और समृद्धि बनी रहे।\n\n🌐 Visit: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
+            for (const tenant of activeTenants) {
+                if (tenant.mobileNo) {
+                    await sendDirectWhatsApp(tenant.mobileNo, tenantFestMsg);
+                    console.log(`📤 Festival wish sent to Tenant: ${tenant.tenantName}`);
                     await sleep(3000);
                 }
             }
@@ -938,7 +1029,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             }
         }
 
-        // Update se pehle purana record check karein
         const currentProfile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
         const oldPhoneClean = (currentProfile && currentProfile.phone) ? currentProfile.phone.replace(/\D/g, '').slice(-10) : '';
 
@@ -966,7 +1056,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             updateData.isProfileComplete = false;
         }
 
-        // 🔄 CHECK 3: Agar phone number change hua hai, toh welcomeSent false karein taaki naye number par welcome jaye
         const isPhoneChanged = Boolean(cleanInputPhone && cleanInputPhone !== oldPhoneClean);
         if (isPhoneChanged) {
             updateData.welcomeSent = false;
