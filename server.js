@@ -1343,24 +1343,35 @@ app.post('/api/reset-password', async (req, res) => {
         const emailLower = email ? email.toLowerCase().trim() : '';
 
         const pendingRecord = await PendingUser.findOne({ email: emailLower });
-        if (!pendingRecord || pendingRecord.otp !== otp.toString().trim()) {
-            return res.status(400).json({ success: false, message: '⏰ सेशन समाप्त हो गया है! कृपया दोबारा प्रयास करें।' });
+        if (!pendingRecord) {
+            return res.status(400).json({ success: false, message: '⏰ OTP expire ho gaya hai! Kripya dobara OTP mangwayen.' });
+        }
+
+        if (pendingRecord.otp !== otp.toString().trim()) {
+            return res.status(400).json({ success: false, message: '❌ Galat OTP! Sahi code dalein.' });
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await User.findOneAndUpdate(
+        
+        // 🔍 Database me User ko dhoond kar password force-update karein
+        const updatedUser = await User.findOneAndUpdate(
             { email: { $regex: new RegExp(`^${emailLower}$`, 'i') } },
-            { $set: { password: hashedPassword, phone: pendingRecord.phone } }
+            { $set: { password: hashedPassword, phone: pendingRecord.phone } },
+            { new: true }
         );
+
+        if (!updatedUser) {
+            return res.status(404).json({ success: false, message: '❌ Database me yeh user account nahi mila!' });
+        }
 
         await PendingUser.deleteOne({ email: emailLower });
 
         if (pendingRecord.phone) {
-            const confirmMsg = `✅ *Account Recovered Successfully*\n\nनमस्ते *${pendingRecord.name}* ji,\n👤 *आपकी User ID:* ${emailLower}\n🔐 आपका नया पासवर्ड सफलतापूर्वक अपडेट कर दिया गया है।\n\n🌐 Login: https://bhopal-real-estate.onrender.com/login.html`;
+            const confirmMsg = `✅ *Password Updated Successfully*\n\nNamaste *${pendingRecord.name}* ji,\nAapka naya password successfully save ho gaya hai.\n\n🌐 Login: https://bhopal-real-estate.onrender.com/login.html`;
             sendDirectWhatsApp(pendingRecord.phone, confirmMsg).catch(() => {});
         }
 
-        res.json({ success: true, message: '🎉 आपका नया पासवर्ड सफलतापूर्वक बन गया है!' });
+        res.json({ success: true, message: '🎉 Aapka naya password safalpurvak save ho gaya hai!' });
     } catch (error) {
         console.error("Reset Password Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' });
