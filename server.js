@@ -1074,6 +1074,14 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             { new: true, upsert: true }
         );
 
+        // 🔗 SYNC: User table me bhi phone number update kar dein taaki Forgot Password me turant mile
+        if (finalPhone) {
+            await User.updateOne(
+                { email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } }, 
+                { $set: { phone: finalPhone } }
+            );
+        }
+
         // 🚀 LIVE TRIGGER: SEEDHE NAYE PHONE NUMBER (finalPhone) PAR WELCOME MESSAGE BHEJEIN
         if (finalPhone && (!updatedProfile.welcomeSent || isPhoneChanged)) {
             const user = await User.findOne({ email: cleanEmail });
@@ -1208,6 +1216,9 @@ app.post('/api/verify-otp', async (req, res) => {
 // =========================================================================
 // 🔑 FORGOT PASSWORD & RESET VIA WHATSAPP OTP
 // =========================================================================
+// =========================================================================
+// 🔑 SMART FORGOT PASSWORD / FIND USER ID VIA WHATSAPP OTP (3-STEP FLOW)
+// =========================================================================
 app.post('/api/forgot-password', async (req, res) => {
     try {
         const { identifier } = req.body;
@@ -1220,52 +1231,64 @@ app.post('/api/forgot-password', async (req, res) => {
 
         let user = null;
         let brokerProf = null;
+        let targetPhone = '';
+        let targetEmail = '';
+        let targetName = 'User';
 
-        // 1. Agar Email dala hai
+        // 1. Agar Email dala hai (Case-insensitive search)
         if (cleanInput.includes('@')) {
-            user = await User.findOne({ email: cleanInput });
-            if (user) {
-                brokerProf = await BrokerProfile.findOne({ brokerEmail: user.email });
-            }
+            user = await User.findOne({ email: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
+            brokerProf = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
         } 
-        // 2. Agar 10-digit Mobile Number dala hai
+        // 2. Agar 10-digit Mobile Number dala hai (Checks User, BrokerProfile, and TenantLedger)
         else if (digitsOnly.length === 10) {
-            user = await User.findOne({ phone: digitsOnly });
-            if (!user) {
-                brokerProf = await BrokerProfile.findOne({ phone: { $regex: digitsOnly } });
-                if (brokerProf) {
-                    user = await User.findOne({ email: brokerProf.brokerEmail });
-                }
-            } else {
-                brokerProf = await BrokerProfile.findOne({ brokerEmail: user.email });
+            user = await User.findOne({ phone: { $regex: digitsOnly } });
+            brokerProf = await BrokerProfile.findOne({ phone: { $regex: digitsOnly } });
+
+            if (!user && brokerProf && brokerProf.brokerEmail) {
+                user = await User.findOne({ email: { $regex: new RegExp(`^${brokerProf.brokerEmail.trim()}$`, 'i') } });
+            }
+            if (user && !brokerProf) {
+                brokerProf = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${user.email.trim()}$`, 'i') } });
             }
         }
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'इस ईमेल या मोबाइल नंबर से कोई अकाउंट नहीं मिला!' });
+        if (user) {
+            targetEmail = user.email;
+            targetName = user.name || 'Partner';
+            targetPhone = (brokerProf && brokerProf.phone) ? brokerProf.phone : (user.phone || '');
+        } else if (brokerProf) {
+            targetEmail = brokerProf.brokerEmail;
+            targetPhone = brokerProf.phone || '';
         }
 
-        const targetPhone = user.phone || (brokerProf ? brokerProf.phone : '');
+        if (!targetEmail) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'इस ईमेल या मोबाइल नंबर से कोई अकाउंट नहीं मिला! कृपया पहले प्रोफाइल में नंबर सेव करें या ईमेल से प्रयास करें।' 
+            });
+        }
+
         if (!targetPhone) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'आपके अकाउंट में कोई WhatsApp नंबर लिंक नहीं है! कृपया एडमिन से संपर्क करें।' 
+                message: 'आपके अकाउंट में कोई WhatsApp नंबर लिंक नहीं मिला!' 
             });
         }
 
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        await PendingUser.deleteMany({ email: user.email });
+        await PendingUser.deleteMany({ email: targetEmail.toLowerCase().trim() });
         const resetRecord = new PendingUser({
-            name: user.name,
-            email: user.email,
+            name: targetName,
+            email: targetEmail.toLowerCase().trim(),
             phone: targetPhone,
             password: 'PASSWORD_RESET_MODE',
             otp: otp
         });
         await resetRecord.save();
 
-        const resetMsg = `🔑 *Bhopal Properties Password Reset*\n\nनमस्ते *${user.name}* ji,\nआपका पासवर्ड रीसेट करने का OTP है: *${otp}*\n\nयह कोड 10 मिनट के लिए मान्य है। यदि आपने यह रिक्वेस्ट नहीं की है, तो इसे अनदेखा करें।\n\n🌐 https://bhopal-real-estate.onrender.com`;
+        const resetMsg = `🔑 *Bhopal Properties Account Recovery*\n\nनमस्ते *${targetName}* ji,\nआपकी User ID एवं पासवर्ड रिकवरी का OTP है: *${otp}*\n\nयह कोड 10 मिनट के लिए मान्य है।\n🌐 https://bhopal-real-estate.onrender.com`;
 
         const isSent = await sendDirectWhatsApp(targetPhone, resetMsg);
         if (!isSent) {
@@ -1275,11 +1298,68 @@ app.post('/api/forgot-password', async (req, res) => {
         const maskedPhone = targetPhone.slice(-4).padStart(10, '*');
         res.json({ 
             success: true, 
-            email: user.email,
-            message: `✅ आपके रजिस्टर्ड WhatsApp नंबर (${maskedPhone}) पर OTP भेज दिया गया है!` 
+            email: targetEmail.toLowerCase().trim(),
+            message: `✅ आपके WhatsApp नंबर (${maskedPhone}) पर 4-अंकों का OTP भेज दिया गया है!` 
         });
     } catch (error) {
         console.error("Forgot Password Error:", error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// 🔍 STEP 2: VERIFY OTP & REVEAL USER ID (EMAIL)
+app.post('/api/verify-reset-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const emailLower = email ? email.toLowerCase().trim() : '';
+
+        const pendingRecord = await PendingUser.findOne({ email: emailLower });
+        if (!pendingRecord) {
+            return res.status(400).json({ success: false, message: '⏰ OTP एक्सपायर हो गया है! कृपया दोबारा OTP मंगवाएं।' });
+        }
+
+        if (pendingRecord.otp !== otp.toString().trim()) {
+            return res.status(400).json({ success: false, message: '❌ गलत OTP! कृपया WhatsApp पर आया सही 4-अंकों का कोड डालें।' });
+        }
+
+        res.json({
+            success: true,
+            userId: pendingRecord.email,
+            userName: pendingRecord.name,
+            message: '✅ OTP वेरीफाई हो गया! नीचे आपकी User ID दी गई है।'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+});
+
+// 🔐 STEP 3: SAVE NEW PASSWORD
+app.post('/api/reset-password', async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+        const emailLower = email ? email.toLowerCase().trim() : '';
+
+        const pendingRecord = await PendingUser.findOne({ email: emailLower });
+        if (!pendingRecord || pendingRecord.otp !== otp.toString().trim()) {
+            return res.status(400).json({ success: false, message: '⏰ सेशन समाप्त हो गया है! कृपया दोबारा प्रयास करें।' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await User.findOneAndUpdate(
+            { email: { $regex: new RegExp(`^${emailLower}$`, 'i') } },
+            { $set: { password: hashedPassword, phone: pendingRecord.phone } }
+        );
+
+        await PendingUser.deleteOne({ email: emailLower });
+
+        if (pendingRecord.phone) {
+            const confirmMsg = `✅ *Account Recovered Successfully*\n\nनमस्ते *${pendingRecord.name}* ji,\n👤 *आपकी User ID:* ${emailLower}\n🔐 आपका नया पासवर्ड सफलतापूर्वक अपडेट कर दिया गया है।\n\n🌐 Login: https://bhopal-real-estate.onrender.com/login.html`;
+            sendDirectWhatsApp(pendingRecord.phone, confirmMsg).catch(() => {});
+        }
+
+        res.json({ success: true, message: '🎉 आपका नया पासवर्ड सफलतापूर्वक बन गया है!' });
+    } catch (error) {
+        console.error("Reset Password Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });

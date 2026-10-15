@@ -23,6 +23,11 @@
         .msg-box { padding: 10px 12px; border-radius: 8px; margin-bottom: 18px; display: none; font-size: 13px; font-weight: 500; }
         .msg-error { background: #ffeaa7; color: #d63031; border-left: 4px solid #d63031; }
         .msg-success { background: #dff9fb; color: #16a34a; border-left: 4px solid #16a34a; }
+        
+        /* 👤 User ID Reveal Box */
+        .userid-badge { background: #f0fdf4; border: 2px dashed #22c55e; border-radius: 12px; padding: 14px; margin-bottom: 18px; text-align: center; }
+        .userid-badge .label { font-size: 12px; color: #15803d; font-weight: 600; text-transform: uppercase; }
+        .userid-badge .val { font-size: 16px; color: #1e293b; font-weight: 700; margin-top: 4px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -36,7 +41,7 @@
         <div id="loginSection">
             <form id="loginForm">
                 <div class="input-group">
-                    <label>Email Address</label>
+                    <label>User ID (Email Address)</label>
                     <input type="email" id="email" placeholder="name@example.com" required>
                 </div>
                 <div class="input-group" style="margin-bottom: 8px;">
@@ -44,7 +49,7 @@
                     <input type="password" id="password" placeholder="••••••••" required>
                 </div>
                 <div style="text-align: right;">
-                    <span class="forgot-link" onclick="showForgotSection()">Forgot Password? 🔑</span>
+                    <span class="forgot-link" onclick="showForgotSection()">Forgot User ID / Password? 🔑</span>
                 </div>
                 <button type="submit" class="logout-btn" id="loginBtn">Log In 🚀</button>
             </form>
@@ -53,12 +58,12 @@
             </div>
         </div>
 
-        <!-- 📲 SECTION 2: FORGOT PASSWORD - STEP 1 (SEND WHATSAPP OTP) -->
+        <!-- 📲 SECTION 2: FORGOT - STEP 1 (ENTER MOBILE OR EMAIL) -->
         <div id="forgotStep1" style="display: none;">
             <form id="forgotRequestForm">
                 <div class="input-group">
-                    <label>Registered Email OR WhatsApp No.</label>
-                    <input type="text" id="resetIdentifier" placeholder="Email या 10-अंकों का मोबाइल नंबर" required>
+                    <label>Registered WhatsApp No. OR Email</label>
+                    <input type="text" id="resetIdentifier" placeholder="10-अंकों का मोबाइल नंबर या Email" required>
                 </div>
                 <button type="submit" class="logout-btn" id="sendResetOtpBtn" style="background-color: #3498db;">Send OTP on WhatsApp 📲</button>
             </form>
@@ -67,21 +72,38 @@
             </div>
         </div>
 
-        <!-- 🔑 SECTION 3: FORGOT PASSWORD - STEP 2 (VERIFY OTP & SET NEW PASSWORD) -->
+        <!-- 🔍 SECTION 3: FORGOT - STEP 2 (VERIFY WHATSAPP OTP) -->
         <div id="forgotStep2" style="display: none;">
-            <form id="forgotVerifyForm">
+            <form id="verifyOtpOnlyForm">
                 <div class="input-group">
                     <label style="text-align: center;">Enter 4-Digit WhatsApp OTP</label>
-                    <input type="text" id="resetOtpCode" placeholder="••••" maxlength="4" pattern="[0-9]{4}" required style="text-align: center; font-size: 24px; letter-spacing: 10px; font-weight: bold; color: #16a34a;">
+                    <input type="text" id="resetOtpCode" placeholder="••••" maxlength="4" pattern="[0-9]{4}" required style="text-align: center; font-size: 26px; letter-spacing: 10px; font-weight: bold; color: #16a34a;">
                 </div>
-                <div class="input-group">
-                    <label>New Password</label>
-                    <input type="password" id="newResetPassword" placeholder="Min 6 characters" minlength="6" required>
-                </div>
-                <button type="submit" class="logout-btn" id="resetPassBtn" style="background-color: #16a34a;">Update Password ✅</button>
+                <button type="submit" class="logout-btn" id="verifyOtpBtn" style="background-color: #25D366;">Verify OTP & View User ID 🔓</button>
             </form>
             <div style="margin-top: 15px;">
-                <span class="forgot-link" style="color: #576574;" onclick="showForgotSection()">🔄 Resend OTP</span>
+                <span class="forgot-link" style="color: #576574;" onclick="showForgotSection()">🔄 Change Number / Resend OTP</span>
+            </div>
+        </div>
+
+        <!-- 🔑 SECTION 4: FORGOT - STEP 3 (SHOW USER ID + CREATE NEW PASSWORD) -->
+        <div id="forgotStep3" style="display: none;">
+            <div class="userid-badge">
+                <div class="label">👤 आपकी रजिस्टर्ड User ID (Email):</div>
+                <div class="val" id="revealedUserId">user@example.com</div>
+                <div style="font-size: 12px; color: #64748b; margin-top: 4px;" id="revealedUserName"></div>
+            </div>
+
+            <form id="forgotResetPassForm">
+                <div class="input-group">
+                    <label>Create New Password</label>
+                    <input type="password" id="newResetPassword" placeholder="नया पासवर्ड डालें (Min 6 chars)" minlength="6" required>
+                </div>
+                <button type="submit" class="logout-btn" id="resetPassBtn" style="background-color: #16a34a;">Save New Password ✅</button>
+            </form>
+
+            <div style="margin-top: 15px;">
+                <span class="forgot-link" style="color: #2980b9;" onclick="loginWithRevealedId()">➡️ पासवर्ड याद है? सीधे इसी User ID से लॉगिन करें</span>
             </div>
         </div>
     </div>
@@ -89,6 +111,7 @@
     <script>
         const errorMsg = document.getElementById('errorMsg');
         let resetTargetEmail = "";
+        let verifiedOtpCode = "";
 
         function showStatus(text, isSuccess = false) {
             errorMsg.innerHTML = text;
@@ -96,24 +119,35 @@
             errorMsg.style.display = "block";
         }
 
+        function hideAllSections() {
+            document.getElementById('loginSection').style.display = "none";
+            document.getElementById('forgotStep1').style.display = "none";
+            document.getElementById('forgotStep2').style.display = "none";
+            document.getElementById('forgotStep3').style.display = "none";
+        }
+
         function showForgotSection() {
             errorMsg.style.display = "none";
-            document.getElementById('loginSection').style.display = "none";
-            document.getElementById('forgotStep2').style.display = "none";
+            hideAllSections();
             document.getElementById('forgotStep1').style.display = "block";
-            document.getElementById('cardSubtitle').innerText = "पासवर्ड रीसेट करने के लिए अपना रजिस्टर्ड ईमेल या WhatsApp नंबर डालें।";
+            document.getElementById('cardSubtitle').innerText = "अपनी User ID जानने या नया पासवर्ड बनाने के लिए WhatsApp नंबर या ईमेल डालें।";
         }
 
         function showLoginSection() {
             errorMsg.style.display = "none";
-            document.getElementById('forgotStep1').style.display = "none";
-            document.getElementById('forgotStep2').style.display = "none";
+            hideAllSections();
             document.getElementById('loginSection').style.display = "block";
             document.getElementById('cardSubtitle').innerText = "Welcome back! Please login to your account.";
         }
 
+        function loginWithRevealedId() {
+            showLoginSection();
+            document.getElementById('email').value = resetTargetEmail;
+            document.getElementById('password').focus();
+        }
+
         // ==========================================
-        // 1️⃣ MAIN LOGIN HANDLER (Aapka Purana Logic 100% Intact)
+        // 1️⃣ MAIN LOGIN HANDLER (Aapka Purana Logic 100% Safe)
         // ==========================================
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -122,7 +156,6 @@
             errorMsg.style.display = "none";
             
             try {
-                // 1. Purane kisi bhi stale cache ko pehle clean karein
                 localStorage.clear();
 
                 const res = await fetch('/api/login', {
@@ -137,7 +170,6 @@
                 const data = await res.json();
                 
                 if (data.success) {
-                    // 🚪 CHECK 1: अगर लॉगिन करने वाला एक किरायेदार (Tenant) है
                     if (data.role === 'tenant') {
                         localStorage.setItem('tenantEmail', data.tenantData.tenantEmail);
                         localStorage.setItem('userRole', 'tenant');
@@ -147,7 +179,6 @@
                         return;
                     }
 
-                    // 💼 CHECK 2: अगर सामान्य यूजर, ब्रोकर या कोई अन्य एजेंट है
                     localStorage.setItem('brokerName', data.name);
                     localStorage.setItem('brokerEmail', data.email);
                     localStorage.setItem('userRole', data.role);
@@ -156,7 +187,6 @@
 
                     const cleanRole = data.role ? data.role.trim() : '';
 
-                    // 3. Routing Engine Execution (Aapke Saare Purane Logics Block)
                     if (cleanRole === 'admin') {
                         window.location.replace('admin-dashboard.html');
                     } else if (cleanRole === 'police_agent') {
@@ -184,7 +214,7 @@
         });
 
         // ==========================================
-        // 2️⃣ FORGOT PASSWORD: SEND WHATSAPP OTP
+        // 2️⃣ STEP 1: SEND OTP ON WHATSAPP
         // ==========================================
         document.getElementById('forgotRequestForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -204,10 +234,10 @@
 
                 if (data.success) {
                     resetTargetEmail = data.email;
-                    document.getElementById('forgotStep1').style.display = "none";
+                    hideAllSections();
                     document.getElementById('forgotStep2').style.display = "block";
                     document.getElementById('resetOtpCode').value = "";
-                    document.getElementById('newResetPassword').value = "";
+                    document.getElementById('resetOtpCode').focus();
                     showStatus(data.message, true);
                 } else {
                     showStatus("❌ " + (data.message || "अकाउंट नहीं मिला!"), false);
@@ -220,39 +250,77 @@
         });
 
         // ==========================================
-        // 3️⃣ FORGOT PASSWORD: VERIFY OTP & UPDATE PASSWORD
+        // 3️⃣ STEP 2: VERIFY OTP & SHOW USER ID
         // ==========================================
-        document.getElementById('forgotVerifyForm').addEventListener('submit', async function(e) {
+        document.getElementById('verifyOtpOnlyForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const btn = document.getElementById('resetPassBtn');
-            btn.innerText = "Updating Password... ⏳";
+            const btn = document.getElementById('verifyOtpBtn');
+            btn.innerText = "Verifying OTP... ⏳";
             errorMsg.style.display = "none";
 
             const otp = document.getElementById('resetOtpCode').value.trim();
+
+            try {
+                const res = await fetch('/api/verify-reset-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: resetTargetEmail, otp })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    verifiedOtpCode = otp;
+                    resetTargetEmail = data.userId;
+                    hideAllSections();
+                    document.getElementById('forgotStep3').style.display = "block";
+                    document.getElementById('revealedUserId').innerText = data.userId;
+                    document.getElementById('revealedUserName').innerText = `Account Holder: ${data.userName || 'Broker'}`;
+                    document.getElementById('newResetPassword').value = "";
+                    document.getElementById('cardSubtitle').innerText = "आपकी User ID वेरीफाई हो गई है! अब नया पासवर्ड बनाएं:";
+                    showStatus(data.message, true);
+                } else {
+                    showStatus(data.message || "❌ गलत OTP!", false);
+                }
+            } catch (err) {
+                showStatus("❌ Server Error!", false);
+            } finally {
+                btn.innerText = "Verify OTP & View User ID 🔓";
+            }
+        });
+
+        // ==========================================
+        // 4️⃣ STEP 3: SAVE NEW PASSWORD
+        // ==========================================
+        document.getElementById('forgotResetPassForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('resetPassBtn');
+            btn.innerText = "Saving Password... ⏳";
+            errorMsg.style.display = "none";
+
             const newPassword = document.getElementById('newResetPassword').value;
 
             try {
                 const res = await fetch('/api/reset-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: resetTargetEmail, otp, newPassword })
+                    body: JSON.stringify({ email: resetTargetEmail, otp: verifiedOtpCode, newPassword })
                 });
                 const data = await res.json();
 
                 if (data.success) {
-                    showStatus(data.message || "✅ पासवर्ड बदल गया! अब लॉगिन करें।", true);
+                    showStatus(data.message, true);
                     setTimeout(() => {
                         showLoginSection();
                         document.getElementById('email').value = resetTargetEmail;
-                        showStatus("✅ पासवर्ड सफलतापूर्वक बदल गया है! कृपया नए पासवर्ड से लॉगिन करें।", true);
+                        showStatus("✅ पासवर्ड बदल गया है! आपकी User ID ऊपर भर दी गई है, अब लॉगिन करें।", true);
                     }, 1800);
                 } else {
-                    showStatus("❌ " + (data.message || "गलत OTP!"), false);
+                    showStatus("❌ " + (data.message || "त्रुटि हुई!"), false);
                 }
             } catch (err) {
                 showStatus("❌ Server Error!", false);
             } finally {
-                btn.innerText = "Update Password ✅";
+                btn.innerText = "Save New Password ✅";
             }
         });
     </script>
