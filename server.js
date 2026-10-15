@@ -664,6 +664,48 @@ app.get('/qr', (req, res) => {
         </div>
     `);
 });
+// =========================================================================
+// 🚀 GOOGLE SEO TEHALKA: AUTO-DYNAMIC SITEMAP & ROBOTS.TXT
+// =========================================================================
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain');
+    res.send(`User-agent: *\nAllow: /\nSitemap: https://bhopal-real-estate.onrender.com/sitemap.xml`);
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const baseUrl = 'https://bhopal-real-estate.onrender.com';
+        const approvedProps = await Property.find({ status: 'approved' }).select('_id updatedAt').lean();
+
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+        xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+        // 1. Main Static Pages
+        const mainPages = [
+            { url: '/', priority: '1.0' },
+            { url: '/login.html', priority: '0.8' },
+            { url: '/signup.html', priority: '0.8' }
+        ];
+
+        mainPages.forEach(page => {
+            xml += `  <url>\n    <loc>${baseUrl}${page.url}</loc>\n    <changefreq>daily</changefreq>\n    <priority>${page.priority}</priority>\n  </url>\n`;
+        });
+
+        // 2. Dynamic Approved Properties
+        approvedProps.forEach(prop => {
+            const lastMod = prop.updatedAt ? new Date(prop.updatedAt).toISOString() : new Date().toISOString();
+            xml += `  <url>\n    <loc>${baseUrl}/?property=${prop._id}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+        });
+
+        xml += `</urlset>`;
+        res.header('Content-Type', 'application/xml');
+        res.send(xml);
+    } catch (err) {
+        console.error("Sitemap error:", err);
+        res.status(500).end();
+    }
+});
+
 
 // ==========================================
 // 3️⃣ OTHER API ROUTES
