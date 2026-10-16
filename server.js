@@ -1805,8 +1805,7 @@ app.get('/api/admin/get-payments', async (req, res) => {
 });
 
 // 🔒 GUARDED: Broker must complete profile before adding property draft
-app.post('/api/submit-property-draft', requireCompleteProfile, upload.array('propertyImages', 3), async (req, res) => {
-    try {
+app.post('/api/submit-property-draft', upload.array('propertyImages', 3), requireCompleteProfile, async (req, res) => {   try {
         const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
         const draftId = 'DRAFT_PROP_' + Math.floor(Math.random() * 1000000);
 
