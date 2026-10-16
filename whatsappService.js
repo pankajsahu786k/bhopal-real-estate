@@ -109,11 +109,18 @@ async function connectToWhatsApp() {
                 if (!msg.message || msg.key.fromMe) return;
 
                 const senderPhone = msg.key.remoteJid; // e.g. 919993352339@s.whatsapp.net
-                const messageText = (
-                    msg.message.conversation || 
-                    msg.message.extendedTextMessage?.text || 
-                    ''
-                ).toLowerCase().trim();
+               let m = msg.message;
+// Disappearing aur ViewOnce messages ko handle karne ke liye
+if (m.ephemeralMessage) m = m.ephemeralMessage.message;
+if (m.viewOnceMessage) m = m.viewOnceMessage.message;
+if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message;
+
+const messageText = (
+    m.conversation || 
+    m.extendedTextMessage?.text || 
+    m.imageMessage?.caption || 
+    ''
+).toLowerCase().trim();
 
                 if (!messageText) return;
                 console.log(`📩 Baileys Message Mila: "${messageText}" from ${senderPhone}`);
