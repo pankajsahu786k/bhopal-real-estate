@@ -1842,6 +1842,88 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+// ==========================================
+// 🤖 WHATSAPP AI PROPERTY SEARCH BOT ENGINE
+// ==========================================
+app.post('/api/whatsapp/incoming-bot', async (req, res) => {
+    try {
+        const { senderPhone, messageText } = req.body;
+        if (!senderPhone || !messageText) return res.status(400).json({ success: false });
+
+        const query = messageText.toLowerCase();
+        let filter = { status: 'approved' };
+
+        // Location match
+        if (query.includes('arera')) filter.location = /arera/i;
+        else if (query.includes('new market')) filter.location = /new market/i;
+        else if (query.includes('mp nagar')) filter.location = /mp nagar/i;
+
+        // Purpose match (Rent / Sale)
+        if (query.includes('rent') || query.includes('kiraye')) filter.purpose = /rent/i;
+        else if (query.includes('buy') || query.includes('sale') || query.includes('kharidna')) filter.purpose = /sale/i;
+
+        const matchedProps = await Property.find(filter).limit(3).lean();
+
+        if (matchedProps.length === 0) {
+            await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Kripya hamari website visit karein: https://bhopal-real-estate.onrender.com`);
+        } else {
+            let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
+            matchedProps.forEach((p, index) => {
+                const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
+                replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
+            });
+            replyMsg += `📞 Adhik jankari ke liye call karein ya website par visit karein!`;
+            
+            await sendDirectWhatsApp(senderPhone, replyMsg);
+        }
+
+        res.json({ success: true, message: "Bot response sent successfully!" });
+    } catch (err) {
+        console.error("WhatsApp Bot Error:", err);
+        res.status(500).json({ success: false });
+    }
+});
+// ==========================================
+// 🤖 WHATSAPP AI PROPERTY SEARCH BOT ENGINE
+// ==========================================
+app.post('/api/whatsapp/incoming-bot', async (req, res) => {
+    try {
+        const { senderPhone, messageText } = req.body;
+        if (!senderPhone || !messageText) return res.status(400).json({ success: false });
+
+        const query = messageText.toLowerCase();
+        let filter = { status: 'approved' };
+
+        // Location match
+        if (query.includes('arera')) filter.location = /arera/i;
+        else if (query.includes('new market')) filter.location = /new market/i;
+        else if (query.includes('mp nagar')) filter.location = /mp nagar/i;
+
+        // Purpose match (Rent / Sale)
+        if (query.includes('rent') || query.includes('kiraye')) filter.purpose = /rent/i;
+        else if (query.includes('buy') || query.includes('sale') || query.includes('kharidna')) filter.purpose = /sale/i;
+
+        const matchedProps = await Property.find(filter).limit(3).lean();
+
+        if (matchedProps.length === 0) {
+            await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Kripya hamari website visit karein: https://bhopal-real-estate.onrender.com`);
+        } else {
+            let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
+            matchedProps.forEach((p, index) => {
+                const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
+                replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
+            });
+            replyMsg += `📞 Adhik jankari ke liye call karein ya website par visit karein!`;
+            
+            await sendDirectWhatsApp(senderPhone, replyMsg);
+        }
+
+        res.json({ success: true, message: "Bot response sent successfully!" });
+    } catch (err) {
+        console.error("WhatsApp Bot Error:", err);
+        res.status(500).json({ success: false });
+    }
+});
 
 app.post('/api/finalize-record', async (req, res) => {
     try {
