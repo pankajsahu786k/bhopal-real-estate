@@ -760,17 +760,74 @@ app.get('/api/user/my-verifications', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
+// =========================================================================
+// 🧾 SAVE RECEIPT ON SERVER + SEND INSTANT WHATSAPP RECEIPT (2-IN-1)
+// =========================================================================
 app.post('/api/save-receipt', async (req, res) => {
     try {
-        const { userEmail, serviceName, transactionId, amountPaid, paymentStatus } = req.body;
+        const { userEmail, serviceName, transactionId, amountPaid, paymentStatus, phone } = req.body;
+        const cleanEmail = userEmail ? userEmail.toLowerCase().trim() : 'guest@bhopal.com';
+
+        // ✅ 1. SERVER (MONGODB DATABASE) PAR PERMANENT SAVE KAREIN
         const newReceipt = new UniversalReceipt({
-            userEmail: userEmail.toLowerCase().trim(),
-            serviceName, transactionId, amountPaid,
+            userEmail: cleanEmail,
+            serviceName, 
+            transactionId, 
+            amountPaid: Number(amountPaid) || 0,
             paymentStatus: paymentStatus || 'Paid'
         });
-        await newReceipt.save();
-        res.json({ success: true, message: "Receipt generated automatically!" });
-    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+        const savedReceipt = await newReceipt.save();
+        console.log(`💾 Receipt saved on server! ID: ${savedReceipt._id}`);
+
+        // 🔍 2. CUSTOMER KA WHATSAPP NUMBER AUR NAAM DHOONDHEIN
+        let targetPhone = phone || '';
+        let targetName = 'Partner / Customer';
+
+        // Check in User table
+        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } });
+        if (userDoc) {
+            targetName = userDoc.name || targetName;
+            if (userDoc.phone) targetPhone = userDoc.phone;
+        }
+
+        // Check in BrokerProfile table
+        if (!targetPhone) {
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } });
+            if (brokerDoc && brokerDoc.phone) targetPhone = brokerDoc.phone;
+        }
+
+        // Check in Verification table (agar police verification ka payment hai)
+        if (!targetPhone) {
+            const latestVerif = await Verification.findOne({ userEmail: cleanEmail }).sort({ createdAt: -1 });
+            if (latestVerif) {
+                targetPhone = latestVerif.ownerPhone || latestVerif.tenantPhone || '';
+                targetName = latestVerif.ownerName || latestVerif.tenantName || targetName;
+            }
+        }
+
+        // 📲 3. WHATSAPP PAR TURANT DIGITAL RECEIPT BHEJEIN (Customer + Admin Alert)
+        if (targetPhone && Number(amountPaid) > 0) {
+            const dateStr = new Date().toLocaleDateString('hi-IN', { 
+                day: '2-digit', month: 'short', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit' 
+            });
+
+            const receiptMsg = `🧾 *पक्की डिजिटल पेमेंट रसीद (Bhopal Properties)*\n\nनमस्ते *${targetName}* जी,\nआपका पेमेंट सर्वर पर सफलतापूर्वक दर्ज हो गया है! 🎉\n\n━━━━━━━━━━━━━━━━━━\n🆔 *रसीद नं:* #${savedReceipt._id.toString().slice(-6).toUpperCase()}\n📌 *सर्विस:* ${serviceName}\n💰 *राशि (Paid):* ₹${amountPaid}\n🔢 *ट्रांजैक्शन ID:* ${transactionId}\n📅 *दिनांक:* ${dateStr}\n✅ *स्टेटस:* ${paymentStatus || 'Paid'} (Verified)\n━━━━━━━━━━━━━━━━━━\n\n📥 आप अपनी रसीद कभी भी हमारे पोर्टल के *My Receipts* सेक्शन से डाउनलोड कर सकते हैं:\n🌐 https://bhopal-real-estate.onrender.com/receipt.html\n\nधन्यवाद! 🙏\n- *Team Bhopal Properties*`;
+
+            sendDirectWhatsApp(targetPhone, receiptMsg)
+                .then(() => console.log(`📤 WhatsApp Receipt delivered to customer: ${targetPhone}`))
+                .catch(err => console.error("WhatsApp Receipt Error:", err.message));
+        }
+
+        res.json({ 
+            success: true, 
+            receiptId: savedReceipt._id,
+            message: "✅ रसीद सर्वर पर सेव हो गई और WhatsApp पर भी भेज दी गई!" 
+        });
+    } catch (e) { 
+        console.error("Save Receipt Error:", e);
+        res.status(500).json({ success: false, error: e.message }); 
+    }
 });
 
 app.get('/api/my-receipts', async (req, res) => {
