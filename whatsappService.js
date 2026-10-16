@@ -9,7 +9,7 @@ const pino = require('pino');
 const QRCode = require('qrcode');
 
 let sock = null;
-let currentQrData = null; // Browser par dikhane ke liye
+let currentQrData = null; 
 
 // =========================================================================
 // 🗄️ MONGODB WHATSAPP SESSION SCHEMA (PERMANENT STORAGE)
@@ -21,15 +21,10 @@ const whatsappAuthSchema = new mongoose.Schema({
 
 const WhatsAppAuth = mongoose.models.WhatsAppAuth || mongoose.model('WhatsAppAuth', whatsappAuthSchema);
 
-// Custom MongoDB Auth State Adapter
 async function useMongoDBAuthState() {
     const writeData = async (id, data) => {
         const serialized = JSON.stringify(data, BufferJSON.replacer);
-        await WhatsAppAuth.findByIdAndUpdate(
-            id, 
-            { _id: id, data: serialized }, 
-            { upsert: true }
-        );
+        await WhatsAppAuth.findByIdAndUpdate(id, { _id: id, data: serialized }, { upsert: true });
     };
 
     const readData = async (id) => {
@@ -37,15 +32,11 @@ async function useMongoDBAuthState() {
             const doc = await WhatsAppAuth.findById(id);
             if (!doc || !doc.data) return null;
             return JSON.parse(doc.data, BufferJSON.reviver);
-        } catch (err) {
-            return null;
-        }
+        } catch (err) { return null; }
     };
 
     const removeData = async (id) => {
-        try {
-            await WhatsAppAuth.findByIdAndDelete(id);
-        } catch (err) {}
+        try { await WhatsAppAuth.findByIdAndDelete(id); } catch (err) {}
     };
 
     const creds = (await readData('creds')) || initAuthCreds();
@@ -56,12 +47,7 @@ async function useMongoDBAuthState() {
             keys: {
                 get: async (type, ids) => {
                     const data = {};
-                    await Promise.all(
-                        ids.map(async (id) => {
-                            let value = await readData(`${type}-${id}`);
-                            data[id] = value;
-                        })
-                    );
+                    await Promise.all(ids.map(async (id) => { data[id] = await readData(`${type}-${id}`); }));
                     return data;
                 },
                 set: async (data) => {
@@ -108,27 +94,30 @@ async function connectToWhatsApp() {
                 const msg = messages[0];
                 if (!msg.message || msg.key.fromMe) return;
 
-                const senderPhone = msg.key.remoteJid; // e.g. 919993352339@s.whatsapp.net
-               let m = msg.message;
-// Disappearing aur ViewOnce messages ko handle karne ke liye
-if (m.ephemeralMessage) m = m.ephemeralMessage.message;
-if (m.viewOnceMessage) m = m.viewOnceMessage.message;
-if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message;
+                const senderPhone = msg.key.remoteJid; 
+                
+                let m = msg.message;
+                if (m.ephemeralMessage) m = m.ephemeralMessage.message;
+                if (m.viewOnceMessage) m = m.viewOnceMessage.message;
+                if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message;
 
-const messageText = (
-    m.conversation || 
-    m.extendedTextMessage?.text || 
-    m.imageMessage?.caption || 
-    ''
-).toLowerCase().trim();
+                const messageText = (m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || '').toLowerCase().trim();
 
                 if (!messageText) return;
+
                 console.log(`📩 Baileys Message Mila: "${messageText}" from ${senderPhone}`);
 
-                // Property Search Bot Logic
-                if (messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale')) {
+                // 👋 1. GREETING LOGIC (Hello/Hi/Namaste)
+                const greetings = ['hi', 'hello', 'hey', 'namaste', 'hola', 'hlw'];
+                if (greetings.includes(messageText)) {
+                    const welcomeMsg = `🙏 *Namaste! Bhopal Properties me aapka swagat hai.*\n\nMain ek AI Assistant hoon. Main aapki kaise madad kar sakta hoon? 😊\n\n🏠 Aap yahan properties search kar sakte hain. Kripya apni jarurat batayein, jaise:\n👉 *"2 bhk rent"*\n👉 *"Arera colony flat"*\n👉 *"Sale property"*`;
+                    await sendDirectWhatsApp(senderPhone, welcomeMsg);
+                    return; 
+                }
+
+                // 🔍 2. PROPERTY SEARCH BOT LOGIC
+                if (messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale') || messageText.includes('kharidna') || messageText.includes('kiraye')) {
                     
-                    // Property Model ko mongoose se dynamically access karein
                     const Property = mongoose.models.Property || mongoose.model('Property');
                     let filter = { status: 'approved' };
 
@@ -137,7 +126,7 @@ const messageText = (
                     else if (messageText.includes('mp nagar')) filter.location = /mp nagar/i;
 
                     if (messageText.includes('rent') || messageText.includes('kiraye')) filter.purpose = /rent/i;
-                    else if (messageText.includes('buy') || messageText.includes('sale')) filter.purpose = /sale/i;
+                    else if (messageText.includes('buy') || messageText.includes('sale') || messageText.includes('kharidna')) filter.purpose = /sale/i;
 
                     const matchedProps = await Property.find(filter).limit(3).lean();
 
@@ -150,7 +139,6 @@ const messageText = (
                             replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
                         });
                         replyMsg += `📞 Adhik jankari ke liye call karein!`;
-
                         await sendDirectWhatsApp(senderPhone, replyMsg);
                     }
                 }
@@ -170,10 +158,8 @@ const messageText = (
             if (connection === 'close') {
                 const statusCode = (lastDisconnect?.error)?.output?.statusCode;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-                console.log('WhatsApp connection closed. Reconnecting:', shouldReconnect);
                 
                 if (statusCode === DisconnectReason.loggedOut) {
-                    console.log('⚠️ Device logged out from mobile! Clearing old session from MongoDB...');
                     await WhatsAppAuth.deleteMany({});
                     connectToWhatsApp();
                 } else if (shouldReconnect) {
@@ -181,7 +167,7 @@ const messageText = (
                 }
             } else if (connection === 'open') {
                 currentQrData = null;
-                console.log('✅ WhatsApp Baileys successfully connected (Saved in MongoDB Permanently)!');
+                console.log('✅ WhatsApp Baileys successfully connected (Saved in MongoDB)!');
             }
         });
     } catch (err) {
@@ -190,14 +176,10 @@ const messageText = (
 }
 
 async function sendDirectWhatsApp(phone, text) {
-    if (!sock) {
-        console.error('❌ WhatsApp socket is not connected yet.');
-        return false;
-    }
+    if (!sock) return false;
     try {
         let jid = phone.toString();
         
-        // Agar phone format me '@' nahi hai (yani API se sirf normal number aaya hai)
         if (!jid.includes('@')) {
             let cleanPhone = jid.replace(/[^0-9]/g, '');
             if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) {
@@ -210,7 +192,6 @@ async function sendDirectWhatsApp(phone, text) {
         console.log(`📤 Direct message sent to ${jid}`);
         return true;
     } catch (err) {
-        console.error(`❌ Failed to send message to ${phone}:`, err.message);
         return false;
     }
 }
