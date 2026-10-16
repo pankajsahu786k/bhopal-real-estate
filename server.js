@@ -230,7 +230,10 @@ const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedge
 // =========================================================================
 async function requireCompleteProfile(req, res, next) {
     try {
-        const email = (req.body.brokerEmail || req.query.email || '').toLowerCase().trim();
+        const bodyObj = req.body || {};
+        const queryObj = req.query || {};
+        const email = (bodyObj.brokerEmail || queryObj.email || '').toLowerCase().trim();
+        
         if (!email) {
             return res.status(401).json({ success: false, message: "Broker Email anivarya hai!" });
         }
