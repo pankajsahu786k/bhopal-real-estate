@@ -21,7 +21,7 @@ const whatsappAuthSchema = new mongoose.Schema({
 
 const WhatsAppAuth = mongoose.models.WhatsAppAuth || mongoose.model('WhatsAppAuth', whatsappAuthSchema);
 
-// Custom MongoDB Auth State Adapter (No extra npm package needed)
+// Custom MongoDB Auth State Adapter
 async function useMongoDBAuthState() {
     const writeData = async (id, data) => {
         const serialized = JSON.stringify(data, BufferJSON.replacer);
@@ -48,7 +48,6 @@ async function useMongoDBAuthState() {
         } catch (err) {}
     };
 
-    // Purana session database se load karein ya naya banayein
     const creds = (await readData('creds')) || initAuthCreds();
 
     return {
@@ -83,11 +82,10 @@ async function useMongoDBAuthState() {
 }
 
 // =========================================================================
-// 📱 WHATSAPP CONNECTION ENGINE
+// 📱 WHATSAPP CONNECTION ENGINE & AI BOT LISTENER
 // =========================================================================
 async function connectToWhatsApp() {
     try {
-        // Ensure MongoDB connected ho tabhi session uthaye
         if (mongoose.connection.readyState !== 1) {
             console.log('⏳ Waiting for MongoDB connection before starting WhatsApp...');
             await new Promise(resolve => mongoose.connection.once('connected', resolve));
@@ -102,6 +100,57 @@ async function connectToWhatsApp() {
         });
 
         sock.ev.on('creds.update', saveCreds);
+
+        // 🤖 BAILEYS INCOMING MESSAGE BOT LISTENER
+        sock.ev.on('messages.upsert', async ({ messages, type }) => {
+            try {
+                if (type !== 'notify') return;
+                const msg = messages[0];
+                if (!msg.message || msg.key.fromMe) return;
+
+                const senderPhone = msg.key.remoteJid; // e.g. 919993352339@s.whatsapp.net
+                const messageText = (
+                    msg.message.conversation || 
+                    msg.message.extendedTextMessage?.text || 
+                    ''
+                ).toLowerCase().trim();
+
+                if (!messageText) return;
+                console.log(`📩 Baileys Message Mila: "${messageText}" from ${senderPhone}`);
+
+                // Property Search Bot Logic
+                if (messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale')) {
+                    
+                    // Property Model ko mongoose se dynamically access karein
+                    const Property = mongoose.models.Property || mongoose.model('Property');
+                    let filter = { status: 'approved' };
+
+                    if (messageText.includes('arera')) filter.location = /arera/i;
+                    else if (messageText.includes('new market')) filter.location = /new market/i;
+                    else if (messageText.includes('mp nagar')) filter.location = /mp nagar/i;
+
+                    if (messageText.includes('rent') || messageText.includes('kiraye')) filter.purpose = /rent/i;
+                    else if (messageText.includes('buy') || messageText.includes('sale')) filter.purpose = /sale/i;
+
+                    const matchedProps = await Property.find(filter).limit(3).lean();
+
+                    if (matchedProps.length === 0) {
+                        await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Website visit karein: https://bhopal-real-estate.onrender.com`);
+                    } else {
+                        let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
+                        matchedProps.forEach((p, index) => {
+                            const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
+                            replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
+                        });
+                        replyMsg += `📞 Adhik jankari ke liye call karein!`;
+
+                        await sendDirectWhatsApp(senderPhone, replyMsg);
+                    }
+                }
+            } catch (botErr) {
+                console.error("WhatsApp AI Bot Execution Error:", botErr);
+            }
+        });
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
@@ -124,7 +173,7 @@ async function connectToWhatsApp() {
                     setTimeout(() => connectToWhatsApp(), 3000);
                 }
             } else if (connection === 'open') {
-                currentQrData = null; // Connected hone par QR clear kar dein
+                currentQrData = null;
                 console.log('✅ WhatsApp Baileys successfully connected (Saved in MongoDB Permanently)!');
             }
         });
@@ -143,7 +192,7 @@ async function sendDirectWhatsApp(phone, text) {
         if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) {
             cleanPhone = '91' + cleanPhone;
         }
-        const jid = `${cleanPhone}@s.whatsapp.net`;
+        const jid = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
         await sock.sendMessage(jid, { text: text });
         console.log(`📤 Direct message sent to ${cleanPhone}`);
         return true;
