@@ -107,15 +107,15 @@ async function connectToWhatsApp() {
 
                 console.log(`📩 Baileys Message Mila: "${messageText}" from ${senderPhone}`);
 
-                // 👋 1. GREETING LOGIC (Hello/Hi/Namaste)
+                // 👋 1. GREETING LOGIC
                 const greetings = ['hi', 'hello', 'hey', 'namaste', 'hola', 'hlw'];
                 if (greetings.includes(messageText)) {
-                    const welcomeMsg = `🙏 *Namaste! Bhopal Properties me aapka swagat hai.*\n\nMain ek AI Assistant hoon. Main aapki kaise madad kar sakta hoon? 😊\n\n🏠 Aap yahan properties search kar sakte hain. Kripya apni jarurat batayein, jaise:\n👉 *"2 bhk rent"*\n👉 *"Arera colony flat"*\n👉 *"Sale property"*`;
+                    const welcomeMsg = `🙏 *Namaste! Bhopal Properties me aapka swagat hai.*\n\nMain ek AI Assistant hoon. Main aapki kaise madad kar sakta hoon? 😊\n\n🏠 Aap yahan properties search kar sakte hain. Kripya apni jarurat aur budget batayein, jaise:\n👉 *"2 bhk rent under 15k"*\n👉 *"Arera colony flat 20000 tak"*\n👉 *"Sale property 50 lakh"*`;
                     await sendDirectWhatsApp(senderPhone, welcomeMsg);
                     return; 
                 }
 
-                // 🔍 2. PROPERTY SEARCH BOT LOGIC
+                // 🔍 2. PROPERTY SEARCH BOT LOGIC (With Upgraded Budget Extractor)
                 if (messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale') || messageText.includes('kharidna') || messageText.includes('kiraye')) {
                     
                     const Property = mongoose.models.Property || mongoose.model('Property');
@@ -128,12 +128,41 @@ async function connectToWhatsApp() {
                     if (messageText.includes('rent') || messageText.includes('kiraye')) filter.purpose = /rent/i;
                     else if (messageText.includes('buy') || messageText.includes('sale') || messageText.includes('kharidna')) filter.purpose = /sale/i;
 
+                    // 💰 UPGRADED BUDGET EXTRACTOR (Bina space wale numbers ke liye)
+                    let maxBudget = null;
+                    const regex = /(\d+)\s*(k|lakh|l|thousand|lac)?/gi;
+                    let match;
+                    
+                    while ((match = regex.exec(messageText)) !== null) {
+                        let val = parseInt(match[1]);
+                        let unit = match[2] ? match[2].toLowerCase() : '';
+                        
+                        if (unit === 'k' || unit === 'thousand') val *= 1000;
+                        else if (unit === 'l' || unit === 'lakh' || unit === 'lac') val *= 100000;
+                        
+                        if (val >= 500) {
+                            maxBudget = val;
+                        }
+                    }
+
+                    if (maxBudget) {
+                        filter.price = { $lte: maxBudget };
+                        console.log(`💰 Budget filter applied: Upto ₹${maxBudget}`);
+                    }
+
                     const matchedProps = await Property.find(filter).limit(3).lean();
 
                     if (matchedProps.length === 0) {
-                        await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Website visit karein: https://bhopal-real-estate.onrender.com`);
+                        let noPropMsg = `🙏 Namaste! Aapki khoj ke hisaab se abhi koi property uplabdh nahi hai.`;
+                        if (maxBudget) noPropMsg += ` (Budget: ₹${maxBudget} tak)`;
+                        noPropMsg += `\nKripya hamari website visit karein: https://bhopal-real-estate.onrender.com`;
+                        
+                        await sendDirectWhatsApp(senderPhone, noPropMsg);
                     } else {
-                        let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
+                        let replyMsg = `🏢 *Bhopal Properties AI Bot*\n`;
+                        if (maxBudget) replyMsg += `✅ *Budget:* ₹${maxBudget} ke andar\n\nAapki talash ke anusaar yeh properties milti hain:\n\n`;
+                        else replyMsg += `Aapki talash ke anusaar yeh top properties milti hain:\n\n`;
+
                         matchedProps.forEach((p, index) => {
                             const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
                             replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
