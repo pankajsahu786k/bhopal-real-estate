@@ -195,13 +195,19 @@ async function sendDirectWhatsApp(phone, text) {
         return false;
     }
     try {
-        let cleanPhone = phone.toString().replace(/[^0-9]/g, '');
-        if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) {
-            cleanPhone = '91' + cleanPhone;
+        let jid = phone.toString();
+        
+        // Agar phone format me '@' nahi hai (yani API se sirf normal number aaya hai)
+        if (!jid.includes('@')) {
+            let cleanPhone = jid.replace(/[^0-9]/g, '');
+            if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) {
+                cleanPhone = '91' + cleanPhone;
+            }
+            jid = `${cleanPhone}@s.whatsapp.net`;
         }
-        const jid = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@s.whatsapp.net`;
+        
         await sock.sendMessage(jid, { text: text });
-        console.log(`📤 Direct message sent to ${cleanPhone}`);
+        console.log(`📤 Direct message sent to ${jid}`);
         return true;
     } catch (err) {
         console.error(`❌ Failed to send message to ${phone}:`, err.message);
