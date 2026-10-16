@@ -228,17 +228,68 @@ const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedge
 // =========================================================================
 // 🛡️ MIDDLEWARE: BROKER PROFILE COMPLETION GUARD
 // =========================================================================
+// =========================================================================
+// 🛡️ SMART MIDDLEWARE: BROKER PROFILE COMPLETION GUARD (AUTO-EMAIL DETECT)
+// =========================================================================
 async function requireCompleteProfile(req, res, next) {
     try {
         const bodyObj = req.body || {};
         const queryObj = req.query || {};
-        const email = (bodyObj.brokerEmail || queryObj.email || '').toLowerCase().trim();
-        
-        if (!email) {
-            return res.status(401).json({ success: false, message: "Broker Email anivarya hai!" });
+
+        // 1. Check all possible email fields from Form / Query
+        let email = (
+            bodyObj.brokerEmail || 
+            bodyObj.userEmail || 
+            bodyObj.email || 
+            queryObj.email || 
+            queryObj.brokerEmail || 
+            ''
+        ).toLowerCase().trim();
+
+        // Ignore string "null" or "undefined" coming from frontend localStorage
+        if (email === 'null' || email === 'undefined') email = '';
+
+        // 2. Check Authorization JWT Token if email is still empty
+        if (!email && req.headers.authorization) {
+            try {
+                const token = req.headers.authorization.replace('Bearer ', '').trim();
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (decoded && decoded.email) {
+                    email = decoded.email.toLowerCase().trim();
+                }
+            } catch (e) {}
         }
 
-        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: email });
+        // 3. Fallback: Form me dale gaye Contact Number se Broker ka Email dhoondhein
+        if (!email && bodyObj.contactNumber) {
+            const cleanPhone = bodyObj.contactNumber.toString().replace(/\D/g, '').slice(-10);
+            if (cleanPhone.length === 10) {
+                const profByPhone = await BrokerProfile.findOne({ phone: { $regex: cleanPhone } });
+                if (profByPhone && profByPhone.brokerEmail) {
+                    email = profByPhone.brokerEmail.toLowerCase().trim();
+                } else {
+                    const userByPhone = await User.findOne({ phone: { $regex: cleanPhone } });
+                    if (userByPhone && userByPhone.email) {
+                        email = userByPhone.email.toLowerCase().trim();
+                    }
+                }
+            }
+        }
+
+        if (!email) {
+            return res.status(401).json({ 
+                success: false, 
+                message: "Aapka Login session expire ho gaya hai! Kripya ek baar Logout karke dobara Login karein." 
+            });
+        }
+
+        // Sync back to req.body.brokerEmail so downstream route gets it cleanly
+        req.body.brokerEmail = email;
+
+        const brokerProfile = await BrokerProfile.findOne({ 
+            brokerEmail: { $regex: new RegExp(`^${email}$`, 'i') } 
+        });
+
         if (!brokerProfile || !brokerProfile.isProfileComplete) {
             return res.status(403).json({ 
                 success: false, 
