@@ -101,7 +101,7 @@ async function connectToWhatsApp() {
                 // 🎯 ROUTER: VIP PERSONAL BOT VS PROPERTY BOT
                 // =========================================================================
                 // Yahan aap apne VIPs (jaise Aarti) ke numbers ki list dal dein
-                const vipSpecialNumbers = ['919993352339@s.whatsapp.net']; // <--- Apna ya unka number yahan set karein
+                const vipSpecialNumbers = ['9575611622@s.whatsapp.net']; // <--- Apna ya unka number yahan set karein
 
                 if (vipSpecialNumbers.includes(senderPhone)) {
                     // Agar message VIP number se hai, toh personalBot ko bhej do
