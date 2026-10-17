@@ -97,14 +97,17 @@ async function connectToWhatsApp() {
                 console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
 
                 // =========================================================================
-                // 🎯 ROUTER: VIP PERSONAL BOT VS PROPERTY BOT (Foolproof Matcher)
+                // 🎯 ROUTER: VIP PERSONAL BOT VS PROPERTY BOT (Sabhi VIP Numbers & @lid yahan hain)
                 // =========================================================================
-                // Yahan apna 10-digit number aur agar koi @lid ID logs me aaye toh wo bhi dal sakte hain
-                const vipSpecialNumbers = ['9575611622', '101155103338740']; 
+                const vipSpecialNumbers = [
+                    '9575611622', 
+                    '101155103338740', 
+                    '7000931152', 
+                    '97830882545707'
+                ]; 
 
                 const cleanSenderNumber = senderPhone.replace(/[^0-9]/g, '');
                 
-                // Check karega ki incoming ID me aapka number ya @lid match ho raha hai ya nahi
                 const isVip = vipSpecialNumbers.some(vip => senderPhone.includes(vip) || cleanSenderNumber.includes(vip));
 
                 if (isVip) {
