@@ -70,7 +70,7 @@ async function useMongoDBAuthState() {
 // 🧠 AI REPLY GENERATOR FUNCTION (Sikha hua Smart Agent)
 async function getSmartAIReply(userMessage) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Tumhara naam 'Bhopal Properties Assistant' hai. Tum Pankaj Sahu ki real estate firm ke liye kaam karte ho. 
         Tumhara kaam ekdam human-like, polite, aur friendly (Hinglish me) chat karna hai. Lamba chouda message mat likhna, jaise WhatsApp par aam insaan baat karte hain waise hi short aur natural reply dena.
         
