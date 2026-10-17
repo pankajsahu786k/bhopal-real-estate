@@ -10,7 +10,6 @@ const QRCode = require('qrcode');
 
 // 🧠 GOOGLE GEMINI AI SETUP (FREE BRAIN)
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-// 👇 APNI GOOGLE AI STUDIO WALI FREE KEY YAHAN ZAROOR DAALEIN
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YAHAN_APNI_API_KEY_PASTE_KAREIN"); 
 
 let sock = null;
@@ -67,13 +66,18 @@ async function useMongoDBAuthState() {
     };
 }
 
-// 🧠 AI REPLY GENERATOR FUNCTION (For Normal Chats)
+// 🧠 AI REPLY GENERATOR FUNCTION (Sikha hua Smart Agent)
 async function getSmartAIReply(userMessage) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Tum 'Bhopal Properties' ke ek smart WhatsApp assistant ho. Tumhara naam Pankaj ka Assistant hai.
-        User ne bola hai: "${userMessage}"
-        Ek chhota, friendly aur helpful reply do (Hinglish language me). Agar user property dhoondh raha ho, toh use bolo ki exact detail likhe (jaise "2 bhk rent under 10k"). Koi code ya formatting mat dena, sirf normal WhatsApp message likho.`;
+        const prompt = `Tumhara naam 'Bhopal Properties Assistant' hai. Tum Pankaj Sahu ki real estate firm ke liye kaam karte ho. 
+        Tumhara kaam ekdam human-like, polite, aur friendly (Hinglish me) chat karna hai. Lamba chouda message mat likhna, jaise WhatsApp par aam insaan baat karte hain waise hi short aur natural reply dena.
+        
+        Agar koi 'Gm', 'Good morning', 'Hi' ya 'Kaisa hai' bole, toh uska natural reply do (jaise "Good morning bhai! Batao kaise madad karoon?"). 
+        Sath me yaad dilana ki tum property rent/sale me help karte ho aur customer se uski requirement aur budget (e.g. 2 bhk under 15k) poonchna.
+        Koi code, star (*), ya formatting mat dena.
+        
+        User ka message hai: "${userMessage}"`;
         
         const result = await model.generateContent(prompt);
         return result.response.text();
@@ -120,15 +124,7 @@ async function connectToWhatsApp() {
 
                 console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
 
-                // 👋 1. GREETING LOGIC (Ab isme 'gm' bhi hai)
-                const greetings = ['hi', 'hello', 'hey', 'namaste', 'hola', 'hlw', 'gm', 'good morning', 'good evening'];
-                if (greetings.includes(messageText)) {
-                    const welcomeMsg = `🙏 *Namaste! Bhopal Properties me aapka swagat hai.*\n\nMain ek AI Assistant hoon. Main aapki kaise madad kar sakta hoon? 😊\n\n🏠 Aap yahan properties search kar sakte hain. Kripya apni jarurat aur budget batayein, jaise:\n👉 *"2 bhk rent under 15k"*\n👉 *"Arera colony flat 20000 tak"*\n👉 *"Sale property 50 lakh"*`;
-                    await sendDirectWhatsApp(senderPhone, welcomeMsg);
-                    return; 
-                }
-
-                // 🔍 2. PROPERTY SEARCH BOT LOGIC (With Upgraded Budget Extractor)
+                // 🔍 1. PROPERTY SEARCH LOGIC (Database Check)
                 const isPropertySearch = messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale') || messageText.includes('kharidna') || messageText.includes('kiraye');
 
                 if (isPropertySearch) {
@@ -176,7 +172,7 @@ async function connectToWhatsApp() {
                     return; // Property mil gayi toh aage AI ke paas mat jao
                 }
 
-                // 🤖 3. FREE AI BRAIN (Agar property search nahi hai, toh AI khud reply sochega!)
+                // 🤖 2. FREE AI BRAIN (Agar property search nahi hai, toh AI se Human-like baat hogi!)
                 const aiReply = await getSmartAIReply(messageText);
                 if (aiReply) {
                     await sendDirectWhatsApp(senderPhone, aiReply);
@@ -210,7 +206,6 @@ async function sendDirectWhatsApp(phone, text) {
     if (!sock) return false;
     try {
         let jid = phone.toString();
-        // @lid format fix
         if (!jid.includes('@')) {
             let cleanPhone = jid.replace(/[^0-9]/g, '');
             if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
