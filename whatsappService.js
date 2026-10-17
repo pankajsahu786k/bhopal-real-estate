@@ -10,7 +10,8 @@ const QRCode = require('qrcode');
 
 // 🧠 GOOGLE GEMINI AI SETUP (FREE BRAIN)
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YAHAN_APNI_API_KEY_PASTE_KAREIN"); 
+// 🔒 100% Secure: Sirf Environment Variable se key uthayega
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); 
 
 let sock = null;
 let currentQrData = null; 
