@@ -8,17 +8,21 @@ const mongoose = require('mongoose');
 const pino = require('pino');
 const QRCode = require('qrcode');
 
+// 🧠 GOOGLE GEMINI AI SETUP (FREE BRAIN)
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+// 👇 YAHAN APNI GOOGLE AI STUDIO WALI FREE KEY DAALEIN
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyCBjKMH17OPkgGLGycvuUTGkvsDtZIe6uY"); 
+
 let sock = null;
 let currentQrData = null; 
 
 // =========================================================================
-// 🗄️ MONGODB WHATSAPP SESSION SCHEMA (PERMANENT STORAGE)
+// 🗄️ MONGODB WHATSAPP SESSION SCHEMA
 // =========================================================================
 const whatsappAuthSchema = new mongoose.Schema({
     _id: String,
     data: String
 }, { collection: 'whatsapp_baileys_auth' });
-
 const WhatsAppAuth = mongoose.models.WhatsAppAuth || mongoose.model('WhatsAppAuth', whatsappAuthSchema);
 
 async function useMongoDBAuthState() {
@@ -26,7 +30,6 @@ async function useMongoDBAuthState() {
         const serialized = JSON.stringify(data, BufferJSON.replacer);
         await WhatsAppAuth.findByIdAndUpdate(id, { _id: id, data: serialized }, { upsert: true });
     };
-
     const readData = async (id) => {
         try {
             const doc = await WhatsAppAuth.findById(id);
@@ -34,13 +37,10 @@ async function useMongoDBAuthState() {
             return JSON.parse(doc.data, BufferJSON.reviver);
         } catch (err) { return null; }
     };
-
     const removeData = async (id) => {
         try { await WhatsAppAuth.findByIdAndDelete(id); } catch (err) {}
     };
-
     const creds = (await readData('creds')) || initAuthCreds();
-
     return {
         state: {
             creds,
@@ -67,13 +67,28 @@ async function useMongoDBAuthState() {
     };
 }
 
+// 🧠 AI REPLY GENERATOR FUNCTION
+async function getSmartAIReply(userMessage) {
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Tum 'Bhopal Properties' ke ek smart WhatsApp assistant ho. Tumhara kaam logo se polite tarike se baat karna aur unhe guide karna hai. 
+        User ne bola hai: "${userMessage}"
+        Ek chhota, friendly aur helpful reply do (Hinglish language me). Agar user property dhoondh raha ho, toh use bolo ki exact detail likhe (jaise "2 bhk rent under 10k"). Koi code ya formatting mat dena, sirf normal WhatsApp message likho.`;
+        
+        const result = await model.generateContent(prompt);
+        return result.response.text();
+    } catch (e) {
+        console.log("AI Error:", e.message);
+        return null;
+    }
+}
+
 // =========================================================================
-// 📱 WHATSAPP CONNECTION ENGINE & AI BOT LISTENER
+// 📱 WHATSAPP CONNECTION ENGINE
 // =========================================================================
 async function connectToWhatsApp() {
     try {
         if (mongoose.connection.readyState !== 1) {
-            console.log('⏳ Waiting for MongoDB connection before starting WhatsApp...');
             await new Promise(resolve => mongoose.connection.once('connected', resolve));
         }
 
@@ -87,7 +102,6 @@ async function connectToWhatsApp() {
 
         sock.ev.on('creds.update', saveCreds);
 
-        // 🤖 BAILEYS INCOMING MESSAGE BOT LISTENER
         sock.ev.on('messages.upsert', async ({ messages, type }) => {
             try {
                 if (type !== 'notify') return;
@@ -102,10 +116,9 @@ async function connectToWhatsApp() {
                 if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message;
 
                 const messageText = (m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || '').toLowerCase().trim();
-
                 if (!messageText) return;
 
-                console.log(`📩 Baileys Message Mila: "${messageText}" from ${senderPhone}`);
+                console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
 
                 // 👋 1. GREETING LOGIC
                 const greetings = ['hi', 'hello', 'hey', 'namaste', 'hola', 'hlw'];
@@ -115,9 +128,10 @@ async function connectToWhatsApp() {
                     return; 
                 }
 
-                // 🔍 2. PROPERTY SEARCH BOT LOGIC (With Upgraded Budget Extractor)
-                if (messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale') || messageText.includes('kharidna') || messageText.includes('kiraye')) {
-                    
+                // 🔍 2. PROPERTY SEARCH BOT LOGIC (Database Check)
+                const isPropertySearch = messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale') || messageText.includes('kharidna') || messageText.includes('kiraye');
+
+                if (isPropertySearch) {
                     const Property = mongoose.models.Property || mongoose.model('Property');
                     let filter = { status: 'approved' };
 
@@ -128,27 +142,18 @@ async function connectToWhatsApp() {
                     if (messageText.includes('rent') || messageText.includes('kiraye')) filter.purpose = /rent/i;
                     else if (messageText.includes('buy') || messageText.includes('sale') || messageText.includes('kharidna')) filter.purpose = /sale/i;
 
-                    // 💰 UPGRADED BUDGET EXTRACTOR (Bina space wale numbers ke liye)
                     let maxBudget = null;
                     const regex = /(\d+)\s*(k|lakh|l|thousand|lac)?/gi;
                     let match;
-                    
                     while ((match = regex.exec(messageText)) !== null) {
                         let val = parseInt(match[1]);
                         let unit = match[2] ? match[2].toLowerCase() : '';
-                        
                         if (unit === 'k' || unit === 'thousand') val *= 1000;
                         else if (unit === 'l' || unit === 'lakh' || unit === 'lac') val *= 100000;
-                        
-                        if (val >= 500) {
-                            maxBudget = val;
-                        }
+                        if (val >= 500) maxBudget = val;
                     }
 
-                    if (maxBudget) {
-                        filter.price = { $lte: maxBudget };
-                        console.log(`💰 Budget filter applied: Upto ₹${maxBudget}`);
-                    }
+                    if (maxBudget) filter.price = { $lte: maxBudget };
 
                     const matchedProps = await Property.find(filter).limit(3).lean();
 
@@ -156,7 +161,6 @@ async function connectToWhatsApp() {
                         let noPropMsg = `🙏 Namaste! Aapki khoj ke hisaab se abhi koi property uplabdh nahi hai.`;
                         if (maxBudget) noPropMsg += ` (Budget: ₹${maxBudget} tak)`;
                         noPropMsg += `\nKripya hamari website visit karein: https://bhopal-real-estate.onrender.com`;
-                        
                         await sendDirectWhatsApp(senderPhone, noPropMsg);
                     } else {
                         let replyMsg = `🏢 *Bhopal Properties AI Bot*\n`;
@@ -164,13 +168,20 @@ async function connectToWhatsApp() {
                         else replyMsg += `Aapki talash ke anusaar yeh top properties milti hain:\n\n`;
 
                         matchedProps.forEach((p, index) => {
-                            const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
-                            replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
+                            replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}\n\n`;
                         });
                         replyMsg += `📞 Adhik jankari ke liye call karein!`;
                         await sendDirectWhatsApp(senderPhone, replyMsg);
                     }
+                    return; // Property mil gayi toh aage AI ke paas mat jao
                 }
+
+                // 🤖 3. FREE AI BRAIN (Agar property search nahi hai, toh AI se baat karega!)
+                const aiReply = await getSmartAIReply(messageText);
+                if (aiReply) {
+                    await sendDirectWhatsApp(senderPhone, aiReply);
+                }
+
             } catch (botErr) {
                 console.error("WhatsApp AI Bot Execution Error:", botErr);
             }
@@ -178,55 +189,35 @@ async function connectToWhatsApp() {
 
         sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
-            
-            if (qr) {
-                currentQrData = await QRCode.toDataURL(qr);
-                console.log('📌 Naya QR code ready hai! Browser me /qr open karke scan karein.');
-            }
-
+            if (qr) currentQrData = await QRCode.toDataURL(qr);
             if (connection === 'close') {
                 const statusCode = (lastDisconnect?.error)?.output?.statusCode;
-                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-                
                 if (statusCode === DisconnectReason.loggedOut) {
                     await WhatsAppAuth.deleteMany({});
                     connectToWhatsApp();
-                } else if (shouldReconnect) {
+                } else {
                     setTimeout(() => connectToWhatsApp(), 3000);
                 }
             } else if (connection === 'open') {
                 currentQrData = null;
-                console.log('✅ WhatsApp Baileys successfully connected (Saved in MongoDB)!');
+                console.log('✅ WhatsApp Baileys connected with FREE AI BRAIN!');
             }
         });
-    } catch (err) {
-        console.error('WhatsApp Init Error:', err.message);
-    }
+    } catch (err) {}
 }
 
 async function sendDirectWhatsApp(phone, text) {
     if (!sock) return false;
     try {
         let jid = phone.toString();
-        
         if (!jid.includes('@')) {
             let cleanPhone = jid.replace(/[^0-9]/g, '');
-            if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) {
-                cleanPhone = '91' + cleanPhone;
-            }
+            if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
             jid = `${cleanPhone}@s.whatsapp.net`;
         }
-        
         await sock.sendMessage(jid, { text: text });
-        console.log(`📤 Direct message sent to ${jid}`);
         return true;
-    } catch (err) {
-        return false;
-    }
+    } catch (err) { return false; }
 }
-
-function getLatestQr() {
-    return currentQrData;
-}
-
+function getLatestQr() { return currentQrData; }
 module.exports = { connectToWhatsApp, sendDirectWhatsApp, getLatestQr };
