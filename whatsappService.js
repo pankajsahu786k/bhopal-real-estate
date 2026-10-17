@@ -10,8 +10,8 @@ const QRCode = require('qrcode');
 
 // 🧠 GOOGLE GEMINI AI SETUP (FREE BRAIN)
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-// 👇 YAHAN APNI GOOGLE AI STUDIO WALI FREE KEY DAALEIN
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyCBjKMH17OPkgGLGycvuUTGkvsDtZIe6uY"); 
+// 👇 APNI GOOGLE AI STUDIO WALI FREE KEY YAHAN ZAROOR DAALEIN
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YAHAN_APNI_API_KEY_PASTE_KAREIN"); 
 
 let sock = null;
 let currentQrData = null; 
@@ -67,11 +67,11 @@ async function useMongoDBAuthState() {
     };
 }
 
-// 🧠 AI REPLY GENERATOR FUNCTION
+// 🧠 AI REPLY GENERATOR FUNCTION (For Normal Chats)
 async function getSmartAIReply(userMessage) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Tum 'Bhopal Properties' ke ek smart WhatsApp assistant ho. Tumhara kaam logo se polite tarike se baat karna aur unhe guide karna hai. 
+        const prompt = `Tum 'Bhopal Properties' ke ek smart WhatsApp assistant ho. Tumhara naam Pankaj ka Assistant hai.
         User ne bola hai: "${userMessage}"
         Ek chhota, friendly aur helpful reply do (Hinglish language me). Agar user property dhoondh raha ho, toh use bolo ki exact detail likhe (jaise "2 bhk rent under 10k"). Koi code ya formatting mat dena, sirf normal WhatsApp message likho.`;
         
@@ -120,15 +120,15 @@ async function connectToWhatsApp() {
 
                 console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
 
-                // 👋 1. GREETING LOGIC
-                const greetings = ['hi', 'hello', 'hey', 'namaste', 'hola', 'hlw'];
+                // 👋 1. GREETING LOGIC (Ab isme 'gm' bhi hai)
+                const greetings = ['hi', 'hello', 'hey', 'namaste', 'hola', 'hlw', 'gm', 'good morning', 'good evening'];
                 if (greetings.includes(messageText)) {
                     const welcomeMsg = `🙏 *Namaste! Bhopal Properties me aapka swagat hai.*\n\nMain ek AI Assistant hoon. Main aapki kaise madad kar sakta hoon? 😊\n\n🏠 Aap yahan properties search kar sakte hain. Kripya apni jarurat aur budget batayein, jaise:\n👉 *"2 bhk rent under 15k"*\n👉 *"Arera colony flat 20000 tak"*\n👉 *"Sale property 50 lakh"*`;
                     await sendDirectWhatsApp(senderPhone, welcomeMsg);
                     return; 
                 }
 
-                // 🔍 2. PROPERTY SEARCH BOT LOGIC (Database Check)
+                // 🔍 2. PROPERTY SEARCH BOT LOGIC (With Upgraded Budget Extractor)
                 const isPropertySearch = messageText.includes('bhk') || messageText.includes('rent') || messageText.includes('flat') || messageText.includes('arera') || messageText.includes('market') || messageText.includes('sale') || messageText.includes('kharidna') || messageText.includes('kiraye');
 
                 if (isPropertySearch) {
@@ -176,7 +176,7 @@ async function connectToWhatsApp() {
                     return; // Property mil gayi toh aage AI ke paas mat jao
                 }
 
-                // 🤖 3. FREE AI BRAIN (Agar property search nahi hai, toh AI se baat karega!)
+                // 🤖 3. FREE AI BRAIN (Agar property search nahi hai, toh AI khud reply sochega!)
                 const aiReply = await getSmartAIReply(messageText);
                 if (aiReply) {
                     await sendDirectWhatsApp(senderPhone, aiReply);
@@ -210,6 +210,7 @@ async function sendDirectWhatsApp(phone, text) {
     if (!sock) return false;
     try {
         let jid = phone.toString();
+        // @lid format fix
         if (!jid.includes('@')) {
             let cleanPhone = jid.replace(/[^0-9]/g, '');
             if (!cleanPhone.startsWith('91') && cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
@@ -219,5 +220,6 @@ async function sendDirectWhatsApp(phone, text) {
         return true;
     } catch (err) { return false; }
 }
+
 function getLatestQr() { return currentQrData; }
 module.exports = { connectToWhatsApp, sendDirectWhatsApp, getLatestQr };
