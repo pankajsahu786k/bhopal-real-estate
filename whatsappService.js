@@ -8,7 +8,6 @@ const mongoose = require('mongoose');
 const pino = require('pino');
 const QRCode = require('qrcode');
 
-// Do alag-alag bots ko import kiya gaya hai
 const { handlePropertyBot } = require('./propertyBot');
 const { handlePersonalBot } = require('./personalBot');
 
@@ -98,17 +97,19 @@ async function connectToWhatsApp() {
                 console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
 
                 // =========================================================================
-                // 🎯 ROUTER: VIP PERSONAL BOT VS PROPERTY BOT
+                // 🎯 ROUTER: VIP PERSONAL BOT VS PROPERTY BOT (Universal 10-Digit Matcher)
                 // =========================================================================
-                // Yahan aap apne VIPs (jaise Aarti) ke numbers ki list dal dein
-                const vipSpecialNumbers = ['9575611622@s.whatsapp.net']; // <--- Apna ya unka number yahan set karein
+                // Yahan apne VIPs ka sirf 10 digits ka mobile number daal dein
+                const vipSpecialNumbers = ['9575611622']; // <--- Apna ya unka 10 digit number yahan daalein
 
-                if (vipSpecialNumbers.includes(senderPhone)) {
-                    // Agar message VIP number se hai, toh personalBot ko bhej do
+                const cleanSenderNumber = senderPhone.replace(/[^0-9]/g, '').slice(-10);
+
+                if (vipSpecialNumbers.includes(cleanSenderNumber)) {
                     await handlePersonalBot(senderPhone, messageText, sendDirectWhatsApp);
+                    console.log(`🤖 [Router] Routed to Personal Bot for VIP: ${senderPhone}`);
                 } else {
-                    // Agar message normal customer ka hai, toh propertyBot ko bhej do
                     await handlePropertyBot(senderPhone, messageText, sendDirectWhatsApp);
+                    console.log(`🏢 [Router] Routed to Property Bot for Customer: ${senderPhone}`);
                 }
 
             } catch (botErr) {
