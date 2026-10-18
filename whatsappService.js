@@ -103,7 +103,9 @@ async function connectToWhatsApp() {
                     '9575611622', 
                     '101155103338740', 
                     '7000931152', 
-                    '97830882545707'
+                    '97830882545707', 
+                    '8827162824', 
+                    '108070118121648'
                 ]; 
 
                 const cleanSenderNumber = senderPhone.replace(/[^0-9]/g, '');
