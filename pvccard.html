@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2-Sided Dynamic Employee ID Card - bhopal-real-estate</title>
+    <title>Dynamic Employee ID Card - bhopal-real-estate</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -12,9 +12,9 @@
 
         .container {
             display: grid;
-            grid-template-columns: 1fr 380px;
+            grid-template-columns: 1fr 340px;
             gap: 30px;
-            max-width: 950px;
+            max-width: 900px;
             width: 100%;
         }
 
@@ -57,110 +57,99 @@
             border-color: #f59e0b;
         }
 
-        /* 🪪 PREVIEW WRAPPER (FRONT & BACK) */
+        /* 🪪 EXACT 54 x 86 mm PVC ID CARD LAYOUT */
         .card-preview-area {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
         }
-
-        .card-side-label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #475569;
-            align-self: flex-start;
-            margin-bottom: -12px;
-        }
-
-        /* EXACT 54 x 86 mm PVC CARD */
         .id-card-wrapper {
             width: 54mm;
             height: 86mm;
             background: #ffffff;
-            border-radius: 10px;
-            overflow: hidden;
+            border-radius: 3.5mm;
             box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            overflow: hidden;
             border: 1px solid #cbd5e1;
             text-align: center;
-            box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            position: relative;
         }
-
         .card-header {
             background: linear-gradient(135deg, #1e1b4b, #2e2a72);
-            padding: 12px 10px 22px;
+            padding: 8px 6px 20px;
             color: white;
             border-bottom: 2.5px solid #f59e0b;
         }
         .brand-title {
-            font-size: 13px;
+            font-size: 11.5px;
             font-weight: 800;
+            letter-spacing: 0.2px;
         }
         .brand-title span { color: #27ae60; }
         .tagline {
-            font-size: 7px;
+            font-size: 6.5px;
             color: #cbd5e1;
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 0.6px;
             margin-top: 1px;
         }
 
         .photo-container {
-            margin-top: -24px;
+            margin-top: -18px;
             display: flex;
             justify-content: center;
         }
         .employee-photo {
-            width: 52px;
-            height: 52px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            border: 3px solid #ffffff;
+            border: 2.5px solid #ffffff;
             object-fit: cover;
             background: #e2e8f0;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
 
         .card-body {
-            padding: 4px 12px 6px;
+            padding: 3px 8px 2px;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
         .emp-name {
-            font-size: 12px;
+            font-size: 10.5px;
             font-weight: 800;
             color: #1e1b4b;
-            margin-bottom: 1px;
+            line-height: 1.1;
         }
         .emp-role {
-            font-size: 8px;
+            font-size: 7px;
             font-weight: 700;
             color: #d97706;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            margin-bottom: 3px;
         }
 
         .details-table {
             width: 100%;
-            font-size: 7.5px;
+            font-size: 7px;
             text-align: left;
-            margin-bottom: 6px;
             border-collapse: collapse;
+            margin-bottom: 2px;
         }
         .details-table td {
-            padding: 2px 0;
+            padding: 1.5px 0;
             border-bottom: 0.5px dashed #e2e8f0;
             vertical-align: top;
         }
         .details-table td.label {
             color: #64748b;
             font-weight: 700;
-            width: 36%;
+            width: 34%;
         }
         .details-table td.value {
             color: #0f172a;
@@ -168,61 +157,88 @@
             word-break: break-word;
         }
 
-        .card-footer {
-            background: #1e1b4b;
-            padding: 5px 8px;
-            font-size: 6.5px;
-            color: #ffffff;
-            line-height: 1.3;
-        }
-
-        /* BACK SIDE STYLING */
-        .back-body {
-            flex: 1;
+        /* 📲 APP DOWNLOAD QR BOX ON FRONT ID CARD */
+        .qr-section {
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 10px;
-            background: #ffffff;
+            gap: 5px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 5px;
+            padding: 2.5px 5px;
+            margin: 2px 0 3px;
         }
-        .qr-large {
-            width: 110px;
-            height: 110px;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            padding: 4px;
-            background: #ffffff;
+        .qr-code-img {
+            width: 30px;
+            height: 30px;
+            border-radius: 2px;
+            background: white;
+            padding: 1px;
+        }
+        .qr-text {
+            text-align: left;
+            font-size: 6px;
+            line-height: 1.2;
+            color: #1e1b4b;
+        }
+        .qr-text strong {
+            display: block;
+            font-size: 6.8px;
+            color: #16a34a;
+            font-weight: 800;
         }
 
-        .print-btn, .download-btn {
+        .card-footer {
+            background: #1e1b4b;
+            padding: 3.5px 6px;
+            font-size: 5.8px;
+            color: #ffffff;
+            line-height: 1.2;
+            letter-spacing: 0.2px;
+        }
+
+        .print-btn {
+            background: #1e1b4b;
+            color: white;
             border: none;
             padding: 10px 24px;
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             font-size: 13px;
+            margin-top: 10px;
             width: 100%;
         }
-        .download-btn { background: #27ae60; color: white; margin-top: 15px; }
-        .print-btn { background: #1e1b4b; color: white; margin-top: 10px; }
+        .download-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 15px;
+            width: 100%;
+        }
 
-        /* 🖨️ PRINT RULES (2-SIDED PVC SETUP) */
         @page {
             size: 54mm 86mm;
             margin: 0;
         }
         @media print {
-            body { background: white; padding: 0; }
-            .form-box, .print-btn, .download-btn, .card-side-label { display: none !important; }
-            .container { display: block; }
-            .card-preview-area { gap: 0; }
+            body { background: white; padding: 0; margin: 0; }
+            .form-box, .print-btn, .download-btn { display: none !important; }
+            .container { display: block; width: 54mm; height: 86mm; }
+            .card-preview-area { display: block; }
             .id-card-wrapper {
-                page-break-after: always;
-                break-after: page;
+                width: 54mm;
+                height: 86mm;
                 box-shadow: none;
                 border: none;
                 border-radius: 0;
+                margin: 0;
             }
         }
 
@@ -270,12 +286,9 @@
             </div>
         </div>
 
-        <!-- 🪪 लाइव प्रीव्यू (FRONT & BACK) -->
+        <!-- 🪪 लाइव प्रीव्यू कार्ड (54 x 86 mm) -->
         <div class="card-preview-area">
-            
-            <!-- FRONT SIDE -->
-            <div class="card-side-label">Front Side (परिचय पत्र)</div>
-            <div class="id-card-wrapper" id="printableCardFront">
+            <div class="id-card-wrapper" id="printableCard">
                 <div class="card-header">
                     <div class="brand-title">bhopal-<span>real-estate</span></div>
                     <div class="tagline">Official Verification ID Card</div>
@@ -309,6 +322,15 @@
                             </tr>
                         </table>
                     </div>
+
+                    <!-- 📲 FRONT SCAN TO DOWNLOAD APP QR CODE -->
+                    <div class="qr-section">
+                        <img id="cardQrImg" class="qr-code-img" crossorigin="anonymous" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=https%3A%2F%2Fbhopal-real-estate.onrender.com%2Fdownload-app" alt="App QR">
+                        <div class="qr-text">
+                            <strong>📲 Scan to Download App</strong>
+                            Get Official Bhopal Real Estate App
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card-footer">
@@ -316,29 +338,8 @@
                 </div>
             </div>
 
-            <!-- BACK SIDE (LARGE QR CODE) -->
-            <div class="card-side-label" style="margin-top: 10px;">Back Side (App Download QR)</div>
-            <div class="id-card-wrapper" id="printableCardBack">
-                <div class="card-header" style="padding: 10px 8px 16px;">
-                    <div class="brand-title">Get Mobile App</div>
-                    <div class="tagline">Scan to Download .APK Instantly</div>
-                </div>
-
-                <div class="back-body">
-                    <img id="cardQrImgLarge" class="qr-large" crossorigin="anonymous" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=https%3A%2F%2Fbhopal-real-estate.onrender.com%2Fdownload-app" alt="App QR">
-                    <p style="font-size: 7.5px; color: #1e1b4b; font-weight: 700; margin-top: 8px; line-height: 1.2;">
-                        📲 Bhopal Real Estate App<br>
-                        <span style="color: #16a34a; font-weight: 600; font-size: 6.5px;">Point camera to download APK</span>
-                    </p>
-                </div>
-
-                <div class="card-footer">
-                    Support Helpline: Available 24/7
-                </div>
-            </div>
-
-            <button class="download-btn" onclick="downloadCardImage()">📥 Download Ultra-HD Cards (PNG)</button>
-            <button class="print-btn" onclick="window.print()">🖨️ Print 2-Sided ID Card</button>
+            <button class="download-btn" onclick="downloadCardImage()">📥 Download Ultra-HD Card (PNG)</button>
+            <button class="print-btn" onclick="window.print()">🖨️ Print (54 x 86 mm)</button>
         </div>
     </div>
 
@@ -410,8 +411,7 @@
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
             const downloadUrl = "https://bhopal-real-estate.onrender.com/download-app";
-            const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(downloadUrl)}`;
-            document.getElementById('cardQrImgLarge').src = qrSrc;
+            document.getElementById('cardQrImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(downloadUrl)}`;
 
             if (dob) {
                 const formattedDob = new Date(dob).toLocaleDateString('en-IN', {
@@ -436,26 +436,15 @@
             }
         }
 
-        async function downloadCardImage() {
-            const empName = document.getElementById('inputName').value.trim() || 'Member';
-            
-            // Download Front Side
-            const frontEl = document.getElementById('printableCardFront');
-            const canvasFront = await html2canvas(frontEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
-            const linkFront = document.createElement('a');
-            linkFront.download = `bhopal-real-estate-ID-${empName}-Front-HD.png`;
-            linkFront.href = canvasFront.toDataURL('image/png', 1.0);
-            linkFront.click();
-
-            // Download Back Side after a short delay
-            setTimeout(async () => {
-                const backEl = document.getElementById('printableCardBack');
-                const canvasBack = await html2canvas(backEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
-                const linkBack = document.createElement('a');
-                linkBack.download = `bhopal-real-estate-ID-${empName}-Back-HD.png`;
-                linkBack.href = canvasBack.toDataURL('image/png', 1.0);
-                linkBack.click();
-            }, 600);
+        function downloadCardImage() {
+            const cardElement = document.getElementById('printableCard');
+            html2canvas(cardElement, { scale: 5, useCORS: true, backgroundColor: '#ffffff' }).then(canvas => {
+                const link = document.createElement('a');
+                const empName = document.getElementById('inputName').value.trim() || 'Member';
+                link.download = `bhopal-real-estate-ID-${empName}-HD.png`;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+            });
         }
     </script>
 </body>
