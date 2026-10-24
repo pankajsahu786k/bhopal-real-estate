@@ -29,6 +29,26 @@
         .cancel-btn { padding: 10px 15px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .save-btn { padding: 10px 15px; background: #2ecc71; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
         
+        /* 🪪 Employee ID Card Button Style */
+        .btn-id-card {
+            display: none; /* Default hidden: sirf server verify hone par Employee/Employer ko dikhega */
+            background: linear-gradient(135deg, #1e1b4b, #2e2a72);
+            color: #f59e0b !important;
+            border: 2px solid #f59e0b;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 13px;
+            box-shadow: 0 4px 10px rgba(30, 27, 75, 0.2);
+            transition: 0.3s;
+        }
+        .btn-id-card:hover {
+            transform: translateY(-2px);
+            background: #1e1b4b;
+        }
+
         /* 📱 Android App Bottom Navigation */
         .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: #2c3e50; justify-content: space-around; align-items: center; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1500; }
         .bottom-nav a { color: #bdc3c7; text-decoration: none; text-align: center; font-size: 11px; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -54,22 +74,26 @@
 <body>
 
     <aside class="sidebar">
-    <h2>Bhopal Properties</h2>
-    <ul class="nav-links">
-        <li><a href="dashboard.html" class="active">🏠 My Properties</a></li>
-        <li><a href="add-property.html">➕ Add New Property</a></li>
-        <li><a href="profile.html">👤 Profile Settings</a></li>
-        <li><a href="services.html">⚡ Super Services</a></li>
-        <li><a href="owner-ledger.html" style="color: #f59e0b; font-weight: bold;">📋 Tenant Ledger (खाता)</a></li>
-    </ul>
-</aside>
+        <h2>Bhopal Real Estate</h2>
+        <ul class="nav-links">
+            <li><a href="dashboard.html" class="active">🏠 My Properties</a></li>
+            <li><a href="add-property.html">➕ Add New Property</a></li>
+            <li><a href="profile.html">👤 Profile Settings</a></li>
+            <li><a href="services.html">⚡ Super Services</a></li>
+            <li><a href="owner-ledger.html" style="color: #f59e0b; font-weight: bold;">📋 Tenant Ledger (खाता)</a></li>
+            <!-- 🪪 Sidebar ID Card Link (Hidden for regular users) -->
+            <li id="sidebarIdCardItem" style="display: none;">
+                <a href="javascript:void(0);" onclick="generateEmployeeIdCard()" style="color: #2ecc71; font-weight: bold; border-top: 1px solid #34495e;">🪪 Generate PVC ID Card</a>
+            </li>
+        </ul>
+    </aside>
 
     <div class="main-content-wrapper">
 
         <header class="dash-header">
-            <div class="logo">Bhopal Properties</div>
+            <div class="logo">Bhopal Real Estate</div>
             <div class="user-profile">
-                <span>Welcome, <span id="broker-name">Loading...</span></span>
+                <span>Welcome, <span id="broker-name">Loading...</span> <small id="roleBadge" style="background:#e0e7ff; color:#1e1b4b; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:bold; display:none;"></small></span>
                 <a href="login.html" class="logout-btn" id="logoutBtn">Log Out</a>
             </div>
         </header>
@@ -85,7 +109,13 @@
                             <p>📍 <strong>Areas:</strong> <span id="dashProfileAreas">Not Updated</span></p>
                         </div>
                     </div>
-                    <a href="profile.html" class="btn-edit-profile">✏️ Edit Profile</a>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                        <a href="profile.html" class="btn-edit-profile">✏️ Edit Profile</a>
+                        <!-- 🪪 Main Dashboard ID Card Button (Only for Employer/Employee) -->
+                        <button id="dashIdCardBtn" onclick="generateEmployeeIdCard()" class="btn-id-card">
+                            🪪 Generate My PVC ID Card
+                        </button>
+                    </div>
                 </div>
                 <h2>Aapki Upload Ki Gayi Properties</h2>
                 <a href="add-property.html" class="add-btn">+ Nayi Property Jodein</a>
@@ -151,7 +181,7 @@
         </main>
 
         <footer style="background: #2c3e50; color: white; text-align: center; padding: 25px 10px; margin-top: 50px;">
-            <p style="margin-bottom: 15px;">&copy; 2026 Bhopal Properties. All rights reserved.</p>
+            <p style="margin-bottom: 15px;">&copy; 2026 Bhopal Real Estate. All rights reserved.</p>
             <div>
                 <a href="legal.html#contact" style="color: #3498db; text-decoration: none; margin: 0 10px;">Contact Us</a> |
                 <a href="legal.html#terms" style="color: #3498db; text-decoration: none; margin: 0 10px;">Terms & Conditions</a> |
@@ -178,59 +208,57 @@
             <span class="bottom-nav-icon">👤</span>
             <span>Profile</span>
         </a>
-        <a href="services.html">
-            <span class="bottom-nav-icon">⚡</span>
-            <span>Services</span>
+        <!-- 🪪 Mobile Nav ID Card Button (Hidden for normal users) -->
+        <a href="javascript:void(0);" id="mobileIdCardNav" onclick="generateEmployeeIdCard()" style="display: none; color: #2ecc71;">
+            <span class="bottom-nav-icon">🪪</span>
+            <span>ID Card</span>
         </a>
     </nav>
 
     <script>
+        let verifiedEmployeeData = null;
+
         document.addEventListener('DOMContentLoaded', async () => {
-    const email = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail');
-    if (!email) {
-        window.location.href = 'index.html';
-        return;
-    }
+            const email = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail');
+            if (!email) {
+                window.location.href = 'index.html';
+                return;
+            }
 
-    try {
-        // Server se live profile status verify karna
-        const res = await fetch(`/api/get-profile?email=${email}`);
-        const profileData = await res.json();
+            try {
+                // Server se live profile & identity (role) verify karna
+                const res = await fetch(`/api/get-profile?email=${encodeURIComponent(email)}`);
+                const profileData = await res.json();
 
-        // Status ko browser memory me sync karna
-        localStorage.setItem('isProfileComplete', profileData.isProfileComplete || false);
+                localStorage.setItem('isProfileComplete', profileData.isProfileComplete || false);
+                if (profileData.role) {
+                    localStorage.setItem('userRole', profileData.role);
+                }
 
-        if (!profileData.isProfileComplete) {
-            alert("⚠️ Kripya pehle apni profile poori complete karein!");
-            window.location.href = 'profile.html';
-            return;
-        }
-    } catch (err) {
-        console.error("Profile check error:", err);
-    }
+                if (!profileData.isProfileComplete) {
+                    alert("⚠️ Kripya pehle apni profile poori complete karein!");
+                    window.location.href = 'profile.html';
+                    return;
+                }
+            } catch (err) {
+                console.error("Profile check error:", err);
+            }
+        });
 
-    // Yahan se aapka dashboard ka baaki purana load data logic chalega...
-});
-        // 🌟 मोबाइल ऐप में PDF ज़बरदस्ती डाउनलोड करवाने वाला स्पेशल फंक्शन
+        // 🌟 मोबाइल ऐप में PDF डाउनलोड करवाने वाला फंक्शन
         function downloadPoliceReport(pdfUrl) {
             if (!pdfUrl) {
                 alert("PDF अभी उपलब्ध नहीं है!");
                 return;
             }
-
-            // Cloudinary URL को 'Force Download' (fl_attachment) लिंक में बदलना
             let forceDownloadUrl = pdfUrl;
             if (pdfUrl.includes('cloudinary.com') && !pdfUrl.includes('fl_attachment')) {
                 forceDownloadUrl = pdfUrl.replace('/upload/', '/upload/fl_attachment/');
             }
-
-            // मोबाइल ऐप के लिए एक अदृश्य (Invisible) लिंक बनाना
             const link = document.createElement('a');
             link.href = forceDownloadUrl;
             link.setAttribute('download', 'Police_Verification_Report.pdf'); 
             link.setAttribute('target', '_blank'); 
-
-            // लिंक को पेज में डालकर ऑटोमैटिक क्लिक करवाना और फिर हटा देना
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -327,7 +355,6 @@
         }
 
         async function toggleUserPublish(id, action) {
-            const targetStatus = action === 'publish' ? 'approved' : 'unpublished_by_user';
             const confirmationMsg = action === 'publish' ? "क्या आप इस प्रॉपर्टी को पब्लिक होमपेज पर दोबारा लाइव करना चाहते हैं?" : "क्या आप इस प्रॉपर्टी को होमपेज से छुपाना (Hide) चाहते हैं?";
             
             if (confirm(confirmationMsg)) {
@@ -376,11 +403,8 @@
 
                     if (item.status === 'Complete' || item.status === 'Done') {
                         statusBadge = `<span style="background: #eafaf1; color: #2ecc71; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 11px;">Complete ✅</span>`;
-                        
-                        // 🌟 THE ULTIMATE BYPASS: Google Docs PDF Viewer (मोबाइल ऐप के लिए ब्रह्मास्त्र)
                         const safeUrl = encodeURIComponent(item.documentUrl);
                         const googleViewerUrl = `https://docs.google.com/viewer?url=${safeUrl}`;
-
                         downloadButton = `<a href="${googleViewerUrl}" style="background: #2980b9; color: white; border: none; padding: 7px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block;">👁️ Open Report</a>`;
                     }
 
@@ -396,7 +420,6 @@
                 console.error("Verification tracker load error:", error);
             }
         }
-        
 
         async function loadUniversalReceipts() {
             const brokerEmail = localStorage.getItem('brokerEmail');
@@ -437,22 +460,82 @@
             }
         }
 
+        // 🛡️ SERVER IDENTITY CHECK + PROFILE LOAD
         async function loadBrokerProfile() {
             const brokerEmail = localStorage.getItem('brokerEmail');
             if (!brokerEmail) return;
             document.getElementById('dashProfileEmail').innerText = brokerEmail; 
             try {
-                const response = await fetch(`/api/get-profile?email=${brokerEmail}`);
+                const response = await fetch(`/api/get-profile?email=${encodeURIComponent(brokerEmail)}`);
                 const profile = await response.json();
                 document.getElementById('profileCard').style.display = 'flex';
+                
                 if (profile) {
                     if (profile.photo && profile.photo.trim() !== '') document.getElementById('dashProfilePic').src = profile.photo;
                     if (profile.phone) document.getElementById('dashProfilePhone').innerText = profile.phone;
                     if (profile.dealingAreas && profile.dealingAreas.length > 0) {
                         document.getElementById('dashProfileAreas').innerText = profile.dealingAreas.join(', ');
                     }
+
+                    // Server se aaye role ko check karein
+                    const serverRole = (profile.role || localStorage.getItem('userRole') || 'user').toLowerCase();
+                    const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer'];
+                    const canAccessIdCard = profile.isEligibleForIdCard || allowedRoles.includes(serverRole);
+
+                    const roleBadge = document.getElementById('roleBadge');
+                    if (roleBadge) {
+                        roleBadge.style.display = 'inline-block';
+                        roleBadge.innerText = serverRole.toUpperCase();
+                    }
+
+                    if (canAccessIdCard) {
+                        // ✅ Employer / Employee verified -> Show ID Card Buttons
+                        verifiedEmployeeData = {
+                            name: profile.name || localStorage.getItem('brokerName') || 'Employee',
+                            email: brokerEmail,
+                            phone: profile.phone || '',
+                            dob: profile.dob || '',
+                            photo: profile.photo || '',
+                            role: serverRole === 'admin' ? 'Managing Director' : (serverRole === 'employer' ? 'Authorized Employer' : 'Official Field Executive'),
+                            address: (profile.dealingAreas && profile.dealingAreas.length > 0) ? `${profile.dealingAreas.join(', ')}, Bhopal` : 'Bhopal, Madhya Pradesh',
+                            empId: profile.empId || `BRE-2026-${profile.phone ? profile.phone.slice(-4) : '101'}`
+                        };
+
+                        document.getElementById('dashIdCardBtn').style.display = 'inline-block';
+                        document.getElementById('sidebarIdCardItem').style.display = 'block';
+                        document.getElementById('mobileIdCardNav').style.display = 'flex';
+                    } else {
+                        // 🚫 Normal 'user' -> Hide and disable ID card buttons completely
+                        verifiedEmployeeData = null;
+                        document.getElementById('dashIdCardBtn').style.display = 'none';
+                        document.getElementById('sidebarIdCardItem').style.display = 'none';
+                        document.getElementById('mobileIdCardNav').style.display = 'none';
+                    }
                 }
             } catch (error) { console.error('Error loading profile:', error); }
+        }
+
+        // 🪪 ONE-CLICK AUTO-FILL & GENERATE ID CARD
+        function generateEmployeeIdCard() {
+            if (!verifiedEmployeeData) {
+                alert("🚫 Access Denied! Yeh ID Card feature sirf Verified Employees aur Employers ke liye hai.");
+                return;
+            }
+
+            // Save verified data in localStorage for instant auto-fill on pvccard.html
+            localStorage.setItem('verifiedIdCardData', JSON.stringify(verifiedEmployeeData));
+
+            const params = new URLSearchParams({
+                empId: verifiedEmployeeData.empId,
+                name: verifiedEmployeeData.name,
+                phone: verifiedEmployeeData.phone,
+                dob: verifiedEmployeeData.dob,
+                role: verifiedEmployeeData.role,
+                address: verifiedEmployeeData.address,
+                photo: verifiedEmployeeData.photo
+            });
+
+            window.location.href = `pvccard.html?${params.toString()}`;
         }
 
         document.getElementById('logoutBtn').onclick = function(e) {

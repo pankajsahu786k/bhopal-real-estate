@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Employee ID Card - Bhopal Properties</title>
+    <title>Dynamic Employee ID Card - bhopal-real-estate</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: #f1f5f9; min-height: 100vh; padding: 30px 15px; display: flex; justify-content: center; align-items: flex-start; }
@@ -29,6 +30,9 @@
             font-size: 18px;
             color: #1e1b4b;
             margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .form-group {
             margin-bottom: 12px;
@@ -161,6 +165,18 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 13px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .download-btn {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
             margin-top: 15px;
             width: 100%;
         }
@@ -168,7 +184,7 @@
         /* 🖨️ केवल कार्ड प्रिंट होगा */
         @media print {
             body { background: white; padding: 0; }
-            .form-box, .print-btn { display: none !important; }
+            .form-box, .print-btn, .download-btn { display: none !important; }
             .container { display: block; }
             .id-card-wrapper { box-shadow: none; border: 1px solid #000; margin: 0 auto; }
         }
@@ -180,13 +196,20 @@
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" id="mainCardContainer" style="display: none;">
         <!-- 📝 डायनामिक इनपुट फॉर्म -->
         <div class="form-box">
-            <h2>कर्मचारी विवरण भरें (Dynamic Form)</h2>
+            <h2>
+                <span>कर्मचारी विवरण (bhopal-real-estate)</span>
+                <a href="dashboard.html" style="font-size: 12px; color: #3b82f6; text-decoration: none;">⬅️ Back</a>
+            </h2>
             <div class="form-group">
                 <label>प्रोफ़ाइल फोटो (Upload Photo)</label>
                 <input type="file" id="inputPhoto" accept="image/*" onchange="previewPhoto(event)">
+            </div>
+            <div class="form-group">
+                <label>कर्मचारी आईडी (Employee ID)</label>
+                <input type="text" id="inputEmpId" placeholder="e.g. BRE-2026-001" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>कर्मचारी का पूरा नाम (Full Name)</label>
@@ -202,7 +225,7 @@
             </div>
             <div class="form-group">
                 <label>पद / भूमिका (Designation/Role)</label>
-                <input type="text" id="inputRole" placeholder="e.g. Field Officer / Broker" oninput="updateCard()">
+                <input type="text" id="inputRole" placeholder="e.g. Field Officer / Employer" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>पता (Permanent Address)</label>
@@ -212,14 +235,14 @@
 
         <!-- 🪪 लाइव प्रीव्यू कार्ड -->
         <div class="card-preview-area">
-            <div class="id-card-wrapper">
+            <div class="id-card-wrapper" id="printableCard">
                 <div class="card-header">
-                    <div class="brand-title">Bhopal <span>Properties</span></div>
-                    <div class="tagline">Official Verification Agent</div>
+                    <div class="brand-title">bhopal-<span>real-estate</span></div>
+                    <div class="tagline">Official Verification Identity Card</div>
                 </div>
 
                 <div class="photo-container">
-                    <img id="cardPhoto" src="https://placehold.co/150x150?text=Photo" alt="Employee Photo" class="employee-photo">
+                    <img id="cardPhoto" src="https://placehold.co/150x150?text=Photo" alt="Employee Photo" class="employee-photo" crossorigin="anonymous">
                 </div>
 
                 <div class="card-body">
@@ -229,7 +252,7 @@
                     <table class="details-table">
                         <tr>
                             <td class="label">Emp ID:</td>
-                            <td class="value" id="cardEmpId">BP-2026-001</td>
+                            <td class="value" id="cardEmpId">BRE-2026-001</td>
                         </tr>
                         <tr>
                             <td class="label">DOB:</td>
@@ -247,36 +270,84 @@
                 </div>
 
                 <div class="card-footer">
-                    Authorized Agent of Bhopal Properties Network.<br>
-                    Helpline: support@bhopalproperties.com
+                    Authorized Member of <strong>bhopal-real-estate</strong><br>
+                    Portal: bhopal-real-estate.onrender.com
                 </div>
             </div>
 
+            <button class="download-btn" onclick="downloadCardImage()">📥 Download PVC Card (PNG)</button>
             <button class="print-btn" onclick="window.print()">🖨️ Print ID Card</button>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // यदि यूजर पहले से लॉगिन है तो उसका नाम और ईमेल स्वतः भर लें
-            const savedName = localStorage.getItem('brokerName') || localStorage.getItem('username');
-            if (savedName) {
-                document.getElementById('inputName').value = savedName;
+        document.addEventListener('DOMContentLoaded', async () => {
+            const email = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail');
+            if (!email) {
+                alert("⚠️ Kripya pehle login karein!");
+                window.location.href = 'login.html';
+                return;
             }
-            updateCard();
+
+            try {
+                // 🛡️ Server se live check karein ki user identity kya hai
+                const res = await fetch(`/api/get-profile?email=${encodeURIComponent(email)}`);
+                const profile = await res.json();
+
+                const serverRole = (profile.role || localStorage.getItem('userRole') || 'user').toLowerCase();
+                const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer'];
+
+                if (!profile.isEligibleForIdCard && !allowedRoles.includes(serverRole)) {
+                    alert("🚫 Access Denied! Aapka account 'User' category me hai. PVC ID Card sirf Authorized Employees aur Employers ke liye hai.");
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+
+                // ✅ Identity verified! Show container and auto-fill details
+                document.getElementById('mainCardContainer').style.display = 'grid';
+
+                const params = new URLSearchParams(window.location.search);
+                const savedCardData = JSON.parse(localStorage.getItem('verifiedIdCardData') || '{}');
+
+                const empId = params.get('empId') || profile.empId || savedCardData.empId || `BRE-2026-${profile.phone ? profile.phone.slice(-4) : '101'}`;
+                const name = params.get('name') || profile.name || savedCardData.name || localStorage.getItem('brokerName') || '';
+                const dob = params.get('dob') || profile.dob || savedCardData.dob || '';
+                const phone = params.get('phone') || profile.phone || savedCardData.phone || '';
+                const role = params.get('role') || savedCardData.role || (serverRole === 'employer' ? 'Authorized Employer' : 'Official Field Executive');
+                const address = params.get('address') || savedCardData.address || ((profile.dealingAreas && profile.dealingAreas.length > 0) ? `${profile.dealingAreas.join(', ')}, Bhopal` : 'Bhopal, MP');
+                const photo = params.get('photo') || profile.photo || savedCardData.photo || '';
+
+                document.getElementById('inputEmpId').value = empId;
+                document.getElementById('inputName').value = name;
+                document.getElementById('inputDob').value = dob;
+                document.getElementById('inputPhone').value = phone;
+                document.getElementById('inputRole').value = role;
+                document.getElementById('inputAddress').value = address;
+                if (photo) {
+                    document.getElementById('cardPhoto').src = photo;
+                }
+
+                updateCard();
+            } catch (err) {
+                console.error("Verification error:", err);
+                alert("Server verification failed!");
+                window.location.href = 'dashboard.html';
+            }
         });
 
         // 🔄 लाइव कार्ड अपडेट फंक्शन
         function updateCard() {
+            const empId = document.getElementById('inputEmpId').value.trim();
             const name = document.getElementById('inputName').value.trim();
             const dob = document.getElementById('inputDob').value;
             const phone = document.getElementById('inputPhone').value.trim();
             const role = document.getElementById('inputRole').value.trim();
             const address = document.getElementById('inputAddress').value.trim();
 
+            document.getElementById('cardEmpId').innerText = empId || "BRE-2026-001";
             document.getElementById('cardName').innerText = name || "Agent Name";
             document.getElementById('cardRole').innerText = role || "Field Officer";
-            document.getElementById('cardPhone').innerText = phone || "+91 XXXXX XXXXX";
+            document.getElementById('cardPhone').innerText = phone ? (phone.startsWith('+91') ? phone : `+91 ${phone}`) : "+91 XXXXX XXXXX";
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
             if (dob) {
@@ -301,6 +372,18 @@
                 };
                 reader.readAsDataURL(file);
             }
+        }
+
+        // 📥 कार्ड को सीधा इमेज (PNG) के रूप में डाउनलोड करें
+        function downloadCardImage() {
+            const cardElement = document.getElementById('printableCard');
+            html2canvas(cardElement, { scale: 3, useCORS: true }).then(canvas => {
+                const link = document.createElement('a');
+                const empName = document.getElementById('inputName').value.trim() || 'Member';
+                link.download = `bhopal-real-estate-ID-${empName}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
         }
     </script>
 </body>

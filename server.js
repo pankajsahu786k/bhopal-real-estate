@@ -1145,12 +1145,37 @@ app.get('/api/get-properties', async(req, res) => {
     }
 });
 
-app.get('/api/get-profile', async(req, res) => {
+app.get('/api/get-profile', async (req, res) => {
     try {
         const email = req.query.email;
-        let profile = await BrokerProfile.findOne({ brokerEmail: email.toLowerCase().trim() });
-        res.json(profile || { brokerEmail: email, phone: '', photo: '', dealingAreas: [], dob: '', isProfileComplete: false });
-    } catch (error) { res.status(500).json({ message: 'Error' }); }
+        if (!email) return res.status(400).json({ message: 'Email required' });
+
+        const cleanEmail = email.toLowerCase().trim();
+        const profile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
+        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } });
+
+        let actualRole = userDoc ? (userDoc.role || 'user') : 'user';
+        if (cleanEmail === "devilking786k@sahu.com") actualRole = 'admin';
+
+        // Check karein ki user Employee / Employer / Admin hai ya normal User
+        const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer'];
+        const isEligibleForIdCard = allowedRoles.includes(actualRole.toLowerCase());
+
+        res.json({
+            brokerEmail: cleanEmail,
+            name: userDoc ? userDoc.name : '',
+            role: actualRole,
+            isEligibleForIdCard: isEligibleForIdCard,
+            phone: (profile && profile.phone) ? profile.phone : (userDoc ? userDoc.phone : ''),
+            photo: profile ? profile.photo : '',
+            dealingAreas: profile ? profile.dealingAreas : [],
+            dob: profile ? profile.dob : '',
+            isProfileComplete: profile ? profile.isProfileComplete : false,
+            empId: userDoc ? `BRE-2026-${userDoc._id.toString().slice(-4).toUpperCase()}` : 'BRE-2026-001'
+        });
+    } catch (error) { 
+        res.status(500).json({ message: 'Error' }); 
+    }
 });
 
 // 🌟 UPGRADED: PROFILE UPDATE ROUTE (Exact Number Targeting + Re-send on Phone Change)
