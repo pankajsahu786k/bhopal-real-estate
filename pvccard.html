@@ -14,10 +14,11 @@
             display: grid;
             grid-template-columns: 1fr 420px;
             gap: 30px;
-            max-width: 1000px;
+            max-width: 1020px;
             width: 100%;
         }
 
+        /* 📝 इनपुट फॉर्म स्टाइल */
         .form-box {
             background: #ffffff;
             padding: 25px;
@@ -52,19 +53,26 @@
             outline: none;
             font-family: inherit;
         }
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: #f59e0b;
+        }
 
         .card-preview-area {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 22px;
         }
         .card-side-label {
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 800;
             color: #1e1b4b;
-            align-self: flex-start;
-            margin-bottom: -12px;
+            align-self: center;
+            margin-bottom: -14px;
+            background: #e0e7ff;
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 1px solid #c7d2fe;
         }
 
         /* 🪪 EXACT 54 x 86 mm PVC CARD */
@@ -73,7 +81,7 @@
             height: 86mm;
             background: #ffffff;
             border-radius: 3.5mm;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.16);
             overflow: hidden;
             border: 1px solid #cbd5e1;
             text-align: center;
@@ -84,61 +92,79 @@
             box-sizing: border-box;
         }
 
+        /* 👑 HEADER DESIGN */
         .card-header {
-            background: linear-gradient(135deg, #0f172a, #1e1b4b);
-            padding: 8px 6px 18px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            padding: 8px 6px 22px;
             color: white;
             border-bottom: 3px solid #f59e0b;
+            position: relative;
         }
         .brand-title {
-            font-size: 12px;
+            font-size: 12.5px;
             font-weight: 800;
             letter-spacing: 0.3px;
         }
         .brand-title span { color: #22c55e; }
         .tagline {
-            font-size: 6px;
-            color: #94a3b8;
+            font-size: 5.8px;
+            color: #cbd5e1;
             text-transform: uppercase;
             letter-spacing: 0.8px;
             margin-top: 1px;
+            font-weight: 600;
         }
 
+        /* 📸 EMPLOYEE PHOTO (PERFECT OVERLAP, NO EXTRA GAP) */
         .photo-container {
-            margin-top: -18px;
+            margin-top: -21px;
             display: flex;
             justify-content: center;
+            position: relative;
+            z-index: 5;
         }
         .employee-photo {
-            width: 42px;
-            height: 42px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             border: 2.5px solid #ffffff;
+            outline: 1.5px solid #f59e0b;
             object-fit: cover;
             background: #e2e8f0;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.18);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
         }
 
+        /* 📋 FRONT BODY (COMPACT & FILLED) */
         .card-body {
-            padding: 26px 8px 4px 8px;
+            padding: 3px 8px 5px 8px;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            background: #ffffff;
+        }
+        .identity-head {
+            margin-top: 1px;
         }
         .emp-name {
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 800;
             color: #0f172a;
-            line-height: 1.1;
+            line-height: 1.15;
+            text-transform: capitalize;
         }
         .emp-role {
-            font-size: 7px;
-            font-weight: 700;
-            color: #d97706;
+            display: inline-block;
+            font-size: 6.5px;
+            font-weight: 800;
+            color: #b45309;
+            background: #fef3c7;
+            padding: 1.5px 7px;
+            border-radius: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 3px;
+            margin-top: 2px;
+            border: 1px solid #fde68a;
         }
 
         .details-table {
@@ -146,88 +172,174 @@
             font-size: 6.8px;
             text-align: left;
             border-collapse: collapse;
-            margin-bottom: 3px;
+            margin: 3px 0;
+            background: #f8fafc;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+        .details-table tr {
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .details-table tr:last-child {
+            border-bottom: none;
         }
         .details-table td {
-            padding: 1.2px 0;
-            border-bottom: 0.5px dashed #e2e8f0;
-            vertical-align: top;
+            padding: 2px 5px;
+            vertical-align: middle;
         }
         .details-table td.label {
-            color: #64748b;
+            color: #475569;
             font-weight: 700;
-            width: 34%;
+            width: 32%;
+            background: #f1f5f9;
+            border-right: 1px solid #e2e8f0;
         }
         .details-table td.value {
             color: #0f172a;
-            font-weight: 600;
+            font-weight: 700;
             word-break: break-word;
+            line-height: 1.15;
         }
 
-        /* 🌐 FRONT BADA WEBSITE QR CODE (FILLED & PROMINENT) */
+        /* 🌐 FRONT BADA WEBSITE QR CODE BOX (PROMINENT & ATTRACTIVE) */
         .qr-section-front {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 7px;
-            background: #f8fafc;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            padding: 4px 8px;
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+            border: 1.5px solid #f59e0b;
+            border-radius: 7px;
+            padding: 4px 6px;
             margin-top: auto;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            color: #ffffff;
+            box-shadow: 0 3px 8px rgba(15, 23, 42, 0.18);
         }
         .qr-img-large-front {
-            width: 44px;
-            height: 44px;
-            background: white;
-            padding: 2px;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
+            width: 64px;
+            height: 64px;
+            background: #ffffff;
+            padding: 2.5px;
+            border-radius: 5px;
+            flex-shrink: 0;
+            display: block;
         }
         .qr-text-front {
             text-align: left;
             font-size: 6px;
-            line-height: 1.2;
-            color: #1e1b4b;
+            line-height: 1.25;
+            color: #e2e8f0;
+            flex: 1;
+        }
+        .qr-text-front .qr-badge {
+            display: inline-block;
+            background: #22c55e;
+            color: #052e16;
+            font-size: 5.5px;
+            font-weight: 800;
+            padding: 1px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
         }
         .qr-text-front strong {
             display: block;
-            font-size: 7px;
-            color: #2563eb;
+            font-size: 7.5px;
+            color: #fbbf24;
             font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 1px;
+        }
+        .qr-text-front .domain-text {
+            font-size: 5.5px;
+            color: #ffffff;
+            font-weight: 600;
+            word-break: break-all;
+            display: block;
         }
 
         .card-footer {
             background: #0f172a;
             padding: 3.5px 6px;
             font-size: 5.5px;
-            color: #94a3b8;
+            color: #cbd5e1;
             line-height: 1.2;
             letter-spacing: 0.2px;
+            border-top: 1.5px solid #f59e0b;
         }
-        .card-footer strong { color: #ffffff; }
+        .card-footer strong { color: #22c55e; }
 
-        /* BACK SIDE STYLING (BADA APP DOWNLOAD QR) */
+        /* 📲 BACK SIDE STYLING (POORE ME BADA APP DOWNLOAD QR) */
+        .back-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            padding: 7px 6px;
+            color: white;
+            border-bottom: 2.5px solid #22c55e;
+        }
         .back-body {
             flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 12px;
-            background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%);
+            justify-content: space-between;
+            padding: 6px 10px;
+            background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+        }
+        .app-top-pill {
+            background: #16a34a;
+            color: #ffffff;
+            font-size: 6.8px;
+            font-weight: 800;
+            padding: 2.5px 10px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 5px rgba(22, 163, 74, 0.25);
+        }
+        .qr-mega-frame {
+            background: #ffffff;
+            border: 2.5px solid #16a34a;
+            border-radius: 10px;
+            padding: 5px;
+            box-shadow: 0 6px 16px rgba(22, 163, 74, 0.15);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .qr-large {
-            width: 110px;
-            height: 110px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 5px;
+            width: 148px;
+            height: 148px;
+            display: block;
             background: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .scan-cta-box {
+            background: #1e1b4b;
+            color: #ffffff;
+            width: 100%;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #f59e0b;
+        }
+        .scan-cta-box strong {
+            display: block;
+            font-size: 7.8px;
+            color: #fbbf24;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+        }
+        .scan-cta-box span {
+            font-size: 5.8px;
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        .back-terms {
+            font-size: 5.2px;
+            color: #475569;
+            line-height: 1.25;
+            font-weight: 600;
         }
 
+        /* 🔘 ACTION BUTTONS */
         .action-btns {
             display: flex;
             gap: 10px;
@@ -236,16 +348,19 @@
         }
         .print-btn, .download-btn {
             border: none;
-            padding: 10px 16px;
+            padding: 11px 16px;
             border-radius: 6px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             font-size: 13px;
             flex: 1;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: 0.2s;
         }
-        .download-btn { background: #27ae60; color: white; }
+        .download-btn { background: #16a34a; color: white; }
+        .download-btn:hover { background: #15803d; }
         .print-btn { background: #1e1b4b; color: white; }
+        .print-btn:hover { background: #0f172a; }
 
         @page {
             size: 54mm 86mm;
@@ -274,6 +389,7 @@
 <body>
 
     <div class="container" id="mainCardContainer" style="display: none;">
+        <!-- 📝 इनपुट फॉर्म -->
         <div class="form-box">
             <h2>
                 <span>कर्मचारी विवरण (bhopal-real-estate)</span>
@@ -289,7 +405,7 @@
             </div>
             <div class="form-group">
                 <label>कर्मचारी का पूरा नाम (Full Name)</label>
-                <input type="text" id="inputName" placeholder="e.g. your name" oninput="updateCard()">
+                <input type="text" id="inputName" placeholder="e.g. Krish Parmar" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>जन्म तिथि (Date of Birth)</label>
@@ -305,22 +421,23 @@
             </div>
             <div class="form-group">
                 <label>पद / भूमिका (Designation/Role)</label>
-                <input type="text" id="inputRole" placeholder="e.g. Field Officer" oninput="updateCard()">
+                <input type="text" id="inputRole" placeholder="e.g. Official Field Executive" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>कार्यक्षेत्र (Dealing Area)</label>
-                <input type="text" id="inputArea" placeholder="e.g. MP Nagar, Arera Colony" oninput="updateCard()">
+                <input type="text" id="inputArea" placeholder="e.g. Ashoka Garden, Bhopal" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>पता (Permanent Address)</label>
-                <textarea id="inputAddress" rows="2" placeholder="e.g. Zone 1, MP Nagar, Bhopal" oninput="updateCard()"></textarea>
+                <textarea id="inputAddress" rows="2" placeholder="e.g. Ashoka Garden, Bhopal" oninput="updateCard()"></textarea>
             </div>
         </div>
 
+        <!-- 🪪 लाइव प्रीव्यू (FRONT & BACK) -->
         <div class="card-preview-area">
             
-            <!-- FRONT SIDE (BADA WEBSITE QR CODE) -->
-            <div class="card-side-label">Front Side (परिचय पत्र + Bada Website QR)</div>
+            <!-- ================= FRONT SIDE ================= -->
+            <div class="card-side-label">1. Front Side (परिचय + Website QR)</div>
             <div class="id-card-wrapper" id="printableCardFront">
                 <div class="card-header">
                     <div class="brand-title">bhopal-<span>real-estate</span></div>
@@ -332,78 +449,91 @@
                 </div>
 
                 <div class="card-body">
-                    <div>
+                    <div class="identity-head">
                         <div class="emp-name" id="cardName">Agent Name</div>
-                        <div class="emp-role" id="cardRole">Field Officer</div>
-
-                        <table class="details-table">
-                            <tr>
-                                <td class="label">Emp ID:</td>
-                                <td class="value" id="cardEmpId">BRE-2026-001</td>
-                            </tr>
-                            <tr>
-                                <td class="label">DOB:</td>
-                                <td class="value" id="cardDob">DD/MM/YYYY</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Contact:</td>
-                                <td class="value" id="cardPhone">+91 XXXXX XXXXX</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Email:</td>
-                                <td class="value" id="cardEmailDisplay">agent@bhopal.com</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Area:</td>
-                                <td class="value" id="cardAreaDisplay">Bhopal Zone</td>
-                            </tr>
-                            <tr>
-                                <td class="label">Address:</td>
-                                <td class="value" id="cardAddress">Bhopal, MP</td>
-                            </tr>
-                        </table>
+                        <div class="emp-role" id="cardRole">Official Field Executive</div>
                     </div>
+
+                    <table class="details-table">
+                        <tr>
+                            <td class="label">Emp ID</td>
+                            <td class="value" id="cardEmpId">BRE-2026-001</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DOB</td>
+                            <td class="value" id="cardDob">DD/MM/YYYY</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Contact</td>
+                            <td class="value" id="cardPhone">+91 XXXXX XXXXX</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Email</td>
+                            <td class="value" id="cardEmailDisplay">agent@bhopal.com</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Area</td>
+                            <td class="value" id="cardAreaDisplay">Bhopal Zone</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Address</td>
+                            <td class="value" id="cardAddress">Bhopal, MP</td>
+                        </tr>
+                    </table>
 
                     <!-- 🌐 BADA FRONT WEBSITE QR CODE -->
                     <div class="qr-section-front">
                         <img id="cardQrWebsite" class="qr-img-large-front" crossorigin="anonymous" src="" alt="Website QR">
                         <div class="qr-text-front">
-                            <strong>🌐 Visit Official Website</strong>
-                            bhopal-real-estate.onrender.com<br>
-                            <span style="color: #16a34a; font-weight: 600;">Scan to open portal</span>
+                            <span class="qr-badge">✔ Official Web Portal</span>
+                            <strong>🌐 Scan to Visit Website</strong>
+                            <span class="domain-text">bhopal-real-estate.onrender.com</span>
+                            <span style="color: #4ade80; font-size: 5.5px; font-weight: 700; display: block; margin-top: 1px;">Buy • Sell • Rent Properties</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="card-footer">
-                    Authorized by <strong>bhopal-real-estate.onrender.com</strong>
+                    Authorized Member • <strong>bhopal-real-estate.onrender.com</strong>
                 </div>
             </div>
 
-            <!-- BACK SIDE (BADA APP DOWNLOAD QR CODE) -->
-            <div class="card-side-label" style="margin-top: 15px;">Back Side (App Download Bada QR)</div>
+            <!-- ================= BACK SIDE ================= -->
+            <div class="card-side-label" style="margin-top: 8px;">2. Back Side (Full App Download QR)</div>
             <div class="id-card-wrapper" id="printableCardBack">
-                <div class="card-header" style="padding: 10px 8px 16px;">
-                    <div class="brand-title">Get Mobile App</div>
-                    <div class="tagline">Scan to Download .APK Instantly</div>
+                <div class="back-header">
+                    <div class="brand-title">bhopal-<span>real-estate</span></div>
+                    <div class="tagline">Official Android Mobile Application</div>
                 </div>
 
                 <div class="back-body">
-                    <img id="cardQrAppLarge" class="qr-large" crossorigin="anonymous" src="" alt="App QR">
-                    <p style="font-size: 7.5px; color: #1e1b4b; font-weight: 700; margin-top: 8px; line-height: 1.3;">
-                        📲 Bhopal Real Estate App<br>
-                        <span style="color: #16a34a; font-weight: 600; font-size: 6.8px;">Scan to download APK</span>
-                    </p>
+                    <div class="app-top-pill">📲 Direct Android App (.APK)</div>
+
+                    <!-- 🤖 MEGA QR CODE FOR APP DOWNLOAD -->
+                    <div class="qr-mega-frame">
+                        <img id="cardQrAppLarge" class="qr-large" crossorigin="anonymous" src="" alt="App Download QR">
+                    </div>
+
+                    <div class="scan-cta-box">
+                        <strong>📸 Scan QR to Download App</strong>
+                        <span>Point your phone camera to install .APK</span>
+                    </div>
+
+                    <div class="back-terms">
+                        ✔ 100% Verified Brokers & Properties in Bhopal<br>
+                        If found, please return to Bhopal Real Estate Office.
+                    </div>
                 </div>
 
                 <div class="card-footer">
-                    Support Helpline: <strong>Available 24/7</strong>
+                    24/7 Support • <strong>bhopal-real-estate.onrender.com</strong>
                 </div>
             </div>
 
+            <!-- 📥 DOWNLOAD & PRINT BUTTONS -->
             <div class="action-btns">
-                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD Cards</button>
-                <button class="print-btn" onclick="window.print()">🖨️ Print 2-Sided</button>
+                <button class="download-btn" onclick="downloadCardImage()">📥 Download Front & Back (HD)</button>
+                <button class="print-btn" onclick="window.print()">🖨️ Print 2-Sided Card</button>
             </div>
         </div>
     </div>
@@ -477,19 +607,19 @@
 
             document.getElementById('cardEmpId').innerText = empId || "BRE-2026-001";
             document.getElementById('cardName').innerText = name || "Agent Name";
-            document.getElementById('cardRole').innerText = role || "Field Officer";
+            document.getElementById('cardRole').innerText = role || "Official Field Executive";
             document.getElementById('cardPhone').innerText = phone ? (phone.startsWith('+91') ? phone : `+91 ${phone}`) : "+91 XXXXX XXXXX";
             document.getElementById('cardEmailDisplay').innerText = email || "agent@bhopal.com";
             document.getElementById('cardAreaDisplay').innerText = area || "Bhopal Zone";
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
-            // 1. Front QR: Website Link (Bada QR)
+            // 1. FRONT QR: Official Website Link (High Resolution 500x500)
             const websiteUrl = "https://bhopal-real-estate.onrender.com";
-            document.getElementById('cardQrWebsite').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(websiteUrl)}`;
+            document.getElementById('cardQrWebsite').src = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&ecc=M&margin=1&data=${encodeURIComponent(websiteUrl)}`;
 
-            // 2. Back QR: App Direct Download Link (Bada QR)
+            // 2. BACK QR: Direct App (.APK) Download Link (High Resolution 600x600)
             const downloadUrl = "https://bhopal-real-estate.onrender.com/download-app";
-            document.getElementById('cardQrAppLarge').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(downloadUrl)}`;
+            document.getElementById('cardQrAppLarge').src = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&ecc=M&margin=2&data=${encodeURIComponent(downloadUrl)}`;
 
             if (dob) {
                 const formattedDob = new Date(dob).toLocaleDateString('en-IN', {
@@ -517,6 +647,7 @@
         async function downloadCardImage() {
             const empName = document.getElementById('inputName').value.trim() || 'Member';
             
+            // Download Front HD
             const frontEl = document.getElementById('printableCardFront');
             const canvasFront = await html2canvas(frontEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
             const linkFront = document.createElement('a');
@@ -524,6 +655,7 @@
             linkFront.href = canvasFront.toDataURL('image/png', 1.0);
             linkFront.click();
 
+            // Download Back HD
             setTimeout(async () => {
                 const backEl = document.getElementById('printableCardBack');
                 const canvasBack = await html2canvas(backEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
@@ -531,7 +663,7 @@
                 linkBack.download = `bhopal-real-estate-ID-${empName}-Back-HD.png`;
                 linkBack.href = canvasBack.toDataURL('image/png', 1.0);
                 linkBack.click();
-            }, 600);
+            }, 700);
         }
     </script>
 </body>
