@@ -101,19 +101,27 @@
         .broker-login-nav-btn:hover {
             background: #1a252f !important;
         }
-        .install-app-btn {
-            display: none;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-            font-size: 11px;
-            font-weight: 800;
-            padding: 8px 12px;
+        /* 📲 Direct APK Download Button in Header */
+        .apk-download-nav-btn {
+            background: linear-gradient(135deg, #16a34a, #15803d) !important;
+            color: #ffffff !important;
+            border: 1px solid #16a34a !important;
+            padding: 8px 14px;
             border-radius: 6px;
-            border: none;
-            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
             white-space: nowrap;
             margin-left: 8px;
-            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+            transition: 0.2s ease;
+            text-decoration: none;
+        }
+        .apk-download-nav-btn:hover {
+            transform: translateY(-1px);
+            background: #15803d !important;
         }
         .instant-access-badge {
             font-size: 11px;
@@ -127,7 +135,6 @@
             align-items: center;
             gap: 6px;
             white-space: nowrap;
-            margin-left: 8px;
         }
         .pulse-dot {
             width: 6px;
@@ -235,11 +242,14 @@
                 </ul>
             </nav>
             
-            <div style="display: flex; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <div class="instant-access-badge">
-                    <span class="pulse-dot"></span> Open Access (No Login Required)
+                    <span class="pulse-dot"></span> Open Access
                 </div>
-                <button id="installAppBtn" class="install-app-btn">📲 Install App</button>
+                <!-- 📲 DIRECT APK DOWNLOAD BUTTON IN HEADER -->
+                <a href="/download-app" download="Bhopal-Real-Estate.apk" class="apk-download-nav-btn">
+                    📲 Download App
+                </a>
             </div>
         </div>
     </header>
@@ -256,12 +266,16 @@
             </select>
             <select id="searchLocation">
                 <option value="All">भोपाल की सभी लोकेशन्स...</option>
-                <!-- Locations will load dynamically -->
             </select>
             <button onclick="filterProperties()">खोजें 🔍</button>
-            
-            <!-- 🌟 NAYA BUTTON: Hyperlocal Distance Search -->
             <button id="nearbyBtn" onclick="findNearbyProperties()" style="background: #3b82f6;">📍 आस-पास खोजें</button>
+        </div>
+
+        <!-- 📲 HERO DIRECT APP DOWNLOAD BANNER -->
+        <div style="margin-top: 25px;">
+            <a href="/download-app" download="Bhopal-Real-Estate.apk" style="display: inline-flex; align-items: center; gap: 10px; background: #f59e0b; color: #1e1b4b; font-weight: 800; padding: 12px 26px; border-radius: 30px; font-size: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); text-decoration: none;">
+                🤖 Download Official Android App (.APK)
+            </a>
         </div>
     </div>
 
@@ -270,7 +284,6 @@
     
     <div class="properties-container" id="propertyList"></div>
 
-    <!-- 🤖 AI Virtual Broker Chat UI -->
     <div class="ai-chat-btn" onclick="toggleChat()" title="AI Virtual Broker">🤖</div>
     <div class="ai-chat-window" id="aiChat">
         <div class="chat-header">
@@ -306,7 +319,6 @@
     <script>
         let allProperties = [];
 
-        // 🚀 PAGE LOAD HOTE HI AUTOMATIC CHALNE WALA CODE
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const response = await fetch('/api/get-properties');
@@ -324,7 +336,6 @@
             }
         });
 
-        // 🌟 GET DISTANCE & SHOW NEARBY (HYPERLOCAL SEARCH)
         async function findNearbyProperties() {
             const btn = document.getElementById('nearbyBtn');
             btn.innerText = "ढूंढ रहा है... ⏳";
@@ -335,13 +346,10 @@
                     const lng = position.coords.longitude;
 
                     try {
-                        // 🌟 Backend API call with User GPS Coordinates
                         const response = await fetch(`/api/get-properties?lat=${lat}&lng=${lng}`);
                         allProperties = await response.json();
                         
                         btn.innerText = "📍 आस-पास खोजें";
-                        
-                        // Dropdowns reset karein taaki filter clash na kare
                         document.getElementById('searchLocation').value = 'All';
                         document.getElementById('searchPurpose').value = 'All';
                         
@@ -369,7 +377,6 @@
             }
         }
 
-        // 🌟 लोकेशन ड्रॉपडाउन को अपडेट करने का फंक्शन
         function updateLocationDropdown(properties) {
             const locationDropdown = document.getElementById('searchLocation');
             locationDropdown.innerHTML = '<option value="All">भोपाल की सभी लोकेशन्स...</option>';
@@ -384,7 +391,6 @@
             });
         }
 
-        // 📍 SILENT LOCATION TRACKER
         function autoDetectAndFilterLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(async function(position) {
@@ -413,7 +419,6 @@
             }
         }
 
-        // 🏠 PROPERTIES RENDER KARNE WALA FUNCTION
         function displayProperties(propertiesToShow) {
             const container = document.getElementById('propertyList');
             container.innerHTML = '';
@@ -434,7 +439,6 @@
                 const priceText = prop.purpose === 'Rent' ? `₹ ${prop.price} / महीना` : `₹ ${prop.price}`;
                 const badgeText = prop.purpose === 'Rent' ? 'For Rent' : 'For Sale';
                 
-                // 🌟 NAYA: Duri (Distance) dikhane ka logic
                 let distanceHtml = '';
                 if (prop.distance !== undefined && prop.distance !== null) {
                     distanceHtml = `<span class="distance-badge">📍 ${prop.distance.toFixed(1)} KM</span>`;
@@ -459,7 +463,6 @@
             });
         }
 
-        // 🔍 MANUAL FILTER FUNCTION
         function filterProperties() {
             const purposeFilter = document.getElementById('searchPurpose').value;
             const locationFilter = document.getElementById('searchLocation').value;
@@ -475,7 +478,6 @@
             document.getElementById('properties').scrollIntoView({ behavior: 'smooth' });
         }
         
-        // 🔄 10 सेकंड वाला स्मार्ट ऑटो-रिफ्रेश
         setInterval(async () => {
             try {
                 const response = await fetch('/api/get-properties', { cache: 'no-store' });
@@ -491,7 +493,6 @@
             }
         }, 10000);
 
-        // --- 🤖 AI CHATBOT LOGIC START ---
         let aiSearchType = '';
         
         function toggleChat() {
@@ -579,32 +580,11 @@
             document.getElementById('budgetInput').value = '';
         }
 
-        // 📱 PWA SERVICE WORKER & INSTALL PROMPT LOGIC
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('✅ Bhopal Properties App Service Worker Ready!', reg.scope))
-                    .catch(err => console.error('❌ SW Error:', err));
+                navigator.serviceWorker.register('/sw.js').catch(() => {});
             });
         }
-
-        let deferredPrompt;
-        const installBtn = document.getElementById('installAppBtn');
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'inline-block';
-        });
-
-        installBtn.addEventListener('click', async () => {
-            if (!deferredPrompt) return;
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                installBtn.style.display = 'none';
-            }
-            deferredPrompt = null;
-        });
     </script>
 </body>
 </html>
