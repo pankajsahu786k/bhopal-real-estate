@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional 2-Sided Employee ID Card - bhopal-real-estate</title>
+    <title>Professional Employee ID Card - bhopal-real-estate</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -18,7 +18,6 @@
             width: 100%;
         }
 
-        /* 📝 इनपुट फॉर्म स्टाइल */
         .form-box {
             background: #ffffff;
             padding: 25px;
@@ -57,7 +56,6 @@
             border-color: #f59e0b;
         }
 
-        /* 🪪 PREVIEW AREA */
         .card-preview-area {
             display: flex;
             flex-direction: column;
@@ -89,7 +87,6 @@
             box-sizing: border-box;
         }
 
-        /* PROFESSIONAL FRONT HEADER */
         .card-header {
             background: linear-gradient(135deg, #0f172a, #1e1b4b);
             padding: 10px 8px 22px;
@@ -116,8 +113,8 @@
             justify-content: center;
         }
         .employee-photo {
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             border-radius: 50%;
             border: 3px solid #ffffff;
             object-fit: cover;
@@ -126,25 +123,25 @@
         }
 
         .card-body {
-            padding: 3px 8px 4px;
+            padding: 4px 10px 6px;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
         .emp-name {
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 800;
             color: #0f172a;
             line-height: 1.1;
         }
         .emp-role {
-            font-size: 7px;
+            font-size: 7.5px;
             font-weight: 700;
             color: #d97706;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 3px;
+            margin-bottom: 4px;
         }
 
         .details-table {
@@ -152,10 +149,10 @@
             font-size: 7px;
             text-align: left;
             border-collapse: collapse;
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
         .details-table td {
-            padding: 1.5px 0;
+            padding: 2px 0;
             border-bottom: 0.5px dashed #e2e8f0;
             vertical-align: top;
         }
@@ -175,16 +172,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
+            gap: 6px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 2px 4px;
+            border-radius: 5px;
+            padding: 3px 6px;
             margin-top: 2px;
         }
         .qr-img-small {
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
             background: white;
             padding: 1px;
         }
@@ -211,7 +208,7 @@
         }
         .card-footer strong { color: #ffffff; }
 
-        /* BACK SIDE STYLING (BADA APP DOWNLOAD QR CODE) */
+        /* BACK SIDE STYLING */
         .back-body {
             flex: 1;
             display: flex;
@@ -250,7 +247,6 @@
         .download-btn { background: #27ae60; color: white; }
         .print-btn { background: #1e1b4b; color: white; }
 
-        /* 🖨️ PRINT RULES (2-SIDED PVC SETUP) */
         @page {
             size: 54mm 86mm;
             margin: 0;
@@ -278,7 +274,6 @@
 <body>
 
     <div class="container" id="mainCardContainer" style="display: none;">
-        <!-- 📝 डायनामिक इनपुट फॉर्म -->
         <div class="form-box">
             <h2>
                 <span>कर्मचारी विवरण (bhopal-real-estate)</span>
@@ -309,15 +304,18 @@
                 <input type="text" id="inputRole" placeholder="e.g. Field Officer / Employer" oninput="updateCard()">
             </div>
             <div class="form-group">
+                <label>कार्यक्षेत्र (Dealing Area)</label>
+                <input type="text" id="inputArea" placeholder="e.g. MP Nagar & Arera Colony" oninput="updateCard()">
+            </div>
+            <div class="form-group">
                 <label>पता (Permanent Address)</label>
                 <textarea id="inputAddress" rows="2" placeholder="e.g. Zone 1, MP Nagar, Bhopal" oninput="updateCard()"></textarea>
             </div>
         </div>
 
-        <!-- 🪪 लाइव प्रीव्यू (FRONT & BACK) -->
         <div class="card-preview-area">
             
-            <!-- FRONT SIDE (DETAILS + WEBSITE QR) -->
+            <!-- FRONT SIDE -->
             <div class="card-side-label">Front Side (परिचय पत्र + Website QR)</div>
             <div class="id-card-wrapper" id="printableCardFront">
                 <div class="card-header">
@@ -348,6 +346,10 @@
                                 <td class="value" id="cardPhone">+91 XXXXX XXXXX</td>
                             </tr>
                             <tr>
+                                <td class="label">Area:</td>
+                                <td class="value" id="cardAreaDisplay">Bhopal Zone</td>
+                            </tr>
+                            <tr>
                                 <td class="label">Address:</td>
                                 <td class="value" id="cardAddress">Bhopal, MP</td>
                             </tr>
@@ -370,7 +372,7 @@
             </div>
 
             <!-- BACK SIDE (BADA APP DOWNLOAD QR CODE) -->
-            <div class="card-side-label" style="margin-top: 10px;">Back Side (App Download Bada QR)</div>
+            <div class="card-side-label" style="margin-top: 5px;">Back Side (App Download QR)</div>
             <div class="id-card-wrapper" id="printableCardBack">
                 <div class="card-header" style="padding: 10px 8px 16px;">
                     <div class="brand-title">Get Mobile App</div>
@@ -379,7 +381,7 @@
 
                 <div class="back-body">
                     <img id="cardQrAppLarge" class="qr-large" crossorigin="anonymous" src="" alt="App QR">
-                    <p style="font-size: 7.5px; color: #1e1b4b; font-weight: 700; margin-top: 10px; line-height: 1.3;">
+                    <p style="font-size: 7.5px; color: #1e1b4b; font-weight: 700; margin-top: 8px; line-height: 1.3;">
                         📲 Bhopal Real Estate App<br>
                         <span style="color: #16a34a; font-weight: 600; font-size: 6.8px;">Scan to download APK</span>
                     </p>
@@ -429,7 +431,8 @@
                 const dob = params.get('dob') || profile.dob || savedCardData.dob || '';
                 const phone = params.get('phone') || profile.phone || savedCardData.phone || '';
                 const role = params.get('role') || savedCardData.role || (serverRole === 'employer' ? 'Authorized Employer' : 'Official Field Executive');
-                const address = params.get('address') || savedCardData.address || ((profile.dealingAreas && profile.dealingAreas.length > 0) ? `${profile.dealingAreas.join(', ')}, Bhopal` : 'Bhopal, MP');
+                const area = params.get('area') || savedCardData.area || ((profile.dealingAreas && profile.dealingAreas.length > 0) ? profile.dealingAreas.join(', ') : 'Bhopal Zone');
+                const address = params.get('address') || savedCardData.address || 'Bhopal, MP';
                 const photo = params.get('photo') || profile.photo || savedCardData.photo || '';
 
                 document.getElementById('inputEmpId').value = empId;
@@ -437,6 +440,7 @@
                 document.getElementById('inputDob').value = dob;
                 document.getElementById('inputPhone').value = phone;
                 document.getElementById('inputRole').value = role;
+                document.getElementById('inputArea').value = area;
                 document.getElementById('inputAddress').value = address;
                 if (photo) {
                     document.getElementById('cardPhoto').src = photo;
@@ -456,12 +460,14 @@
             const dob = document.getElementById('inputDob').value;
             const phone = document.getElementById('inputPhone').value.trim();
             const role = document.getElementById('inputRole').value.trim();
+            const area = document.getElementById('inputArea').value.trim();
             const address = document.getElementById('inputAddress').value.trim();
 
             document.getElementById('cardEmpId').innerText = empId || "BRE-2026-001";
             document.getElementById('cardName').innerText = name || "Agent Name";
             document.getElementById('cardRole').innerText = role || "Field Officer";
             document.getElementById('cardPhone').innerText = phone ? (phone.startsWith('+91') ? phone : `+91 ${phone}`) : "+91 XXXXX XXXXX";
+            document.getElementById('cardAreaDisplay').innerText = area || "Bhopal Zone";
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
             // 1. Front QR: Website Link
@@ -498,7 +504,6 @@
         async function downloadCardImage() {
             const empName = document.getElementById('inputName').value.trim() || 'Member';
             
-            // Download Front
             const frontEl = document.getElementById('printableCardFront');
             const canvasFront = await html2canvas(frontEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
             const linkFront = document.createElement('a');
@@ -506,7 +511,6 @@
             linkFront.href = canvasFront.toDataURL('image/png', 1.0);
             linkFront.click();
 
-            // Download Back
             setTimeout(async () => {
                 const backEl = document.getElementById('printableCardBack');
                 const canvasBack = await html2canvas(backEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
