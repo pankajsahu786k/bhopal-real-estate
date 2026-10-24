@@ -1555,7 +1555,17 @@ app.post('/api/reset-password', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
-
+// 📲 DIRECT ANDROID APK FORCE-DOWNLOAD ROUTE (FOR QR SCAN & WEBSITE BUTTON)
+app.get('/download-app', (req, res) => {
+    const path = require('path');
+    const apkPath = path.join(__dirname, 'bhopal-real-estate.apk');
+    res.download(apkPath, 'Bhopal-Real-Estate.apk', (err) => {
+        if (err) {
+            console.error("APK Download Error:", err.message);
+            res.status(404).send("App file server par upload ho rahi hai, kripya thodi der baad try karein.");
+        }
+    });
+});
 app.post('/api/reset-password', async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
