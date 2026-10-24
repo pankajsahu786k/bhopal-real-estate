@@ -1,25 +1,49 @@
 {
-  "name": "Bhopal Real Estate - Buy, Sell & Rent Properties",
-  "short_name": "Bhopal Real Estate",
+  "id": "/",
+  "name": "Bhopal Real Estate - Buy, Sell & Rent",
+  "short_name": "Bhopal Properties",
   "description": "Bhopal me plots, flats, houses aur commercial properties kharidein, bechein aur kiraye par lein.",
-  "start_url": "/",
+  "start_url": "/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#1e3a8a",
+  "theme_color": "#1e1b4b",
+  "categories": ["business", "shopping", "lifestyle"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://placehold.co/1080x1920/1e1b4b/ffffff.png?text=Bhopal+Properties+App",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Bhopal Properties Home Screen"
+    },
+    {
+      "src": "https://placehold.co/1920x1080/1e1b4b/ffffff.png?text=Bhopal+Real+Estate",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Bhopal Properties Dashboard"
     }
   ]
 }
