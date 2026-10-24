@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bhopal Properties - Buy, Sell & Rent Real Estate</title>
+    
+    <!-- 📱 PWA / ANDROID APP SETUP -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         /* 🎨 Global Styles */
@@ -92,6 +100,20 @@
         }
         .broker-login-nav-btn:hover {
             background: #1a252f !important;
+        }
+        .install-app-btn {
+            display: none;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+            margin-left: 8px;
+            box-shadow: 0 3px 10px rgba(245, 158, 11, 0.3);
         }
         .instant-access-badge {
             font-size: 11px;
@@ -213,8 +235,11 @@
                 </ul>
             </nav>
             
-            <div class="instant-access-badge">
-                <span class="pulse-dot"></span> Open Access (No Login Required)
+            <div style="display: flex; align-items: center;">
+                <div class="instant-access-badge">
+                    <span class="pulse-dot"></span> Open Access (No Login Required)
+                </div>
+                <button id="installAppBtn" class="install-app-btn">📲 Install App</button>
             </div>
         </div>
     </header>
@@ -553,6 +578,33 @@
             `;
             document.getElementById('budgetInput').value = '';
         }
+
+        // 📱 PWA SERVICE WORKER & INSTALL PROMPT LOGIC
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ Bhopal Properties App Service Worker Ready!', reg.scope))
+                    .catch(err => console.error('❌ SW Error:', err));
+            });
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installAppBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'inline-block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+            }
+            deferredPrompt = null;
+        });
     </script>
 </body>
 </html>
