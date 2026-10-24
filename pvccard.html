@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Employee ID Card - bhopal-real-estate</title>
+    <title>Professional 2-Sided Employee ID Card - bhopal-real-estate</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -12,9 +12,9 @@
 
         .container {
             display: grid;
-            grid-template-columns: 1fr 400px;
+            grid-template-columns: 1fr 420px;
             gap: 30px;
-            max-width: 980px;
+            max-width: 1000px;
             width: 100%;
         }
 
@@ -57,17 +57,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 20px;
         }
         .card-side-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 700;
-            color: #475569;
+            color: #1e1b4b;
             align-self: flex-start;
-            margin-bottom: -8px;
+            margin-bottom: -12px;
         }
 
-        /* 🪪 EXACT 54 x 86 mm PVC CARD (FRONT DESIGN WITH BADA QR) */
+        /* 🪪 EXACT 54 x 86 mm PVC CARD */
         .id-card-wrapper {
             width: 54mm;
             height: 86mm;
@@ -120,7 +120,7 @@
         }
 
         .card-body {
-            padding: 28px 8px 4px 8px;
+            padding: 26px 8px 4px 8px;
             flex: 1;
             display: flex;
             flex-direction: column;
@@ -164,7 +164,7 @@
             word-break: break-word;
         }
 
-        /* 🌟 BADA AUR PROMINENT WEBSITE QR BOX ON FRONT */
+        /* 🌐 FRONT BADA WEBSITE QR CODE (FILLED & PROMINENT) */
         .qr-section-front {
             display: flex;
             align-items: center;
@@ -178,8 +178,8 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.04);
         }
         .qr-img-large-front {
-            width: 42px;
-            height: 42px;
+            width: 44px;
+            height: 44px;
             background: white;
             padding: 2px;
             border: 1px solid #e2e8f0;
@@ -208,6 +208,26 @@
         }
         .card-footer strong { color: #ffffff; }
 
+        /* BACK SIDE STYLING (BADA APP DOWNLOAD QR) */
+        .back-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            background: radial-gradient(circle at center, #ffffff 0%, #f8fafc 100%);
+        }
+        .qr-large {
+            width: 110px;
+            height: 110px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 5px;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
         .action-btns {
             display: flex;
             gap: 10px;
@@ -235,6 +255,7 @@
             body { background: white; padding: 0; margin: 0; }
             .form-box, .action-btns, .card-side-label { display: none !important; }
             .container { display: block; width: 54mm; }
+            .card-preview-area { gap: 0; }
             .id-card-wrapper {
                 page-break-after: always;
                 break-after: page;
@@ -359,9 +380,30 @@
                 </div>
             </div>
 
+            <!-- BACK SIDE (BADA APP DOWNLOAD QR CODE) -->
+            <div class="card-side-label" style="margin-top: 15px;">Back Side (App Download Bada QR)</div>
+            <div class="id-card-wrapper" id="printableCardBack">
+                <div class="card-header" style="padding: 10px 8px 16px;">
+                    <div class="brand-title">Get Mobile App</div>
+                    <div class="tagline">Scan to Download .APK Instantly</div>
+                </div>
+
+                <div class="back-body">
+                    <img id="cardQrAppLarge" class="qr-large" crossorigin="anonymous" src="" alt="App QR">
+                    <p style="font-size: 7.5px; color: #1e1b4b; font-weight: 700; margin-top: 8px; line-height: 1.3;">
+                        📲 Bhopal Real Estate App<br>
+                        <span style="color: #16a34a; font-weight: 600; font-size: 6.8px;">Scan to download APK</span>
+                    </p>
+                </div>
+
+                <div class="card-footer">
+                    Support Helpline: <strong>Available 24/7</strong>
+                </div>
+            </div>
+
             <div class="action-btns">
-                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD Front</button>
-                <button class="print-btn" onclick="window.print()">🖨️ Print Card</button>
+                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD Cards</button>
+                <button class="print-btn" onclick="window.print()">🖨️ Print 2-Sided</button>
             </div>
         </div>
     </div>
@@ -441,9 +483,13 @@
             document.getElementById('cardAreaDisplay').innerText = area || "Bhopal Zone";
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
-            // Front QR: Website Link (Bada aur clear)
+            // 1. Front QR: Website Link (Bada QR)
             const websiteUrl = "https://bhopal-real-estate.onrender.com";
             document.getElementById('cardQrWebsite').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(websiteUrl)}`;
+
+            // 2. Back QR: App Direct Download Link (Bada QR)
+            const downloadUrl = "https://bhopal-real-estate.onrender.com/download-app";
+            document.getElementById('cardQrAppLarge').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(downloadUrl)}`;
 
             if (dob) {
                 const formattedDob = new Date(dob).toLocaleDateString('en-IN', {
@@ -470,12 +516,22 @@
 
         async function downloadCardImage() {
             const empName = document.getElementById('inputName').value.trim() || 'Member';
+            
             const frontEl = document.getElementById('printableCardFront');
             const canvasFront = await html2canvas(frontEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
             const linkFront = document.createElement('a');
             linkFront.download = `bhopal-real-estate-ID-${empName}-Front-HD.png`;
             linkFront.href = canvasFront.toDataURL('image/png', 1.0);
             linkFront.click();
+
+            setTimeout(async () => {
+                const backEl = document.getElementById('printableCardBack');
+                const canvasBack = await html2canvas(backEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
+                const linkBack = document.createElement('a');
+                linkBack.download = `bhopal-real-estate-ID-${empName}-Back-HD.png`;
+                linkBack.href = canvasBack.toDataURL('image/png', 1.0);
+                linkBack.click();
+            }, 600);
         }
     </script>
 </body>
