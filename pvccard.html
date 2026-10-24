@@ -92,7 +92,7 @@
         /* PROFESSIONAL FRONT HEADER */
         .card-header {
             background: linear-gradient(135deg, #0f172a, #1e1b4b);
-            padding: 10px 8px 24px;
+            padding: 10px 8px 22px;
             color: white;
             border-bottom: 3px solid #f59e0b;
         }
@@ -111,13 +111,13 @@
         }
 
         .photo-container {
-            margin-top: -22px;
+            margin-top: -20px;
             display: flex;
             justify-content: center;
         }
         .employee-photo {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             border: 3px solid #ffffff;
             object-fit: cover;
@@ -126,36 +126,36 @@
         }
 
         .card-body {
-            padding: 4px 10px 6px;
+            padding: 3px 8px 4px;
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
         .emp-name {
-            font-size: 11.5px;
+            font-size: 11px;
             font-weight: 800;
             color: #0f172a;
             line-height: 1.1;
         }
         .emp-role {
-            font-size: 7.5px;
+            font-size: 7px;
             font-weight: 700;
             color: #d97706;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .details-table {
             width: 100%;
-            font-size: 7.2px;
+            font-size: 7px;
             text-align: left;
             border-collapse: collapse;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         .details-table td {
-            padding: 2px 0;
+            padding: 1.5px 0;
             border-bottom: 0.5px dashed #e2e8f0;
             vertical-align: top;
         }
@@ -170,6 +170,37 @@
             word-break: break-word;
         }
 
+        /* 🌐 FRONT WEBSITE QR BOX */
+        .qr-section-front {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 2px 4px;
+            margin-top: 2px;
+        }
+        .qr-img-small {
+            width: 28px;
+            height: 28px;
+            background: white;
+            padding: 1px;
+        }
+        .qr-text-front {
+            text-align: left;
+            font-size: 5.8px;
+            line-height: 1.15;
+            color: #1e1b4b;
+        }
+        .qr-text-front strong {
+            display: block;
+            font-size: 6.5px;
+            color: #3b82f6;
+            font-weight: 800;
+        }
+
         .card-footer {
             background: #0f172a;
             padding: 4px 6px;
@@ -180,7 +211,7 @@
         }
         .card-footer strong { color: #ffffff; }
 
-        /* BACK SIDE STYLING (BADA QR CODE) */
+        /* BACK SIDE STYLING (BADA APP DOWNLOAD QR CODE) */
         .back-body {
             flex: 1;
             display: flex;
@@ -286,8 +317,8 @@
         <!-- 🪪 लाइव प्रीव्यू (FRONT & BACK) -->
         <div class="card-preview-area">
             
-            <!-- FRONT SIDE -->
-            <div class="card-side-label">Front Side (परिचय पत्र)</div>
+            <!-- FRONT SIDE (DETAILS + WEBSITE QR) -->
+            <div class="card-side-label">Front Side (परिचय पत्र + Website QR)</div>
             <div class="id-card-wrapper" id="printableCardFront">
                 <div class="card-header">
                     <div class="brand-title">bhopal-<span>real-estate</span></div>
@@ -322,6 +353,15 @@
                             </tr>
                         </table>
                     </div>
+
+                    <!-- 🌐 FRONT WEBSITE QR CODE -->
+                    <div class="qr-section-front">
+                        <img id="cardQrWebsite" class="qr-img-small" crossorigin="anonymous" src="" alt="Website QR">
+                        <div class="qr-text-front">
+                            <strong>🌐 Visit Official Website</strong>
+                            bhopal-real-estate.onrender.com
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card-footer">
@@ -329,8 +369,8 @@
                 </div>
             </div>
 
-            <!-- BACK SIDE (BADA QR CODE) -->
-            <div class="card-side-label" style="margin-top: 5px;">Back Side (Bada App QR Code)</div>
+            <!-- BACK SIDE (BADA APP DOWNLOAD QR CODE) -->
+            <div class="card-side-label" style="margin-top: 10px;">Back Side (App Download Bada QR)</div>
             <div class="id-card-wrapper" id="printableCardBack">
                 <div class="card-header" style="padding: 10px 8px 16px;">
                     <div class="brand-title">Get Mobile App</div>
@@ -338,10 +378,10 @@
                 </div>
 
                 <div class="back-body">
-                    <img id="cardQrImgLarge" class="qr-large" crossorigin="anonymous" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=https%3A%2F%2Fbhopal-real-estate.onrender.com%2Fdownload-app" alt="App QR">
+                    <img id="cardQrAppLarge" class="qr-large" crossorigin="anonymous" src="" alt="App QR">
                     <p style="font-size: 7.5px; color: #1e1b4b; font-weight: 700; margin-top: 10px; line-height: 1.3;">
                         📲 Bhopal Real Estate App<br>
-                        <span style="color: #16a34a; font-weight: 600; font-size: 6.8px;">Point camera to download APK</span>
+                        <span style="color: #16a34a; font-weight: 600; font-size: 6.8px;">Scan to download APK</span>
                     </p>
                 </div>
 
@@ -351,7 +391,7 @@
             </div>
 
             <div class="action-btns">
-                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD</button>
+                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD Cards</button>
                 <button class="print-btn" onclick="window.print()">🖨️ Print 2-Sided</button>
             </div>
         </div>
@@ -424,8 +464,13 @@
             document.getElementById('cardPhone').innerText = phone ? (phone.startsWith('+91') ? phone : `+91 ${phone}`) : "+91 XXXXX XXXXX";
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
+            // 1. Front QR: Website Link
+            const websiteUrl = "https://bhopal-real-estate.onrender.com";
+            document.getElementById('cardQrWebsite').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(websiteUrl)}`;
+
+            // 2. Back QR: App Direct Download Link
             const downloadUrl = "https://bhopal-real-estate.onrender.com/download-app";
-            document.getElementById('cardQrImgLarge').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(downloadUrl)}`;
+            document.getElementById('cardQrAppLarge').src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=2&data=${encodeURIComponent(downloadUrl)}`;
 
             if (dob) {
                 const formattedDob = new Date(dob).toLocaleDateString('en-IN', {
@@ -453,6 +498,7 @@
         async function downloadCardImage() {
             const empName = document.getElementById('inputName').value.trim() || 'Member';
             
+            // Download Front
             const frontEl = document.getElementById('printableCardFront');
             const canvasFront = await html2canvas(frontEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
             const linkFront = document.createElement('a');
@@ -460,6 +506,7 @@
             linkFront.href = canvasFront.toDataURL('image/png', 1.0);
             linkFront.click();
 
+            // Download Back
             setTimeout(async () => {
                 const backEl = document.getElementById('printableCardBack');
                 const canvasBack = await html2canvas(backEl, { scale: 5, useCORS: true, backgroundColor: '#ffffff' });
