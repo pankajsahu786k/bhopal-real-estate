@@ -52,9 +52,6 @@
             outline: none;
             font-family: inherit;
         }
-        .form-group input:focus, .form-group textarea:focus {
-            border-color: #f59e0b;
-        }
 
         .card-preview-area {
             display: flex;
@@ -89,7 +86,7 @@
 
         .card-header {
             background: linear-gradient(135deg, #0f172a, #1e1b4b);
-            padding: 10px 8px 22px;
+            padding: 8px 6px 18px;
             color: white;
             border-bottom: 3px solid #f59e0b;
         }
@@ -100,7 +97,7 @@
         }
         .brand-title span { color: #22c55e; }
         .tagline {
-            font-size: 6.5px;
+            font-size: 6px;
             color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.8px;
@@ -108,58 +105,58 @@
         }
 
         .photo-container {
-            margin-top: -20px;
+            margin-top: -18px;
             display: flex;
             justify-content: center;
         }
         .employee-photo {
-            width: 46px;
-            height: 46px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            border: 3px solid #ffffff;
+            border: 2.5px solid #ffffff;
             object-fit: cover;
             background: #e2e8f0;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.18);
         }
 
         .card-body {
-            padding: 4px 10px 6px;
+            padding: 28px 8px 3px 8px; /* Top padding increased to clear overlapping photo */
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
         .emp-name {
-            font-size: 11.5px;
+            font-size: 11px;
             font-weight: 800;
             color: #0f172a;
             line-height: 1.1;
         }
         .emp-role {
-            font-size: 7.5px;
+            font-size: 7px;
             font-weight: 700;
             color: #d97706;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
 
         .details-table {
             width: 100%;
-            font-size: 7px;
+            font-size: 6.8px;
             text-align: left;
             border-collapse: collapse;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
         .details-table td {
-            padding: 2px 0;
+            padding: 1.2px 0;
             border-bottom: 0.5px dashed #e2e8f0;
             vertical-align: top;
         }
         .details-table td.label {
             color: #64748b;
             font-weight: 700;
-            width: 36%;
+            width: 34%;
         }
         .details-table td.value {
             color: #0f172a;
@@ -167,41 +164,41 @@
             word-break: break-word;
         }
 
-        /* 🌐 FRONT WEBSITE QR BOX */
+        /* 🌐 FRONT WEBSITE QR BOX (BALANCED & FILLED) */
         .qr-section-front {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 5px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            border-radius: 5px;
-            padding: 3px 6px;
-            margin-top: 2px;
+            border-radius: 4px;
+            padding: 2.5px 5px;
+            margin-top: auto;
         }
         .qr-img-small {
-            width: 30px;
-            height: 30px;
+            width: 26px;
+            height: 26px;
             background: white;
             padding: 1px;
         }
         .qr-text-front {
             text-align: left;
-            font-size: 5.8px;
-            line-height: 1.15;
+            font-size: 5.5px;
+            line-height: 1.1;
             color: #1e1b4b;
         }
         .qr-text-front strong {
             display: block;
-            font-size: 6.5px;
+            font-size: 6.2px;
             color: #3b82f6;
             font-weight: 800;
         }
 
         .card-footer {
             background: #0f172a;
-            padding: 4px 6px;
-            font-size: 5.8px;
+            padding: 3.5px 6px;
+            font-size: 5.5px;
             color: #94a3b8;
             line-height: 1.2;
             letter-spacing: 0.2px;
@@ -300,12 +297,16 @@
                 <input type="tel" id="inputPhone" placeholder="e.g. +91 9876543210" oninput="updateCard()">
             </div>
             <div class="form-group">
+                <label>ईमेल आईडी (Email ID)</label>
+                <input type="email" id="inputEmail" placeholder="e.g. agent@bhopal.com" oninput="updateCard()">
+            </div>
+            <div class="form-group">
                 <label>पद / भूमिका (Designation/Role)</label>
-                <input type="text" id="inputRole" placeholder="e.g. Field Officer / Employer" oninput="updateCard()">
+                <input type="text" id="inputRole" placeholder="e.g. Field Officer" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>कार्यक्षेत्र (Dealing Area)</label>
-                <input type="text" id="inputArea" placeholder="e.g. MP Nagar & Arera Colony" oninput="updateCard()">
+                <input type="text" id="inputArea" placeholder="e.g. MP Nagar, Arera Colony" oninput="updateCard()">
             </div>
             <div class="form-group">
                 <label>पता (Permanent Address)</label>
@@ -315,8 +316,8 @@
 
         <div class="card-preview-area">
             
-            <!-- FRONT SIDE -->
-            <div class="card-side-label">Front Side (परिचय पत्र + Website QR)</div>
+            <!-- FRONT SIDE (FILLED WITH EMAIL, AREA & WEBSITE QR) -->
+            <div class="card-side-label">Front Side (परिचय पत्र)</div>
             <div class="id-card-wrapper" id="printableCardFront">
                 <div class="card-header">
                     <div class="brand-title">bhopal-<span>real-estate</span></div>
@@ -346,6 +347,10 @@
                                 <td class="value" id="cardPhone">+91 XXXXX XXXXX</td>
                             </tr>
                             <tr>
+                                <td class="label">Email:</td>
+                                <td class="value" id="cardEmailDisplay">agent@bhopal.com</td>
+                            </tr>
+                            <tr>
                                 <td class="label">Area:</td>
                                 <td class="value" id="cardAreaDisplay">Bhopal Zone</td>
                             </tr>
@@ -371,7 +376,7 @@
                 </div>
             </div>
 
-            <!-- BACK SIDE (BADA APP DOWNLOAD QR CODE) -->
+            <!-- BACK SIDE (APP DOWNLOAD QR CODE) -->
             <div class="card-side-label" style="margin-top: 5px;">Back Side (App Download QR)</div>
             <div class="id-card-wrapper" id="printableCardBack">
                 <div class="card-header" style="padding: 10px 8px 16px;">
@@ -393,7 +398,7 @@
             </div>
 
             <div class="action-btns">
-                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD Cards</button>
+                <button class="download-btn" onclick="downloadCardImage()">📥 Download HD</button>
                 <button class="print-btn" onclick="window.print()">🖨️ Print 2-Sided</button>
             </div>
         </div>
@@ -430,6 +435,7 @@
                 const name = params.get('name') || profile.name || savedCardData.name || localStorage.getItem('brokerName') || '';
                 const dob = params.get('dob') || profile.dob || savedCardData.dob || '';
                 const phone = params.get('phone') || profile.phone || savedCardData.phone || '';
+                const userEmail = params.get('email') || profile.brokerEmail || email;
                 const role = params.get('role') || savedCardData.role || (serverRole === 'employer' ? 'Authorized Employer' : 'Official Field Executive');
                 const area = params.get('area') || savedCardData.area || ((profile.dealingAreas && profile.dealingAreas.length > 0) ? profile.dealingAreas.join(', ') : 'Bhopal Zone');
                 const address = params.get('address') || savedCardData.address || 'Bhopal, MP';
@@ -439,6 +445,7 @@
                 document.getElementById('inputName').value = name;
                 document.getElementById('inputDob').value = dob;
                 document.getElementById('inputPhone').value = phone;
+                document.getElementById('inputEmail').value = userEmail;
                 document.getElementById('inputRole').value = role;
                 document.getElementById('inputArea').value = area;
                 document.getElementById('inputAddress').value = address;
@@ -459,6 +466,7 @@
             const name = document.getElementById('inputName').value.trim();
             const dob = document.getElementById('inputDob').value;
             const phone = document.getElementById('inputPhone').value.trim();
+            const email = document.getElementById('inputEmail').value.trim();
             const role = document.getElementById('inputRole').value.trim();
             const area = document.getElementById('inputArea').value.trim();
             const address = document.getElementById('inputAddress').value.trim();
@@ -467,6 +475,7 @@
             document.getElementById('cardName').innerText = name || "Agent Name";
             document.getElementById('cardRole').innerText = role || "Field Officer";
             document.getElementById('cardPhone').innerText = phone ? (phone.startsWith('+91') ? phone : `+91 ${phone}`) : "+91 XXXXX XXXXX";
+            document.getElementById('cardEmailDisplay').innerText = email || "agent@bhopal.com";
             document.getElementById('cardAreaDisplay').innerText = area || "Bhopal Zone";
             document.getElementById('cardAddress').innerText = address || "Bhopal, MP";
 
