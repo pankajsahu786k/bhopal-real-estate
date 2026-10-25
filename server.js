@@ -236,11 +236,12 @@ const TenantLedger = mongoose.models.TenantLedger || mongoose.model('TenantLedge
 // =========================================================================
 async function getOrGeneratePaymentLink(tenant) {
     const currentTime = new Date();
-    
+    const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
+    const dueAmount = latestEntry ? (Number(latestEntry.balance !== undefined ? latestEntry.balance : latestEntry.total) || 0) : 0;
+
     // 1. Agar link valid hai (24 hours expire nahi hui) -> Return old link
     if (tenant.activePaymentLink && tenant.linkExpiryTime && new Date(tenant.linkExpiryTime) > currentTime) {
         if (!customPaymentDB[tenant.activeOrderId]) {
-            const dueAmount = tenant.monthlyEntries.filter(e => e.total > 0).pop()?.total || 0;
             customPaymentDB[tenant.activeOrderId] = {
                 orderId: tenant.activeOrderId,
                 tenantId: tenant._id,
@@ -248,6 +249,8 @@ async function getOrGeneratePaymentLink(tenant) {
                 status: 'PENDING',
                 validUpto: tenant.linkExpiryTime
             };
+        } else {
+            customPaymentDB[tenant.activeOrderId].amount = dueAmount;
         }
         return tenant.activePaymentLink; 
     }
@@ -261,8 +264,6 @@ async function getOrGeneratePaymentLink(tenant) {
     tenant.activePaymentLink = newLink;
     tenant.linkExpiryTime = newExpiry;
     await tenant.save();
-
-    const dueAmount = tenant.monthlyEntries.filter(e => e.total > 0).pop()?.total || 0;
 
     customPaymentDB[newOrderId] = {
         orderId: newOrderId,
@@ -347,6 +348,24 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             return res.json({ success: true, message: "🚪 रूम खाली कर दिया गया और हिस्ट्री में सेव हो गया!" });
         }
 
+        const existingRecord = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
+
+        // Preserve notification flags from old entries before saving
+        if (Array.isArray(monthlyEntries) && existingRecord && Array.isArray(existingRecord.monthlyEntries)) {
+            for (let i = 0; i < monthlyEntries.length; i++) {
+                const oldEntry = existingRecord.monthlyEntries[i];
+                if (oldEntry) {
+                    // Agar total ya paidAmount badla nahi hai toh purane flags rakhein
+                    if (Number(oldEntry.total) === Number(monthlyEntries[i].total)) {
+                        monthlyEntries[i].billNotified = oldEntry.billNotified || false;
+                    }
+                    if (Number(oldEntry.paidAmount) === Number(monthlyEntries[i].paidAmount)) {
+                        monthlyEntries[i].paidNotified = oldEntry.paidNotified || false;
+                    }
+                }
+            }
+        }
+
         // 1. Update Database First
         await TenantLedger.updateOne(
             { ownerEmail, roomOrFlatNo, status: 'Active' },
@@ -362,7 +381,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         // 2. Fetch the saved record to process notifications and dynamic links
         const savedTenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
 
-        if (savedTenant.monthlyEntries && savedTenant.monthlyEntries.length > 0) {
+        if (savedTenant && savedTenant.monthlyEntries && savedTenant.monthlyEntries.length > 0) {
             for (let i = 0; i < savedTenant.monthlyEntries.length; i++) {
                 const entry = savedTenant.monthlyEntries[i];
                 const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${savedTenant._id}`;
@@ -372,7 +391,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                     const paymentLink = await getOrGeneratePaymentLink(savedTenant); // Magic Link
                     const prevBal = i > 0 ? (Number(savedTenant.monthlyEntries[i - 1].balance) || 0) : 0;
                     
-                    const billMsg = `📊 *मासिक किराया एवं बिल हिसाब (Bhopal Properties)*\n\nनमस्ते *${savedTenant.tenantName}* जी (रूम/फ्लैट: *${roomOrFlatNo}*),\nआपका *${entry.monthDate}* का लेजर बिल अपडेट हो गया है:\n\n🏠 मासिक किराया: ₹${entry.rent || 0}\n⚡ बिजली बिल: ₹${entry.billAmount || 0} (Reading: ${entry.electricityUnit || 0})\n💧 पानी बिल: ₹${entry.waterBill || 0}\n🔄 पिछला बकाया: ₹${prevBal}\n----------------------\n💰 *कुल देय राशि (Total): ₹${entry.total}*\n\n🔗 *ऑनलाइन भुगतान करें (24 घंटे मान्य):*\n${paymentLink}\n\nकृपया समय पर पेमेंट ट्रांसफर कर अपने मकान मालिक को सूचित करें। 🙏\n🌐 Passbook: ${passbookUrl}`;
+                    const billMsg = `📊 *मासिक किराया एवं बिल हिसाब (Bhopal Properties)*\n\nनमस्ते *${savedTenant.tenantName}* जी (रूम/फ्लैट: *${roomOrFlatNo}*),\nआपका *${entry.monthDate}* का लेजर बिल अपडेट हो गया है:\n\n🏠 मासिक किराया: ₹${entry.rent || 0}\n⚡ बिजली बिल: ₹${entry.billAmount || 0} (Reading: ${entry.electricityUnit || 0})\n💧 पानी बिल: ₹${entry.waterBill || 0}\n🔄 पिछला बकाया: ₹${prevBal}\n----------------------\n💰 *कुल देय राशि (Total): ₹${entry.total}*\n💵 जमा राशि (Paid): ₹${entry.paidAmount || 0}\n⚖️ *शेष बकाया (Balance): ₹${entry.balance || 0}*\n\n🔗 *ऑनलाइन भुगतान करें (24 घंटे मान्य):*\n${paymentLink}\n\nकृपया समय पर पेमेंट कर अपना डिजिटल खाता क्लियर रखें। 🙏\n🌐 Passbook: ${passbookUrl}`;
 
                     sendDirectWhatsApp(savedTenant.mobileNo, billMsg).catch(e => console.error(e));
                     savedTenant.monthlyEntries[i].billNotified = true;
@@ -387,9 +406,10 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                     savedTenant.monthlyEntries[i].paidNotified = true;
                 }
             }
+            savedTenant.markModified('monthlyEntries');
             await savedTenant.save(); // Save notification flags and links
         }
-        res.json({ success: true, message: "✅ डेटा सफलतापूर्वक सेव हो गया और WhatsApp पर लिंक भेज दिया गया!" });
+        res.json({ success: true, message: "✅ डेटा सफलतापूर्वक सेव हो गया और WhatsApp पर पेमेंट लिंक भेज दिया गया!" });
     } catch (error) {
         console.error("Database Save Error:", error);
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
@@ -511,80 +531,233 @@ async function processLedgerReminders(slotType) {
 }
 
 // =========================================================================
-// 💳 CUSTOM HOSTED PAYMENT PAGE & AUTO-WEBHOOK (THE MAGIC)
+// 💳 CUSTOM HOSTED PAYMENT PAGE, LIVE POLLING & DUAL WHATSAPP RECEIPTS
 // =========================================================================
 
-// 1. Render Payment Page
-app.get('/pay/:orderId', (req, res) => {
-    const order = customPaymentDB[req.params.orderId];
-    if (!order) return res.status(404).send("<h2 style='text-align:center; padding:50px; font-family:sans-serif;'>❌ Invalid Payment Link</h2>");
-    if (order.status === 'PAID') return res.send("<h2 style='text-align:center; padding:50px; color:green; font-family:sans-serif;'>🎉 Bill Already Paid!</h2>");
-    if (new Date() > new Date(order.validUpto)) return res.send("<h2 style='text-align:center; padding:50px; color:red; font-family:sans-serif;'>⏳ Link Expired! Nayi link agle reminder me aayegi.</h2>");
+// Common Function: Ledger ko Paid mark karne aur Tenant + Owner dono ko WhatsApp Receipt bhejne ke liye
+async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
+    const tenant = await TenantLedger.findById(tenantId);
+    if (!tenant || !tenant.monthlyEntries) return false;
 
-    const yourUpiId = "bhopalrealestate@axl"; // 🔴 REPLACE WITH YOUR ACTUAL UPI ID
-    const upiString = `upi://pay?pa=${encodeURIComponent(yourUpiId)}&pn=BhopalRealEstate&am=${order.amount}&tr=${order.orderId}&cu=INR`;
+    let updated = false;
+    let paidEntryDetails = null;
+    let finalAddedAmt = 0;
+
+    for (let i = tenant.monthlyEntries.length - 1; i >= 0; i--) {
+        const entry = tenant.monthlyEntries[i];
+        const currentBalance = Number(entry.balance !== undefined ? entry.balance : entry.total) || 0;
+
+        // Latest unpaid entry dhoondhein
+        if (Number(entry.total) > 0 && currentBalance > 0) {
+            finalAddedAmt = Number(paidAmt) || currentBalance;
+            entry.paidAmount = (Number(entry.paidAmount) || 0) + finalAddedAmt;
+            entry.balance = Math.max(0, Number(entry.total) - entry.paidAmount);
+            entry.paidNotified = true;
+
+            tenant.alertCount = 0;
+            tenant.needsAssistance = false;
+            tenant.lastAlertSentAt = null;
+            updated = true;
+            paidEntryDetails = entry;
+            break;
+        }
+    }
+
+    if (updated && paidEntryDetails) {
+        tenant.markModified('monthlyEntries');
+        await tenant.save();
+
+        const dateStr = new Date().toLocaleDateString('hi-IN', { 
+            day: '2-digit', month: 'short', year: 'numeric', 
+            hour: '2-digit', minute: '2-digit',
+            timeZone: 'Asia/Kolkata'
+        });
+        const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
+
+        // 💾 1. UniversalReceipt me bhi save karein taaki Admin / Owner ke record me rahe
+        try {
+            await new UniversalReceipt({
+                userEmail: tenant.ownerEmail,
+                serviceName: `Rent Ledger - ${tenant.roomOrFlatNo} (${tenant.tenantName})`,
+                transactionId: txnRef,
+                amountPaid: finalAddedAmt,
+                paymentStatus: 'Paid'
+            }).save();
+        } catch (e) { console.error("UniversalReceipt Save Error:", e); }
+
+        // 📲 2. TENANT (किरायेदार) KO WHATSAPP RECEIPT BHEJEIN
+        if (tenant.mobileNo) {
+            const tenantReceiptMsg = `✅ *ऑटोमैटिक पेमेंट रसीद (Bhopal Properties)*\n\nनमस्ते *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nआपके मासिक बिल (*${paidEntryDetails.monthDate}*) में से *₹${finalAddedAmt}* का ऑनलाइन भुगतान सफलतापूर्वक प्राप्त हो गया है! 🎉\n\n━━━━━━━━━━━━━━━━━━\n🏠 *रूम/फ्लैट:* ${tenant.roomOrFlatNo}\n💰 *कुल बिल:* ₹${paidEntryDetails.total}\n💵 *जमा राशि (Paid):* ₹${paidEntryDetails.paidAmount}\n⚖️ *शेष बकाया (Balance):* ₹${paidEntryDetails.balance}\n🔢 *UTR / Ref:* ${txnRef}\n📅 *दिनांक:* ${dateStr}\n━━━━━━━━━━━━━━━━━━\n\nआपका डिजिटल खाता अपडेट कर दिया गया है।\n🌐 *Live Passbook:* ${passbookUrl}\n\nधन्यवाद! 🙏`;
+
+            sendDirectWhatsApp(tenant.mobileNo, tenantReceiptMsg).catch(e => console.error("Tenant WA Receipt Err:", e));
+        }
+
+        // 📲 3. OWNER (मकान मालिक) KO BHI WHATSAPP RECEIPT AUR CONFIRMATION BHEJEIN
+        try {
+            let ownerPhone = '';
+            let ownerName = 'Owner';
+
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
+            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
+
+            if (userDoc && userDoc.name) ownerName = userDoc.name;
+            if (brokerDoc && brokerDoc.phone) ownerPhone = brokerDoc.phone;
+            else if (userDoc && userDoc.phone) ownerPhone = userDoc.phone;
+
+            if (ownerPhone) {
+                const ownerReceiptMsg = `🔔 *किराया प्राप्त सूचना एवं रसीद (Owner Copy)*\n\nनमस्ते *${ownerName}* जी,\nआपके किरायेदार *${tenant.tenantName}* (*${tenant.roomOrFlatNo}*) ने ऑनलाइन पेमेंट लिंक के माध्यम से *₹${finalAddedAmt}* का भुगतान कर दिया है! 💰✅\n\n━━━━━━━━━━━━━━━━━━\n👤 *किरायेदार:* ${tenant.tenantName} (${tenant.mobileNo || 'N/A'})\n🏠 *रूम नं:* ${tenant.roomOrFlatNo}\n📅 *माह:* ${paidEntryDetails.monthDate}\n💰 *कुल बिल:* ₹${paidEntryDetails.total}\n💵 *प्राप्त राशि (Paid):* ₹${paidEntryDetails.paidAmount}\n⚖️ *शेष बकाया (Balance):* ₹${paidEntryDetails.balance}\n🔢 *UTR / Ref:* ${txnRef}\n━━━━━━━━━━━━━━━━━━\n\n✨ आपके *Tangent Digital Khata* में यह एंट्री अपने आप अपडेट (Balance: ₹${paidEntryDetails.balance}) कर दी गई है।\n\n🌐 *Check Ledger:* https://bhopal-real-estate.onrender.com/owner-ledger.html`;
+
+                setTimeout(() => {
+                    sendDirectWhatsApp(ownerPhone, ownerReceiptMsg).catch(e => console.error("Owner WA Receipt Err:", e));
+                }, 2000);
+            }
+        } catch (ownerErr) {
+            console.error("Owner Notification Error:", ownerErr);
+        }
+    }
+    return updated;
+}
+
+// 1. Render Smart Payment Page (With Auto-Detect Polling & Receipt View)
+app.get('/pay/:orderId', async (req, res) => {
+    const orderId = req.params.orderId;
+    let order = customPaymentDB[orderId];
+
+    // Agar server restart hua ho toh MongoDB se order recover karein
+    if (!order) {
+        const tenant = await TenantLedger.findOne({ activeOrderId: orderId, status: 'Active' });
+        if (tenant) {
+            const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
+            const dueAmt = latestEntry ? (Number(latestEntry.balance) || Number(latestEntry.total) || 0) : 0;
+            order = {
+                orderId: orderId,
+                tenantId: tenant._id,
+                tenantName: tenant.tenantName,
+                roomNo: tenant.roomOrFlatNo,
+                amount: dueAmt,
+                status: (latestEntry && Number(latestEntry.balance) === 0 && Number(latestEntry.paidAmount) > 0) ? 'PAID' : 'PENDING',
+                validUpto: tenant.linkExpiryTime || new Date(Date.now() + 86400000),
+                transactionRef: 'ONLINE_UPI'
+            };
+            customPaymentDB[orderId] = order;
+        }
+    }
+
+    if (!order) {
+        return res.status(404).send("<h2 style='text-align:center; padding:50px; font-family:sans-serif;'>❌ Invalid Payment Link</h2>");
+    }
+
+    // ✅ AGAR PAYMENT HO CHUKA HAI TOH SEEDHA PAKKI RECEIPT DIKHAYEIN
+    if (order.status === 'PAID') {
+        return res.send(`
+        <!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Payment Receipt - ${order.orderId}</title>
+        <style>body{font-family:sans-serif;background:#f0fdf4;display:flex;justify-content:center;align-items:center;min-height:95vh;margin:0;padding:15px;} .rec-box{background:white;padding:25px;border-radius:14px;max-width:380px;width:100%;box-shadow:0 10px 25px rgba(0,0,0,0.08);border-top:6px solid #16a34a;text-align:center;} table{width:100%;text-align:left;border-collapse:collapse;margin:15px 0;font-size:14px;} td{padding:8px 0;border-bottom:1px dashed #cbd5e1;} .btn{display:inline-block;width:100%;padding:12px;background:#1e1b4b;color:white;text-decoration:none;border:none;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:10px;}</style></head>
+        <body>
+            <div class="rec-box">
+                <div style="font-size:48px;">🎉</div>
+                <h2 style="color:#16a34a;margin:5px 0;">Payment Successful!</h2>
+                <p style="font-size:12px;color:#64748b;margin:0;">Bhopal Properties Official Digital Receipt</p>
+                <table>
+                    <tr><td><b>Order ID:</b></td><td>${order.orderId}</td></tr>
+                    <tr><td><b>Amount Paid:</b></td><td style="color:#16a34a;font-weight:bold;font-size:16px;">₹${order.amount}</td></tr>
+                    <tr><td><b>UTR / Ref No:</b></td><td><b>${order.transactionRef || 'VERIFIED'}</b></td></tr>
+                    <tr><td><b>Status:</b></td><td style="color:#16a34a;font-weight:bold;">✔ PAID & LEDGER UPDATED</td></tr>
+                </table>
+                <button onclick="window.print()" class="btn">🖨️ Download / Print Receipt</button>
+            </div>
+        </body></html>
+        `);
+    }
+
+    if (new Date() > new Date(order.validUpto)) {
+        return res.send("<h2 style='text-align:center; padding:50px; color:red; font-family:sans-serif;'>⏳ Link Expired! Nayi link agle reminder me aayegi.</h2>");
+    }
+
+    // 🔴 AAPKI ASLI UPI ID
+    const yourUpiId = "bhopalrealestate@axl"; 
+    const merchantName = "Yogita Sahu";
+
+    const upiString = `upi://pay?pa=${yourUpiId}&pn=${encodeURIComponent(merchantName)}&tr=${order.orderId}&tid=${order.orderId}&am=${order.amount}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=2&data=${encodeURIComponent(upiString)}`;
 
     res.send(`
-    <!DOCTYPE html><html lang="hi"><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pay ₹${order.amount}</title>
-    <style>body{font-family:sans-serif;background:#f1f5f9;display:flex;justify-content:center;padding:20px;} .card{background:white;padding:20px;border-radius:10px;text-align:center;width:100%;max-width:350px;} .btn{display:block;width:100%;padding:12px;background:#16a34a;color:white;text-decoration:none;border-radius:6px;font-weight:bold;margin-top:15px;}</style></head>
+    <!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Pay ₹${order.amount}</title>
+    <style>
+        body{font-family:sans-serif;background:#f1f5f9;display:flex;justify-content:center;padding:20px;margin:0;} 
+        .card{background:white;padding:22px;border-radius:12px;text-align:center;width:100%;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,0.08);border-top:5px solid #16a34a;} 
+        .btn{display:block;width:100%;padding:14px;background:#16a34a;color:white;text-decoration:none;border-radius:8px;font-weight:bold;margin-top:15px;font-size:15px;border:none;cursor:pointer;box-sizing:border-box;}
+        .pulse{font-size:12px;color:#d97706;background:#fef3c7;padding:8px;border-radius:6px;margin-top:12px;font-weight:bold;}
+    </style></head>
     <body>
         <div class="card">
-            <h3 style="margin:0;">Bhopal Real Estate</h3>
-            <p style="font-size:12px;color:#666;">Order ID: ${order.orderId}</p>
-            <h1 style="color:#16a34a;">₹${order.amount}</h1>
-            <img src="${qrUrl}" alt="QR" style="width:180px;height:180px;border:2px dashed #ccc;padding:10px;border-radius:8px;">
-            <a href="${upiString}" class="btn">📲 Pay via PhonePe/GPay</a>
+            <h3 style="margin:0; color:#1e1b4b;">Bhopal Real Estate</h3>
+            <p style="font-size:12px;color:#666; margin-top:4px;">Order ID: <b>${order.orderId}</b></p>
+            <h1 style="color:#16a34a; font-size:36px; margin:12px 0;">₹${order.amount}</h1>
             
-            <form action="/api/custom-gateway/webhook" method="POST" style="margin-top:15px;">
+            <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1.5px dashed #cbd5e1; display:inline-block;">
+                <img src="${qrUrl}" alt="QR" style="width:180px;height:180px;display:block;">
+                <p style="font-size:11px; color:#475569; margin:6px 0 0; font-weight:bold;">Scan with PhonePe / GPay / Paytm</p>
+            </div>
+            
+            <a href="${upiString}" class="btn">📲 Pay ₹${order.amount} via PhonePe / GPay</a>
+
+            <div class="pulse">⏳ Waiting for payment...<br><span style="font-size:11px;font-weight:normal;">Payment hote hi yeh page apne aap Receipt ban jayega, ya neeche UTR daal kar turant verify karein:</span></div>
+            
+            <form action="/api/custom-gateway/webhook" method="POST" style="margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
                 <input type="hidden" name="orderId" value="${order.orderId}">
-                <input type="text" name="transactionRef" placeholder="Enter UTR No (Optional)" style="width:100%;padding:10px;margin-bottom:10px;border:1px solid #ccc;border-radius:4px;box-sizing:border-box;">
-                <button type="submit" class="btn" style="background:#1e1b4b;">Verify Payment Done ✔</button>
+                <input type="text" name="transactionRef" placeholder="Enter 12-Digit UTR No. (e.g. 919808...)" required style="width:100%;padding:11px;margin-bottom:10px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:13px;text-align:center;">
+                <button type="submit" class="btn" style="background:#1e1b4b; margin-top:0;">✔ Submit UTR & Get Instant Receipt</button>
             </form>
         </div>
+
+        <script>
+            // 🔄 Har 3 second me check karega ki MacroDroid webhook aaya ya nahi
+            setInterval(async () => {
+                try {
+                    const res = await fetch('/api/custom-gateway/status/${order.orderId}');
+                    const data = await res.json();
+                    if (data.status === 'PAID') {
+                        window.location.reload(); // Paid hote hi page reload hokar Receipt dikhayega!
+                    }
+                } catch(e) {}
+            }, 3000);
+        </script>
     </body></html>
     `);
 });
 
-// 2. Auto-Webhook (Ledger Auto Update to Zero)
+// Status Polling API for Payment Page
+app.get('/api/custom-gateway/status/:orderId', (req, res) => {
+    const order = customPaymentDB[req.params.orderId];
+    if (!order) return res.json({ status: 'NOT_FOUND' });
+    res.json({ status: order.status });
+});
+
+// 2. Manual UTR Submit Webhook (Customer UTR daale toh bhi turant update ho)
 app.post('/api/custom-gateway/webhook', async (req, res) => {
     const { orderId, transactionRef } = req.body;
-    const order = customPaymentDB[orderId];
+    let order = customPaymentDB[orderId];
+
+    if (!order) {
+        const tenant = await TenantLedger.findOne({ activeOrderId: orderId, status: 'Active' });
+        if (tenant) {
+            const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
+            order = { orderId, tenantId: tenant._id, amount: latestEntry ? latestEntry.total : 0, status: 'PENDING' };
+            customPaymentDB[orderId] = order;
+        }
+    }
 
     if (order && order.status !== 'PAID') {
         order.status = 'PAID';
-        order.transactionRef = transactionRef || 'TXN-' + Date.now();
-
-        try {
-            const tenant = await TenantLedger.findById(order.tenantId);
-            if (tenant && tenant.monthlyEntries) {
-                // Find latest unpaid entry and set balance to zero
-                for (let i = tenant.monthlyEntries.length - 1; i >= 0; i--) {
-                    if (tenant.monthlyEntries[i].total > 0 && tenant.monthlyEntries[i].paidAmount == 0) {
-                        tenant.monthlyEntries[i].paidAmount = tenant.monthlyEntries[i].total;
-                        tenant.monthlyEntries[i].balance = 0;
-                        tenant.monthlyEntries[i].paidNotified = true; 
-                        
-                        tenant.alertCount = 0;
-                        tenant.needsAssistance = false;
-                        tenant.lastAlertSentAt = null;
-                        
-                        const receiptMsg = `✅ *ऑटोमैटिक पेमेंट रसीद*\n\nनमस्ते *${tenant.tenantName}* जी,\nआपके *₹${tenant.monthlyEntries[i].total}* का ऑनलाइन भुगतान प्राप्त हो गया है। आपका खाता अपडेट हो गया है!\n\n🔢 UTR/Ref: ${order.transactionRef}\n🌐 Passbook: https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
-                        sendDirectWhatsApp(tenant.mobileNo, receiptMsg).catch(e => console.error(e));
-                        break;
-                    }
-                }
-                await tenant.save();
-            }
-        } catch(e) { console.error("Webhook Auto-Ledger Error:", e); }
-
-        console.log(`✅ Payment Received & Ledger Auto-Updated for ${orderId}`);
-        res.send("<div style='text-align:center;padding:50px;'><h1 style='color:green;'>🎉 Payment Verified!</h1><p>Aapka account automatically update kar diya gaya hai.</p></div>");
-    } else {
-        res.status(400).send("Bad Request");
+        order.transactionRef = transactionRef || 'UTR-' + Date.now();
+        await markTenantLedgerPaid(order.tenantId, order.amount, order.transactionRef);
+        console.log(`✅ Manual UTR Verified & Ledger Updated for ${orderId}`);
     }
-});
 
+    // Redirect back to /pay/:orderId so customer immediately sees the Receipt Page!
+    res.redirect(`/pay/${orderId}`);
+});
 
 // =========================================================================
 // 🌐 100% FULLY AUTOMATED INTERNET FESTIVAL & BIRTHDAY ENGINE (TENANTS + BROKERS)
@@ -849,24 +1022,57 @@ app.get('/sitemap.xml', async (req, res) => {
     }
 });
 
-
-// ==========================================
-// 3️⃣ OTHER API ROUTES
-// ==========================================
+// =========================================================================
+// 📱 MACRODROID PHONEPE / BANK SMS WEBHOOK (SUPPORTS BOTH DECIMAL & LEDGER)
+// =========================================================================
 app.post('/api/webhook', async (req, res) => {
     try {
-        const smsText = req.body.smsText || ""; 
-        console.log(`📱 PhonePe Notification Aaya: ${smsText}`);
+        const smsText = req.body.smsText || req.query.smsText || ""; 
+        console.log(`📱 PhonePe/Bank Notification Aaya: ${smsText}`);
 
-        const match = smsText.match(/(?:Rs|INR)?\s*(\d+\.\d{2})/i);
+        // Match both whole numbers (₹11, Rs. 7860) and decimals (149.05)
+        const amountMatch = smsText.match(/(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) || smsText.match(/\b(\d+\.\d{2})\b/);
+        // Extract 12-digit UTR if present in notification
+        const utrMatch = smsText.match(/\b(\d{12})\b/);
+        const extractedUtr = utrMatch ? utrMatch[1] : ('AUTO_' + Date.now().toString().slice(-6));
 
-        if (match) {
-            const receivedAmount = match[1];
-            if(activePayments[receivedAmount] && activePayments[receivedAmount].status === "pending") {
-                activePayments[receivedAmount].status = 'Success'; 
-                console.log(`✅ SUCCESS! Payment Confirmed for Amount ₹${receivedAmount} 🚀`);
+        if (amountMatch) {
+            const rawAmount = amountMatch[1].replace(/,/g, '');
+            const numericAmount = Number(rawAmount);
+
+            // 1. Check in old decimal activePayments system (Services / Verification fee ke liye)
+            if (activePayments[rawAmount] && activePayments[rawAmount].status === "pending") {
+                activePayments[rawAmount].status = 'Success'; 
+                console.log(`✅ Old System Payment Confirmed for ₹${rawAmount}`);
+            }
+
+            // 2. 🚀 NEW: Check in Custom Payment Links & Tenant Ledger!
+            let matchedOrder = Object.values(customPaymentDB).find(
+                o => o.status === 'PENDING' && Number(o.amount) === numericAmount
+            );
+
+            if (matchedOrder) {
+                matchedOrder.status = 'PAID';
+                matchedOrder.transactionRef = extractedUtr;
+                await markTenantLedgerPaid(matchedOrder.tenantId, numericAmount, extractedUtr);
+                console.log(`✅ MacroDroid Auto-Updated Ledger Order ${matchedOrder.orderId} for ₹${numericAmount}!`);
             } else {
-                console.log(`⚠️ ₹${receivedAmount} रिसीव हुआ, पर सर्वर पर कोई यूज़र पेंडिंग नहीं था।`);
+                // Fallback: Agar server restart hua ho toh seedha MongoDB TenantLedger me dhoondhein
+                const activeTenants = await TenantLedger.find({ status: 'Active' });
+                for (const tenant of activeTenants) {
+                    const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
+                    const dueBal = latestEntry ? (Number(latestEntry.balance !== undefined ? latestEntry.balance : latestEntry.total) || 0) : 0;
+
+                    if (latestEntry && dueBal === numericAmount && Number(latestEntry.paidAmount || 0) === 0) {
+                        await markTenantLedgerPaid(tenant._id, numericAmount, extractedUtr);
+                        if (tenant.activeOrderId && customPaymentDB[tenant.activeOrderId]) {
+                            customPaymentDB[tenant.activeOrderId].status = 'PAID';
+                            customPaymentDB[tenant.activeOrderId].transactionRef = extractedUtr;
+                        }
+                        console.log(`✅ MongoDB Direct Match: Ledger Auto-Updated for ${tenant.tenantName} (₹${numericAmount})!`);
+                        break;
+                    }
+                }
             }
         }
         res.status(200).send("Webhook Processed Successfully");
@@ -1474,6 +1680,7 @@ app.post('/api/verify-otp', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' }); 
     }
 });
+
 // =========================================================================
 // 🔑 SMART FORGOT PASSWORD / FIND USER ID VIA WHATSAPP OTP (UNIVERSAL LOOKUP)
 // =========================================================================
@@ -1506,7 +1713,6 @@ app.post('/api/forgot-password', async (req, res) => {
         } 
         // 2. Agar user ne 10-digit Mobile Number dala hai
         else if (digitsOnly.length === 10) {
-            // Sabse pehle BrokerProfile me check karein
             let brokerProf = await BrokerProfile.findOne({ phone: { $regex: digitsOnly } });
             let userDoc = await User.findOne({ phone: { $regex: digitsOnly } });
 
@@ -1518,7 +1724,6 @@ app.post('/api/forgot-password', async (req, res) => {
                 targetPhone = userDoc.phone;
                 targetName = userDoc.name;
             } else {
-                // Tenant ledger me bhi check kar lo agar wahan number hai
                 const tenantDoc = await TenantLedger.findOne({ mobileNo: { $regex: digitsOnly }, status: 'Active' });
                 if (tenantDoc && tenantDoc.tenantEmail) {
                     targetEmail = tenantDoc.tenantEmail.toLowerCase().trim();
@@ -1527,7 +1732,6 @@ app.post('/api/forgot-password', async (req, res) => {
                 }
             }
 
-            // Name verify karne ke liye
             if (targetEmail) {
                 const uCheck = await User.findOne({ email: targetEmail });
                 if (uCheck && uCheck.name) targetName = uCheck.name;
@@ -1571,6 +1775,7 @@ app.post('/api/forgot-password', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
+
 // 🔍 STEP 2: VERIFY OTP & REVEAL USER ID (EMAIL)
 app.post('/api/verify-reset-otp', async (req, res) => {
     try {
@@ -1614,7 +1819,6 @@ app.post('/api/reset-password', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
-        // 🔍 Database me User ko dhoond kar password force-update karein
         const updatedUser = await User.findOneAndUpdate(
             { email: { $regex: new RegExp(`^${emailLower}$`, 'i') } },
             { $set: { password: hashedPassword, phone: pendingRecord.phone } },
@@ -1638,6 +1842,7 @@ app.post('/api/reset-password', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 });
+
 // 📲 DIRECT ANDROID APK FORCE-DOWNLOAD ROUTE (FOR QR SCAN & WEBSITE BUTTON)
 app.get('/download-app', (req, res) => {
     const path = require('path');
@@ -1650,7 +1855,6 @@ app.get('/download-app', (req, res) => {
     });
 });
 
-// 🌟 UPGRADED: LOGIN (Returns isProfileComplete status + Sends First-time Welcome WhatsApp)
 // 🌟 UPGRADED: LOGIN ROUTE (100% Accurate Password Check & Sync)
 app.post('/api/login', async (req, res) => {
     try {
@@ -1663,7 +1867,6 @@ app.post('/api/login', async (req, res) => {
 
         const user = await User.findOne({ email: { $regex: new RegExp(`^${emailLower}$`, 'i') } });
         if (user) {
-            // Check password using bcrypt (with fallback for plain text if any old account exists)
             const isMatch = await bcrypt.compare(password, user.password);
             const isPlainMatch = (password === user.password);
 
@@ -1679,7 +1882,6 @@ app.post('/api/login', async (req, res) => {
             const brokerProf = await BrokerProfile.findOne({ brokerEmail: user.email });
             const isProfileComplete = brokerProf ? Boolean(brokerProf.isProfileComplete) : false;
 
-            // Welcome WhatsApp message check
             if (brokerProf && brokerProf.phone && !brokerProf.welcomeSent) {
                 const welcomeMsg = `Namaste ${user.name} ji! 🙏\n\n*Bhopal Properties Partner Network* me aapka hardik swagat hai! 🏢✨\n\nAb aap apne portal par properties list kar sakte hain. Wishing you great deals ahead! 💼🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
                 
@@ -1890,7 +2092,8 @@ app.get('/api/admin/get-payments', async (req, res) => {
 });
 
 // 🔒 GUARDED: Broker must complete profile before adding property draft
-app.post('/api/submit-property-draft', upload.array('propertyImages', 3), requireCompleteProfile, async (req, res) => {   try {
+app.post('/api/submit-property-draft', upload.array('propertyImages', 3), requireCompleteProfile, async (req, res) => {   
+    try {
         const imageUrls = req.files ? req.files.map(f => f.path || f.url) : [];
         const draftId = 'DRAFT_PROP_' + Math.floor(Math.random() * 1000000);
 
@@ -1930,48 +2133,6 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
 
 // ==========================================
 // 🤖 WHATSAPP AI PROPERTY SEARCH BOT ENGINE
-// ==========================================
-app.post('/api/whatsapp/incoming-bot', async (req, res) => {
-    try {
-        const { senderPhone, messageText } = req.body;
-        if (!senderPhone || !messageText) return res.status(400).json({ success: false });
-
-        const query = messageText.toLowerCase();
-        let filter = { status: 'approved' };
-
-        // Location match
-        if (query.includes('arera')) filter.location = /arera/i;
-        else if (query.includes('new market')) filter.location = /new market/i;
-        else if (query.includes('mp nagar')) filter.location = /mp nagar/i;
-
-        // Purpose match (Rent / Sale)
-        if (query.includes('rent') || query.includes('kiraye')) filter.purpose = /rent/i;
-        else if (query.includes('buy') || query.includes('sale') || query.includes('kharidna')) filter.purpose = /sale/i;
-
-        const matchedProps = await Property.find(filter).limit(3).lean();
-
-        if (matchedProps.length === 0) {
-            await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Kripya hamari website visit karein: https://bhopal-real-estate.onrender.com`);
-        } else {
-            let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
-            matchedProps.forEach((p, index) => {
-                const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
-                replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
-            });
-            replyMsg += `📞 Adhik jankari ke liye call karein ya website par visit karein!`;
-            
-            await sendDirectWhatsApp(senderPhone, replyMsg);
-        }
-
-        res.json({ success: true, message: "Bot response sent successfully!" });
-    } catch (err) {
-        console.error("WhatsApp Bot Error:", err);
-        res.status(500).json({ success: false });
-    }
-});
-
-// ==========================================
-// 🤖 WHATSAPP AI PROPERTY SEARCH BOT ENGINE (DUPLICATE IN ORIGINAL)
 // ==========================================
 app.post('/api/whatsapp/incoming-bot', async (req, res) => {
     try {
