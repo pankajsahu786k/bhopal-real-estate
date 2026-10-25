@@ -521,7 +521,7 @@ app.get('/pay/:orderId', (req, res) => {
     if (order.status === 'PAID') return res.send("<h2 style='text-align:center; padding:50px; color:green; font-family:sans-serif;'>🎉 Bill Already Paid!</h2>");
     if (new Date() > new Date(order.validUpto)) return res.send("<h2 style='text-align:center; padding:50px; color:red; font-family:sans-serif;'>⏳ Link Expired! Nayi link agle reminder me aayegi.</h2>");
 
-    const yourUpiId = "bhopalrealestate@upi"; // 🔴 REPLACE WITH YOUR ACTUAL UPI ID
+    const yourUpiId = "bhopalrealestate@axl"; // 🔴 REPLACE WITH YOUR ACTUAL UPI ID
     const upiString = `upi://pay?pa=${encodeURIComponent(yourUpiId)}&pn=BhopalRealEstate&am=${order.amount}&tr=${order.orderId}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=2&data=${encodeURIComponent(upiString)}`;
 
