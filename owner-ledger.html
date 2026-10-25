@@ -31,7 +31,7 @@
         .card { background: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
         .reg-card { border-top: 5px solid #3498db; position: relative; }
         
-        /* 🔒 Smart Lock Banner (Overlay ki jagah top badge taaki Mobile No. edit ho sake) */
+        /* 🔒 Smart Lock Banner */
         .locked-banner { display: none; background: #fef2f2; color: #dc2626; border: 1px dashed #ef4444; padding: 8px 14px; border-radius: 6px; font-size: 13px; font-weight: 700; margin-bottom: 12px; align-items: center; justify-content: space-between; }
         .locked-input { background-color: #e2e8f0 !important; color: #64748b !important; cursor: not-allowed; }
 
@@ -159,7 +159,7 @@
             <div class="room-container" id="roomContainer"></div>
 
             <div class="card reg-card" id="regCardComponent">
-                <!-- 🔒 Smart Lock Banner: Baki fields lock rahengi, par Mobile No. & DOB edit ho sakenge -->
+                <!-- 🔒 Smart Lock Banner -->
                 <div class="locked-banner" id="regOverlay">
                     <span>🔒 REGISTRATION LOCKED (प्रोफ़ाइल लॉक है — केवल मोबाइल नंबर और जन्मतिथि अपडेट कर सकते हैं)</span>
                 </div>
@@ -231,7 +231,10 @@
             
             <div style="display:flex; justify-content: space-between; margin-top: 10px;">
                 <button type="button" class="btn btn-red" onclick="triggerLeaveRoom()">🚪 LEAVE ROOM (Archive Data)</button>
-                <button type="button" class="btn btn-green" id="btnSaveRow" disabled onclick="saveExcelRowData()">💾 Save All Progress (Send WhatsApp)</button>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-blue" id="btnRefreshLedger" onclick="loadRoomConfigurationData()" style="background:#0284c7;">🔄 Check Payment Status</button>
+                    <button type="button" class="btn btn-green" id="btnSaveRow" disabled onclick="saveExcelRowData()">💾 Save All Progress & Request Payment</button>
+                </div>
             </div>
         </div>
 
@@ -291,7 +294,6 @@
         let globalArchivedData = []; 
         let currentTenantId = null;
 
-        // 🔒 Lock/Unlock Helper (Mobile No. aur DOB hamesha unlocked rahenge)
         function setProfileLockState(locked) {
             isRegistered = locked;
             document.getElementById('regOverlay').style.display = locked ? 'flex' : 'none';
@@ -396,7 +398,6 @@
             });
         }
 
-        // 🧮 AUTO CARRY-FORWARD MATH ENGINE
         function calculateExcelRow(changedIdx = 0) {
             const rate = Number(document.getElementById('unitRate').value || 10);
             const initialMeter = Number(document.getElementById('currentMeterReading').value || 0);
@@ -410,7 +411,6 @@
                 const waterBill = Number(document.getElementById(`waterBill_${idx}`).value || 0);
                 const paidAmount = Number(document.getElementById(`paid_${idx}`).value || 0);
 
-                // Pichle mahine ki electricity reading nikalna
                 let prevUnits = initialMeter;
                 if (idx > 0) {
                     const prevRowUnit = Number(document.getElementById(`elecUnit_${idx - 1}`).value || 0);
@@ -423,7 +423,6 @@
 
                 const currentMonthCharges = rent + elecBill + waterBill;
 
-                // Agar is mahine ki entry chalu hai (Rent, Light, Water ya Paid > 0 hai)
                 if (currentMonthCharges > 0 || paidAmount > 0) {
                     const netTotal = currentMonthCharges + carryForwardBalance;
                     const rowBalance = netTotal - paidAmount;
@@ -431,7 +430,6 @@
                     document.getElementById(`total_${idx}`).innerText = netTotal;
                     document.getElementById(`balance_${idx}`).innerText = rowBalance;
 
-                    // Agle mahine ke liye bacha hua balance carry-forward karein
                     carryForwardBalance = rowBalance;
                     lastActiveRow = idx;
 
@@ -444,7 +442,6 @@
                 }
             }
 
-            // Agar changedIdx me 0 tha, toh latest active row ki receipt dikhao
             const checkTotal = Number(document.getElementById(`total_${changedIdx}`).innerText || 0);
             if (checkTotal === 0 && lastActiveRow >= 0) {
                 const r = Number(document.getElementById(`rent_${lastActiveRow}`).value || 0);
@@ -483,6 +480,7 @@
                 <b style="font-size:14px; color:#0284c7;">PAID AMOUNT  : ₹${paid}</b><br>
                 <b style="font-size:15px; color:#dc2626;">NET BALANCE  : ₹${balance}</b><br>
                 ------------------------------<br>
+                <b style="color:#d35400;">Payment Link Requested (Valid for 24 Hrs)</b><br>
                 Status: Automated WhatsApp Ledger Active
             `;
         }
@@ -568,7 +566,6 @@
             if(!isRegistered) { alert("कृपया पहले पंजीकरण करें!"); return; }
             localStorage.setItem(`adv_${ownerEmail}_${activeRoom}`, document.getElementById('advanceDeposit').value);
 
-            // Save se pehle saari rows ka carry-forward math pakka कर lein
             calculateExcelRow(0);
 
             let entries = [];
@@ -617,7 +614,7 @@
                 });
                 const data = await res.json();
                 if(data.success) {
-                    alert(data.message || "✅ प्रोग्रेस डेटाबेस में सेव हो गई है!");
+                    alert(data.message || "✅ प्रोग्रेस डेटाबेस में सेव हो गई है! ऑटोमैटिक पेमेंट लिंक भेज दी गई है।");
                     loadRoomConfigurationData();
                 } else {
                     alert("त्रुटि: " + data.message);
