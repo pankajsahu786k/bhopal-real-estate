@@ -188,8 +188,10 @@
                     const cleanRole = data.role ? data.role.trim() : '';
 
                     if (cleanRole === 'admin') {
-                        window.location.replace('admin-dashboard.html');
-                    } else if (cleanRole === 'police_agent') {
+    window.location.replace('admin-dashboard.html');
+} else if (cleanRole === 'customer_care') {
+    window.location.replace('support-dashboard.html');
+} else if (cleanRole === 'police_agent') {
                         window.location.replace('police-dashboard.html');
                     } else if (cleanRole === 'notary') {
                         window.location.replace('notary-dashboard.html');

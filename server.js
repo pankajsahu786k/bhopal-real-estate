@@ -341,10 +341,15 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         const { ownerEmail, roomOrFlatNo, monthlyEntries, ...tenantDetails } = req.body;
         
         if (tenantDetails.status === 'Left') {
+            const oldTenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
             await TenantLedger.updateOne(
                 { ownerEmail, roomOrFlatNo, status: 'Active' },
                 { $set: { status: 'Left' } }
             );
+            // 🚀 NEW: Generate Vacancy Call Tasks for Owner & Leaving Tenant
+            if (oldTenant) {
+                await createVacancyLeadTasks(ownerEmail, roomOrFlatNo, oldTenant.tenantName, oldTenant.mobileNo);
+            }
             return res.json({ success: true, message: "🚪 रूम खाली कर दिया गया और हिस्ट्री में सेव हो गया!" });
         }
 
@@ -676,7 +681,7 @@ app.get('/pay/:orderId', async (req, res) => {
 
     // 🔴 AAPKI ASLI UPI ID
     const yourUpiId = "bhopalrealestate@axl"; 
-    const merchantName = "Yogita Sahu";
+    const merchantName = "Bhopal-Real-Estate";
 
     const upiString = `upi://pay?pa=${yourUpiId}&pn=${encodeURIComponent(merchantName)}&tr=${order.orderId}&tid=${order.orderId}&am=${order.amount}&cu=INR`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=2&data=${encodeURIComponent(upiString)}`;
@@ -1447,7 +1452,7 @@ app.get('/api/get-profile', async (req, res) => {
         if (cleanEmail === "devilking786k@sahu.com") actualRole = 'admin';
 
         // Check karein ki user Employee / Employer / Admin hai ya normal User
-        const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer'];
+        const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer', 'customer_care'];
         const isEligibleForIdCard = allowedRoles.includes(actualRole.toLowerCase());
 
         res.json({
@@ -2238,6 +2243,508 @@ function getUniquePaymentAmount(baseAmount, userId) {
     }
     return null;
 }
+// =========================================================================
+// 🎧 MODULE: CUSTOMER CARE & SEQUENTIAL TELECALLER ENGINE (WEB + WHATSAPP)
+// =========================================================================
+
+const TELECALLER_WHATSAPP = "919993352339"; // 📱 Customer Care Official Number
+
+const SupportTaskSchema = new mongoose.Schema({
+    taskType: { 
+        type: String, 
+        enum: ['METER_READING', 'PAYMENT_FOLLOWUP', 'VACANCY_OWNER', 'VACANCY_TENANT'], 
+        required: true 
+    },
+    tenantId: { type: mongoose.Schema.Types.ObjectId, ref: 'TenantLedger', default: null },
+    ownerEmail: { type: String, default: '' },
+    ownerName: { type: String, default: 'Owner' },
+    ownerPhone: { type: String, default: '' },
+    tenantName: { type: String, default: '' },
+    tenantPhone: { type: String, default: '' },
+    roomNo: { type: String, default: '' },
+    callToRole: { type: String, enum: ['Owner', 'Tenant'], required: true },
+    targetName: { type: String, required: true },
+    targetPhone: { type: String, required: true },
+    scriptText: { type: String, required: true },
+    
+    // 🔒 Micro-Permissions (Sirf zaroori box khulega)
+    allowedActions: [{ type: String }], // ['UPDATE_METER', 'MARK_LEAVE', 'ADD_REMARK']
+    metaData: {
+        prevMeterReading: { type: Number, default: 0 },
+        unitRate: { type: Number, default: 10 },
+        dueAmount: { type: Number, default: 0 },
+        monthDate: { type: String, default: '' },
+        meterPhotoUrl: { type: String, default: '' } // 📸 Yeh line zaroor jodein
+    },
+    status: { type: String, enum: ['Pending', 'Hold', 'Completed'], default: 'Pending' },
+    remark: { type: String, default: '' },
+    sequenceOrder: { type: Number, default: () => Date.now() },
+    completedAt: { type: Date, default: null }
+}, { timestamps: true });
+
+const SupportTask = mongoose.models.SupportTask || mongoose.model('SupportTask', SupportTaskSchema);
+
+// 🔍 Helper: Agla Active Task (#1) Nikalna
+async function getNextActiveTask() {
+    const totalPending = await SupportTask.countDocuments({ status: { $in: ['Pending', 'Hold'] } });
+    // Pehle Pending tasks aayenge, phir Hold wale aakhir mein
+    const currentTask = await SupportTask.findOne({ status: { $in: ['Pending', 'Hold'] } })
+        .sort({ status: -1, sequenceOrder: 1 }); 
+    return { totalPending, currentTask };
+}
+
+// 📲 Helper: Telecaller ke WhatsApp par Current Task (#1) Bhejna
+async function pushCurrentTaskToWhatsApp() {
+    const targetPhone = await getActiveTelecallerPhone();
+    const { totalPending, currentTask } = await getNextActiveTask();
+    if (!currentTask) {
+        await sendDirectWhatsApp(targetPhone, `🎉 *All Clear!* Aaj ke saare Customer Care tasks poore ho chuke hain!`);
+        return;
+    }
+
+    let actionHint = `👉 *WhatsApp Commands:*\n`;
+    if (currentTask.allowedActions.includes('UPDATE_METER')) {
+        actionHint += `• मीटर रीडिंग अपडेट करने के लिए लिखें: *READ 1250*\n• यदि रूम खाली हो गया है तो लिखें: *LEAVE*\n`;
+    }
+    actionHint += `• कॉल पूरा होने पर लिखें: *DONE [Remark]*\n• कॉल न उठने पर बाद के लिए लिखें: *HOLD*`;
+
+    const msg = `🎧 *CUSTOMER CARE TASK QUEUE*\n📊 *Total Pending Tasks:* ${totalPending}\n━━━━━━━━━━━━━━━━━━\n📌 *ACTIVE TASK #1 (${currentTask.taskType})*\n👤 *Call To:* ${currentTask.targetName} (${currentTask.callToRole})\n📞 *Phone:* ${currentTask.targetPhone}\n🏠 *Room:* ${currentTask.roomNo}\n\n🗣️ *Call Script:*\n"${currentTask.scriptText}"\n━━━━━━━━━━━━━━━━━━\n${actionHint}`;
+
+    await sendDirectWhatsApp(targetPhone, msg);
+}
+// 🔍 Dynamic Helper: Jis user ka role 'customer_care' hai uska WhatsApp number nikalna
+async function getActiveTelecallerPhone() {
+    const ccUser = await User.findOne({ role: 'customer_care', phone: { $ne: '' } });
+    if (ccUser && ccUser.phone) {
+        const clean = ccUser.phone.replace(/\D/g, '').slice(-10);
+        if (clean.length === 10) return '91' + clean;
+    }
+    return TELECALLER_WHATSAPP; // Fallback number (919993352339)
+}
+
+// 🔄 Helper: Vacated Room ke 2 Leads (Owner + Tenant) Banana
+async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhone) {
+    try {
+        const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${ownerEmail}$`, 'i') } });
+        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${ownerEmail}$`, 'i') } });
+        const ownerName = (userDoc && userDoc.name) ? userDoc.name : 'Sir';
+        const ownerPhone = (brokerDoc && brokerDoc.phone) ? brokerDoc.phone : (userDoc ? userDoc.phone : '');
+
+        // 1. Call Task for Owner (New Tenant Lead)
+        if (ownerPhone) {
+            await SupportTask.create({
+                taskType: 'VACANCY_OWNER',
+                ownerEmail, ownerName, ownerPhone, tenantName, tenantPhone, roomNo,
+                callToRole: 'Owner',
+                targetName: ownerName,
+                targetPhone: ownerPhone,
+                scriptText: `नमस्ते ${ownerName} सर, आपका ${roomNo} (${tenantName}) खाली हो गया है। यदि आपको इस रूम के लिए नया किरायेदार (Tenant) चाहिए, तो हमारे एजेंट आपके लिए जल्द से जल्द अच्छा किरायेदार ढूँढ देंगे। क्या हम इसे अपनी वेबसाइट पर एक्टिव कर दें?`,
+                allowedActions: ['ADD_REMARK'],
+                sequenceOrder: Date.now()
+            });
+        }
+
+        // 2. Call Task for Leaving Tenant (Room Shifting Lead)
+        if (tenantPhone) {
+            await SupportTask.create({
+                taskType: 'VACANCY_TENANT',
+                ownerEmail, ownerName, ownerPhone, tenantName, tenantPhone, roomNo,
+                callToRole: 'Tenant',
+                targetName: tenantName || 'Tenant',
+                targetPhone: tenantPhone,
+                scriptText: `नमस्ते ${tenantName} जी, आपने अभी ${ownerName} सर के यहाँ से (${roomNo}) रूम छोड़ा है। क्या आप भोपाल में नया रूम ढूँढ रहे हैं? अगर ले लिया है तो बहुत बढ़िया, और अगर ढूँढ रहे हैं तो हमारी वेबसाइट पर बहुत अच्छे ऑप्शंस हैं या आप हमारे WhatsApp AI Bot से बात करके अपने बजट में बेस्ट डील पा सकते हैं।`,
+                allowedActions: ['ADD_REMARK'],
+                sequenceOrder: Date.now() + 1
+            });
+        }
+    } catch (e) { console.error("Vacancy Task Error:", e); }
+}
+
+// 🧠 Auto-Generator: Roz Subah Billing Day & 24-Hr Unpaid Tasks Banana
+async function generateDailySupportTasks() {
+    try {
+        const today = new Date();
+        const currentDay = today.getDate();
+        const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
+        const activeTenants = await TenantLedger.find({ status: 'Active' });
+
+        for (const tenant of activeTenants) {
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
+            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
+            const ownerName = (userDoc && userDoc.name) ? userDoc.name : 'Owner';
+            const ownerPhone = (brokerDoc && brokerDoc.phone) ? brokerDoc.phone : (userDoc ? userDoc.phone : '');
+
+            const entries = tenant.monthlyEntries || [];
+            const latestEntry = entries.length > 0 ? entries[entries.length - 1] : null;
+            const prevMeter = latestEntry && latestEntry.electricityUnit > 0 ? latestEntry.electricityUnit : (tenant.currentMeterReading || 0);
+
+            // 1️⃣ TRIGGER A: Billing Day Meter Reading Task (Owner Call)
+            if (tenant.joiningDate && ownerPhone) {
+                const joinDate = new Date(tenant.joiningDate);
+                const isUpdatedThisMonth = entries.some(e => e.monthDate && e.monthDate.includes(currentMonthStr) && (Number(e.total) > 0 || Number(e.rent) > 0));
+
+                if (joinDate.getDate() === currentDay && !isUpdatedThisMonth) {
+                    const alreadyExists = await SupportTask.findOne({
+                        tenantId: tenant._id,
+                        taskType: 'METER_READING',
+                        status: { $in: ['Pending', 'Hold'] }
+                    });
+
+                    if (!alreadyExists) {
+                        await SupportTask.create({
+                            taskType: 'METER_READING',
+                            tenantId: tenant._id,
+                            ownerEmail: tenant.ownerEmail,
+                            ownerName, ownerPhone,
+                            tenantName: tenant.tenantName,
+                            tenantPhone: tenant.mobileNo || '',
+                            roomNo: tenant.roomOrFlatNo,
+                            callToRole: 'Owner',
+                            targetName: ownerName,
+                            targetPhone: ownerPhone,
+                            scriptText: `नमस्ते ${ownerName} सर, आज आपके रूम नंबर ${tenant.roomOrFlatNo} (किरायेदार: ${tenant.tenantName}) का महीना पूरा हो गया है। क्या आप मीटर की फोटो भेज सकते हैं या अभी रीडिंग बता सकते हैं ताकि हम बिल अपडेट कर दें? या हम किरायेदार से मंगवा लें? साथ ही हमारी वेबसाइट के लिए आपका कोई फीडबैक हो तो ज़रूर बताएं।`,
+                            allowedActions: ['UPDATE_METER', 'MARK_LEAVE', 'ADD_REMARK'],
+                            metaData: { prevMeterReading: prevMeter, unitRate: tenant.unitRate || 10 }
+                        });
+                    }
+                }
+            }
+
+            // 2️⃣ TRIGGER B: 24-Hour Post-Billing Payment Follow-up (Tenant Call)
+            // Rule: Bill bane 24 ghante ho gaye (updatedAt <= 24 hrs ago) aur Paid Amount == 0 hai
+            if (latestEntry && Number(latestEntry.total) > 0 && Number(latestEntry.paidAmount || 0) === 0 && tenant.mobileNo) {
+                const hoursSinceUpdate = (today.getTime() - new Date(tenant.updatedAt).getTime()) / (1000 * 60 * 60);
+
+                if (hoursSinceUpdate >= 24) {
+                    const alreadyFollowup = await SupportTask.findOne({
+                        tenantId: tenant._id,
+                        taskType: 'PAYMENT_FOLLOWUP',
+                        status: { $in: ['Pending', 'Hold'] }
+                    });
+
+                    if (!alreadyFollowup) {
+                        await SupportTask.create({
+                            taskType: 'PAYMENT_FOLLOWUP',
+                            tenantId: tenant._id,
+                            ownerEmail: tenant.ownerEmail,
+                            ownerName, ownerPhone,
+                            tenantName: tenant.tenantName,
+                            tenantPhone: tenant.mobileNo,
+                            roomNo: tenant.roomOrFlatNo,
+                            callToRole: 'Tenant',
+                            targetName: tenant.tenantName,
+                            targetPhone: tenant.mobileNo,
+                            scriptText: `नमस्ते ${tenant.tenantName} जी (${tenant.roomOrFlatNo}), आपका इस माह का महीना पूरा हो गया है और कुल बिल ₹${latestEntry.total} हुआ है। आपके WhatsApp पर पूरा डिजिटल लेजर और ऑनलाइन पेमेंट लिंक भेज दी गई है। कृपया आज पेमेंट क्लियर कर दें।`,
+                            allowedActions: ['ADD_REMARK'],
+                            metaData: { dueAmount: latestEntry.total, monthDate: latestEntry.monthDate || currentMonthStr }
+                        });
+                    }
+                }
+            }
+        }
+    } catch (e) { console.error("Daily Support Task Gen Error:", e); }
+}
+
+// ⏰ Roz Subah 9:30 AM par Tasks Generate karke Telecaller ko WhatsApp par Task #1 bhejna
+cron.schedule('30 9 * * *', async () => {
+    await generateDailySupportTasks();
+    await pushCurrentTaskToWhatsApp();
+}, { timezone: "Asia/Kolkata" });
+
+// 🖥️ API 1: Get Current Sequential Task (#1 Only) for Dashboard
+app.get('/api/support/current-task', async (req, res) => {
+    try {
+        await generateDailySupportTasks(); // Sync latest tasks
+        const { totalPending, currentTask } = await getNextActiveTask();
+        res.json({ success: true, totalPending, task: currentTask });
+    } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
+});
+
+// ⚡ API 2: Execute Restricted Action & Complete/Hold Task (Web Dashboard)
+app.post('/api/support/complete-task', async (req, res) => {
+    try {
+        const { taskId, actionType, newMeterReading, remark } = req.body;
+        const task = await SupportTask.findById(taskId);
+        if (!task) return res.status(404).json({ success: false, message: "Task not found" });
+
+        // 1. Agar Telecaller ne Call Hold/Skip kiya (Call Not Picked)
+        if (actionType === 'HOLD') {
+            task.status = 'Hold';
+            task.sequenceOrder = Date.now() + 999999; // Queue ke bilkul aakhir me bhej dein
+            task.remark = remark || 'Call Not Picked / Hold';
+            await task.save();
+            const nextData = await getNextActiveTask();
+            return res.json({ success: true, message: "⏭️ Task को लाइन के आखिर में डाल दिया गया है!", next: nextData });
+        }
+
+        // 2. Micro-Permission Action A: सिर्फ Meter Reading अपडेट करना
+        if (actionType === 'UPDATE_METER' && task.allowedActions.includes('UPDATE_METER')) {
+            const tenant = await TenantLedger.findById(task.tenantId);
+            if (tenant) {
+                const readingVal = Number(newMeterReading);
+                const entries = tenant.monthlyEntries || [];
+                const lastIdx = entries.length - 1;
+                const prevUnits = lastIdx >= 0 && entries[lastIdx].electricityUnit > 0 ? entries[lastIdx].electricityUnit : (tenant.currentMeterReading || 0);
+                
+                if (readingVal < prevUnits) {
+                    return res.status(400).json({ success: false, message: `नई रीडिंग पिछली रीडिंग (${prevUnits}) से कम नहीं हो सकती!` });
+                }
+
+                const unitsConsumed = Math.max(0, readingVal - prevUnits);
+                const rate = Number(tenant.unitRate || 10);
+                const elecBill = unitsConsumed * rate;
+
+                // Naya mahina ya existing active entry me bill jodna
+                const todayStr = new Date().toLocaleDateString('en-GB');
+                const defaultRent = lastIdx >= 0 ? (Number(entries[lastIdx].rent) || 0) : 0;
+                const prevBal = lastIdx >= 0 ? (Number(entries[lastIdx].balance) || 0) : 0;
+                const totalBill = defaultRent + elecBill + prevBal;
+
+                entries.push({
+                    monthDate: todayStr,
+                    rent: defaultRent,
+                    electricityUnit: readingVal,
+                    billAmount: elecBill,
+                    waterUnit: 0,
+                    waterBill: 0,
+                    total: totalBill,
+                    paidAmount: 0,
+                    balance: totalBill,
+                    billNotified: true,
+                    paidNotified: false
+                });
+
+                tenant.monthlyEntries = entries;
+                tenant.markModified('monthlyEntries');
+                await tenant.save();
+
+                // Generate 24-Hr Payment Link & Send WhatsApp to Tenant (24-hr Grace Period Starts!)
+                const payLink = await getOrGeneratePaymentLink(tenant);
+                const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
+                if (tenant.mobileNo) {
+                    const billMsg = `📊 *मासिक किराया एवं बिजली बिल अपडेट*\n\nनमस्ते *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nआपकी नई मीटर रीडिंग (*${readingVal}*) अपडेट हो गई है:\n\n🏠 किराया: ₹${defaultRent}\n⚡ बिजली बिल: ₹${elecBill} (${unitsConsumed} Units)\n🔄 पिछला बकाया: ₹${prevBal}\n----------------------\n💰 *कुल देय राशि: ₹${totalBill}*\n\n🔗 *ऑनलाइन पेमेंट लिंक (24 घंटे मान्य):*\n${payLink}\n\n🌐 Passbook: ${passbookUrl}`;
+                    sendDirectWhatsApp(tenant.mobileNo, billMsg).catch(e => {});
+                }
+            }
+        }
+
+        // 3. Micro-Permission Action B: Room Leave मार्क करना
+        if (actionType === 'MARK_LEAVE' && task.allowedActions.includes('MARK_LEAVE')) {
+            const tenant = await TenantLedger.findById(task.tenantId);
+            if (tenant) {
+                tenant.status = 'Left';
+                await tenant.save();
+                await createVacancyLeadTasks(tenant.ownerEmail, tenant.roomOrFlatNo, tenant.tenantName, tenant.mobileNo);
+            }
+        }
+
+        // Mark Current Task Completed
+        task.status = 'Completed';
+        task.remark = remark || 'Completed by Customer Care';
+        task.completedAt = new Date();
+        await task.save();
+
+        // Sync WhatsApp & Return Next Task (#2 becomes #1)
+        pushCurrentTaskToWhatsApp().catch(() => {});
+        const nextData = await getNextActiveTask();
+        res.json({ success: true, message: "✅ Task #1 Complete! अगला टास्क खुल गया है।", next: nextData });
+    } catch (e) {
+        console.error("Complete Task Error:", e);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+});
+
+// 💬 API 3: WhatsApp Bot Command Receiver for Telecaller (Bina Laptop ke Kaam)
+app.post('/api/support/whatsapp-command', async (req, res) => {
+    try {
+        const { senderPhone, messageText } = req.body;
+        if (!messageText) return res.json({ success: false });
+
+        const cleanSender = (senderPhone || '').replace(/\D/g, '').slice(-10);
+        if (cleanSender !== TELECALLER_WHATSAPP.slice(-10)) {
+            return res.json({ success: false, message: "Unauthorized Telecaller Number" });
+        }
+
+        const text = messageText.trim();
+        const upper = text.toUpperCase();
+        const { currentTask } = await getNextActiveTask();
+
+        if (upper === 'START' || upper === 'TASK') {
+            await generateDailySupportTasks();
+            await pushCurrentTaskToWhatsApp();
+            return res.json({ success: true });
+        }
+
+        if (!currentTask) {
+            await sendDirectWhatsApp(TELECALLER_WHATSAPP, `✅ अभी कोई पेंडिंग टास्क नहीं है!`);
+            return res.json({ success: true });
+        }
+
+        // Command 1: READ <meter_number>
+        if (upper.startsWith('READ ') && currentTask.allowedActions.includes('UPDATE_METER')) {
+            const readingNum = Number(upper.replace('READ', '').trim());
+            if (isNaN(readingNum) || readingNum <= 0) {
+                await sendDirectWhatsApp(TELECALLER_WHATSAPP, `❌ कृपया सही मीटर रीडिंग लिखें। उदाहरण: *READ 1250*`);
+                return res.json({ success: false });
+            }
+            req.body = { taskId: currentTask._id, actionType: 'UPDATE_METER', newMeterReading: readingNum, remark: `Updated via WhatsApp: ${readingNum}` };
+            // Reuse logic via internal call
+            const tenant = await TenantLedger.findById(currentTask.tenantId);
+            if (tenant) {
+                const entries = tenant.monthlyEntries || [];
+                const lastIdx = entries.length - 1;
+                const prevUnits = lastIdx >= 0 && entries[lastIdx].electricityUnit > 0 ? entries[lastIdx].electricityUnit : (tenant.currentMeterReading || 0);
+                const unitsConsumed = Math.max(0, readingNum - prevUnits);
+                const elecBill = unitsConsumed * Number(tenant.unitRate || 10);
+                const defaultRent = lastIdx >= 0 ? (Number(entries[lastIdx].rent) || 0) : 0;
+                const prevBal = lastIdx >= 0 ? (Number(entries[lastIdx].balance) || 0) : 0;
+                const totalBill = defaultRent + elecBill + prevBal;
+
+                entries.push({
+                    monthDate: new Date().toLocaleDateString('en-GB'),
+                    rent: defaultRent, electricityUnit: readingNum, billAmount: elecBill,
+                    waterUnit: 0, waterBill: 0, total: totalBill, paidAmount: 0, balance: totalBill,
+                    billNotified: true, paidNotified: false
+                });
+                tenant.monthlyEntries = entries;
+                tenant.markModified('monthlyEntries');
+                await tenant.save();
+
+                const payLink = await getOrGeneratePaymentLink(tenant);
+                if (tenant.mobileNo) {
+                    sendDirectWhatsApp(tenant.mobileNo, `📊 *बिल अपडेट*\nनमस्ते ${tenant.tenantName} जी, आपकी मीटर रीडिंग (${readingNum}) अपडेट हो गई है। कुल देय बिल: ₹${totalBill}\n🔗 पे करें: ${payLink}`).catch(()=>{});
+                }
+            }
+            currentTask.status = 'Completed';
+            currentTask.remark = `Meter Updated via WhatsApp (${readingNum})`;
+            currentTask.completedAt = new Date();
+            await currentTask.save();
+            await pushCurrentTaskToWhatsApp();
+            return res.json({ success: true });
+        }
+
+        // Command 2: LEAVE (Room Vacated)
+        if (upper === 'LEAVE' && currentTask.allowedActions.includes('MARK_LEAVE')) {
+            const tenant = await TenantLedger.findById(currentTask.tenantId);
+            if (tenant) {
+                tenant.status = 'Left';
+                await tenant.save();
+                await createVacancyLeadTasks(tenant.ownerEmail, tenant.roomOrFlatNo, tenant.tenantName, tenant.mobileNo);
+            }
+            currentTask.status = 'Completed';
+            currentTask.remark = 'Marked Room Left via WhatsApp';
+            currentTask.completedAt = new Date();
+            await currentTask.save();
+            await pushCurrentTaskToWhatsApp();
+            return res.json({ success: true });
+        }
+
+        // Command 3: HOLD
+        if (upper.startsWith('HOLD')) {
+            currentTask.status = 'Hold';
+            currentTask.sequenceOrder = Date.now() + 999999;
+            currentTask.remark = text;
+            await currentTask.save();
+            await pushCurrentTaskToWhatsApp();
+            return res.json({ success: true });
+        }
+
+        // Command 4: DONE / TASK 1 DONE
+        if (upper.includes('DONE')) {
+            currentTask.status = 'Completed';
+            currentTask.remark = text;
+            currentTask.completedAt = new Date();
+            await currentTask.save();
+            await pushCurrentTaskToWhatsApp();
+            return res.json({ success: true });
+        }
+
+        res.json({ success: true, message: "Command not recognized" });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+// =========================================================================
+// 📸 OWNER METER PHOTO UPLOAD & TENANT DELEGATION ("Tenant se mang lo")
+// =========================================================================
+
+// A. Jab Owner Meter ki Photo Upload kare
+app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'), async (req, res) => {
+    try {
+        const tenant = await TenantLedger.findById(req.params.tenantId);
+        if (!tenant) return res.status(404).json({ success: false, message: "Tenant not found" });
+
+        const photoUrl = req.file ? (req.file.path || req.file.url) : '';
+        const feedback = req.body.feedback || '';
+
+        // Existing task update karein ya naya High-Priority Task #1 banayein
+        let task = await SupportTask.findOne({ 
+            tenantId: tenant._id, 
+            taskType: 'METER_READING', 
+            status: { $in: ['Pending', 'Hold'] } 
+        });
+
+        if (task) {
+            task.remark = `📸 Meter Photo Received! ${feedback ? 'Feedback: ' + feedback : ''}`;
+            task.scriptText = `✅ Owner ने मीटर की फोटो भेज दी है! फोटो देखकर नीचे बॉक्स में मीटर रीडिंग अपडेट करें और किरायेदार (${tenant.tenantName} - ${tenant.mobileNo}) को कॉल करके बताएं कि उनका महीना पूरा हो गया है और बिल व पेमेंट लिंक WhatsApp पर भेज दी गई है।`;
+            task.sequenceOrder = 1; // Sabse upar (Task #1) par le aayein
+            task.status = 'Pending';
+            task.metaData = { ...task.metaData, meterPhotoUrl: photoUrl };
+            await task.save();
+        } else {
+            const entries = tenant.monthlyEntries || [];
+            const prevMeter = entries.length > 0 ? (entries[entries.length - 1].electricityUnit || 0) : (tenant.currentMeterReading || 0);
+            await SupportTask.create({
+                taskType: 'METER_READING',
+                tenantId: tenant._id,
+                ownerEmail: tenant.ownerEmail,
+                tenantName: tenant.tenantName,
+                tenantPhone: tenant.mobileNo || '',
+                roomNo: tenant.roomOrFlatNo,
+                callToRole: 'Tenant',
+                targetName: tenant.tenantName,
+                targetPhone: tenant.mobileNo || '',
+                scriptText: `✅ Owner ने मीटर की फोटो भेज दी है! फोटो देखकर रीडिंग अपडेट करें और किरायेदार (${tenant.tenantName}) को कॉल करके बिल की जानकारी दें।`,
+                allowedActions: ['UPDATE_METER', 'MARK_LEAVE', 'ADD_REMARK'],
+                metaData: { prevMeterReading: prevMeter, unitRate: tenant.unitRate || 10, meterPhotoUrl: photoUrl },
+                sequenceOrder: 1
+            });
+        }
+
+        // Customer Care ko WhatsApp par turant alert + Photo link bhejein
+        await sendDirectWhatsApp(TELECALLER_WHATSAPP, `📸 *METER PHOTO RECEIVED!*\nRoom: *${tenant.roomOrFlatNo}* (${tenant.tenantName})\n🖼️ *Photo:* ${photoUrl}\n💬 *Owner Feedback:* ${feedback || 'N/A'}\n\n👉 फोटो देखकर रीडिंग अपडेट करने के लिए रिप्लाई करें: *READ [Reading]*`);
+
+        res.json({ success: true, message: "✅ मीटर फोटो कस्टमर केयर को भेज दी गई है! जल्द ही लेजर अपडेट हो जाएगा।" });
+    } catch (e) {
+        res.status(500).json({ success: false, message: "Upload Error" });
+    }
+});
+
+// B. Jab Owner bole: "Tenant se meter photo mang lo"
+app.post('/api/support/ask-tenant-meter/:tenantId', async (req, res) => {
+    try {
+        const tenant = await TenantLedger.findById(req.params.tenantId);
+        if (!tenant) return res.status(404).json({ success: false });
+
+        await SupportTask.findOneAndUpdate(
+            { tenantId: tenant._id, taskType: 'METER_READING', status: { $in: ['Pending', 'Hold'] } },
+            {
+                $set: {
+                    callToRole: 'Tenant',
+                    targetName: tenant.tenantName,
+                    targetPhone: tenant.mobileNo || '',
+                    scriptText: `नमस्ते ${tenant.tenantName} जी (${tenant.roomOrFlatNo}), आपके मकान मालिक के निर्देशानुसार आपका महीना पूरा हो गया है। कृपया अभी अपने बिजली मीटर की फोटो या रीडिंग हमारे WhatsApp पर भेजें ताकि आपका बिल जनरेट किया जा सके।`,
+                    sequenceOrder: 1,
+                    status: 'Pending'
+                }
+            },
+            { upsert: true }
+        );
+
+        await pushCurrentTaskToWhatsApp();
+        res.json({ success: true, message: "✅ अब कस्टमर केयर टीम सीधे किरायेदार (Tenant) से मीटर रीडिंग मंगवा लेगी!" });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

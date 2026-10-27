@@ -59,6 +59,7 @@
         <h2>Bhopal Admin</h2>
         <ul class="nav-links">
             <li><a href="admin-dashboard.html" class="active">📋 All Data Summary</a></li>
+            <li><a href="support-dashboard.html">🎧 Customer Care Desk</a></li>
             <li><a href="police-dashboard.html">👮 Verification Agent</a></li>
             <li><a href="admin-analytics.html">📈 Service Analytics</a></li>
             <li><a href="admin-payments.html">💰 Live Payments</a></li>
@@ -180,14 +181,15 @@
                             if(user.role !== 'admin') {
                                 roleHtml = `
                                     <select id="roleSelect_${user._id}" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
-                                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>User / Broker</option>
-                                        <option value="employee" ${user.role === 'employee' ? 'selected' : ''}>Employee (Free Listings)</option>
-                                        <option value="police_agent" ${user.role === 'police_agent' ? 'selected' : ''}>Police Agent</option>
-                                        <option value="notary" ${user.role === 'notary' ? 'selected' : ''}>Notary (Agreement)</option>
-                                        <option value="loan_agent" ${user.role === 'loan_agent' ? 'selected' : ''}>Loan Agent</option>
-                                        <option value="transporter" ${user.role === 'transporter' ? 'selected' : ''}>Transporter</option>
-                                        <option value="rk_decorator" ${user.role === 'rk_decorator' ? 'selected' : ''}>RK Decorator Owner</option>
-                                    </select>
+    <option value="user" ${user.role === 'user' ? 'selected' : ''}>User / Broker</option>
+    <option value="customer_care" ${user.role === 'customer_care' ? 'selected' : ''}>🎧 Customer Care (Telecaller)</option>
+    <option value="employee" ${user.role === 'employee' ? 'selected' : ''}>Employee (Free Listings)</option>
+    <option value="police_agent" ${user.role === 'police_agent' ? 'selected' : ''}>Police Agent</option>
+    <option value="notary" ${user.role === 'notary' ? 'selected' : ''}>Notary (Agreement)</option>
+    <option value="loan_agent" ${user.role === 'loan_agent' ? 'selected' : ''}>Loan Agent</option>
+    <option value="transporter" ${user.role === 'transporter' ? 'selected' : ''}>Transporter</option>
+    <option value="rk_decorator" ${user.role === 'rk_decorator' ? 'selected' : ''}>RK Decorator Owner</option>
+</select>
                                     <button onclick="changeUserRole('${user._id}')" style="background: #f39c12; color: white; border: none; padding: 7px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-left: 5px; margin-right: 5px;">Update Role</button>
                                 `;
                             } else {
@@ -268,9 +270,13 @@
                     window.location.href = 'transporter-dashboard.html';
                 } else if (userRole === 'rk_decorator') {
                     window.location.href = 'rk-dashboard.html';
-                } else {
-                    window.location.href = 'dashboard.html';
+                } else if (userRole === 'customer_care') {
+                    window.location.href = 'support-dashboard.html';
                 }
+                else {
+                    window.location.href = 'dashboard.html';
+                } 
+                    
             }
         }
 
@@ -297,6 +303,15 @@
                 alert("Server Error");
             }
         }
+        // 🔍 Dynamic Helper: Jis user ka role 'customer_care' hai uska WhatsApp number nikalna
+async function getActiveTelecallerPhone() {
+    const ccUser = await User.findOne({ role: 'customer_care', phone: { $ne: '' } });
+    if (ccUser && ccUser.phone) {
+        const clean = ccUser.phone.replace(/\D/g, '').slice(-10);
+        if (clean.length === 10) return '91' + clean;
+    }
+    return TELECALLER_WHATSAPP; // Fallback number (919993352339)
+}
 
         async function approveProperty(propertyId) {
             if (confirm("क्या आप इस प्रॉपर्टी को पब्लिक होमपेज पर लाइव करना चाहते हैं?")) {
