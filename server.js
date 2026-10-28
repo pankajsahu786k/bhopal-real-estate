@@ -2304,22 +2304,26 @@ async function getNextActiveTask() {
     return { totalPending, currentTask };
 }
 
-// 📲 Helper: Telecaller ke WhatsApp par Current Task (#1) Bhejna
+// 📲 Helper: Telecaller ke WhatsApp par Current Task (#1) ya NIL Status Bhejna
 async function pushCurrentTaskToWhatsApp() {
     const targetPhone = await getActiveTelecallerPhone();
     const { totalPending, currentTask } = await getNextActiveTask();
-    if (!currentTask) {
-        await sendDirectWhatsApp(targetPhone, `🎉 *All Clear!* Aaj ke saare Customer Care tasks poore ho chuke hain!`);
+    
+    // ✅ CASE 1: Agar aaj koi bhi task nahi hai (NIL / 0 Tasks)
+    if (!currentTask || totalPending === 0) {
+        const nilMsg = `📋 *CUSTOMER CARE DAILY STATUS*\n━━━━━━━━━━━━━━━━━━\n📊 *Aaj ke Total Tasks: 0 (NIL)*\n\n✅ Abhi koi bhi call ya task pending nahi hai! Aaj ke saare tasks poore ho chuke hain ya aaj koi naya task nahi hai.`;
+        await sendDirectWhatsApp(targetPhone, nilMsg);
         return;
     }
 
+    // ✅ CASE 2: Agar tasks hain (e.g. 10 Tasks) -> Total count + Sirf Task #1 bhejein
     let actionHint = `👉 *WhatsApp Commands:*\n`;
     if (currentTask.allowedActions.includes('UPDATE_METER')) {
-        actionHint += `• मीटर रीडिंग अपडेट करने के लिए लिखें: *READ 1250*\n• यदि रूम खाली हो गया है तो लिखें: *LEAVE*\n`;
+        actionHint += `• Meter reading update karne ke liye likhein: *READ 1250*\n• Yadi room khali ho gaya hai toh likhein: *LEAVE*\n`;
     }
-    actionHint += `• कॉल पूरा होने पर लिखें: *DONE [Remark]*\n• कॉल न उठने पर बाद के लिए लिखें: *HOLD*`;
+    actionHint += `• Call poora hone par likhein: *TASK 1 DONE* ya *DONE [Remark]*\n• Call na uthne par likhein: *HOLD*`;
 
-    const msg = `🎧 *CUSTOMER CARE TASK QUEUE*\n📊 *Total Pending Tasks:* ${totalPending}\n━━━━━━━━━━━━━━━━━━\n📌 *ACTIVE TASK #1 (${currentTask.taskType})*\n👤 *Call To:* ${currentTask.targetName} (${currentTask.callToRole})\n📞 *Phone:* ${currentTask.targetPhone}\n🏠 *Room:* ${currentTask.roomNo}\n\n🗣️ *Call Script:*\n"${currentTask.scriptText}"\n━━━━━━━━━━━━━━━━━━\n${actionHint}`;
+    const msg = `🎧 *CUSTOMER CARE TASK QUEUE*\n📊 *Aaj ke Total Pending Tasks: ${totalPending}*\n━━━━━━━━━━━━━━━━━━\n📌 *ACTIVE TASK #1 (${currentTask.taskType})*\n👤 *Call To:* ${currentTask.targetName} (${currentTask.callToRole})\n📞 *Phone:* ${currentTask.targetPhone}\n🏠 *Room:* ${currentTask.roomNo}\n\n🗣️ *Call Script:*\n"${currentTask.scriptText}"\n━━━━━━━━━━━━━━━━━━\n${actionHint}`;
 
     await sendDirectWhatsApp(targetPhone, msg);
 }
@@ -2573,16 +2577,26 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
 
         const text = messageText.trim();
         const upper = text.toUpperCase();
-        const { currentTask } = await getNextActiveTask();
 
-        if (upper === 'START' || upper === 'TASK') {
+        // 🚀 NEW: Jab Customer Care wala likhe "aj ke task", "aaj ke task", "task", ya "start"
+        if (
+            upper === 'START' || 
+            upper === 'TASK' || 
+            upper === 'TASKS' || 
+            upper.includes('AJ KE TASK') || 
+            upper.includes('AAJ KE TASK') || 
+            upper.includes('AAJ KA TASK') ||
+            upper.includes('AJ KA TASK')
+        ) {
             await generateDailySupportTasks();
             await pushCurrentTaskToWhatsApp();
             return res.json({ success: true });
         }
 
+        const { currentTask } = await getNextActiveTask();
+
         if (!currentTask) {
-            await sendDirectWhatsApp(activeCCPhone, `✅ अभी कोई पेंडिंग टास्क नहीं है!`);
+            await sendDirectWhatsApp(activeCCPhone, `📋 *CUSTOMER CARE STATUS*\n📊 *Aaj ke Total Tasks: 0 (NIL)*\n\n✅ Abhi koi pending task nahi hai!`);
             return res.json({ success: true });
         }
 
@@ -2590,11 +2604,9 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
         if (upper.startsWith('READ ') && currentTask.allowedActions.includes('UPDATE_METER')) {
             const readingNum = Number(upper.replace('READ', '').trim());
             if (isNaN(readingNum) || readingNum <= 0) {
-                await sendDirectWhatsApp(activeCCPhone, `❌ कृपया सही मीटर रीडिंग लिखें। उदाहरण: *READ 1250*`);
+                await sendDirectWhatsApp(activeCCPhone, `❌ Kripya sahi meter reading likhein. Udaharan: *READ 1250*`);
                 return res.json({ success: false });
             }
-            req.body = { taskId: currentTask._id, actionType: 'UPDATE_METER', newMeterReading: readingNum, remark: `Updated via WhatsApp: ${readingNum}` };
-            // Reuse logic via internal call
             const tenant = await TenantLedger.findById(currentTask.tenantId);
             if (tenant) {
                 const entries = tenant.monthlyEntries || [];
@@ -2618,7 +2630,7 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
 
                 const payLink = await getOrGeneratePaymentLink(tenant);
                 if (tenant.mobileNo) {
-                    sendDirectWhatsApp(tenant.mobileNo, `📊 *बिल अपडेट*\nनमस्ते ${tenant.tenantName} जी, आपकी मीटर रीडिंग (${readingNum}) अपडेट हो गई है। कुल देय बिल: ₹${totalBill}\n🔗 पे करें: ${payLink}`).catch(()=>{});
+                    sendDirectWhatsApp(tenant.mobileNo, `📊 *Bill Update*\nNamaste ${tenant.tenantName} ji, aapki meter reading (${readingNum}) update ho gayi hai. Kul deya bill: ₹${totalBill}\n🔗 Pay karein: ${payLink}`).catch(()=>{});
                 }
             }
             currentTask.status = 'Completed';
