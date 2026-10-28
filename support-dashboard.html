@@ -26,6 +26,30 @@
     </style>
 </head>
 <body>
+    <body>
+    <script>
+        const myRole = localStorage.getItem('userRole');
+        if (myRole !== 'customer_care' && myRole !== 'admin') {
+            alert("❌ एक्सेस मना है! यह डैशबोर्ड केवल Customer Care टीम के लिए है।");
+            window.location.href = 'login.html';
+        }
+        function logoutSupport() {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+    </script>
+    <div class="container">
+        <div class="top-bar">
+            <div>
+                <h2 style="font-size: 20px;">🎧 Customer Care Sequential Desk</h2>
+                <p style="font-size: 12px; color: #94a3b8;">One-by-One Strict Task Queue (Web + WhatsApp Synced)</p>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <span class="counter-badge" id="pendingCount">Pending Tasks: 0</span>
+                <button class="btn btn-blue" onclick="window.print()">🖨️ Print Task PDF</button>
+                <button class="btn btn-red" onclick="logoutSupport()">🚪 Logout</button>
+            </div>
+        </div>
     <div class="container">
         <div class="top-bar">
             <div>

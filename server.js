@@ -360,7 +360,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             for (let i = 0; i < monthlyEntries.length; i++) {
                 const oldEntry = existingRecord.monthlyEntries[i];
                 if (oldEntry) {
-                    // Agar total ya paidAmount badla nahi hai toh purane flags rakhein
                     if (Number(oldEntry.total) === Number(monthlyEntries[i].total)) {
                         monthlyEntries[i].billNotified = oldEntry.billNotified || false;
                     }
@@ -446,6 +445,7 @@ async function processLedgerReminders(slotType) {
         const today = new Date();
         const currentDay = today.getDate();
         const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
+        const currentSlashMonth = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
         const activeTenants = await TenantLedger.find({ status: 'Active' });
 
@@ -461,7 +461,7 @@ async function processLedgerReminders(slotType) {
                 const isBillingDay = (joinDate.getDate() === currentDay);
 
                 const isUpdated = tenant.monthlyEntries && tenant.monthlyEntries.some(entry => 
-                    entry.monthDate && entry.monthDate.includes(currentMonthStr) && (entry.total > 0 || entry.rent > 0)
+                    entry.monthDate && (entry.monthDate.includes(currentMonthStr) || entry.monthDate.includes(currentSlashMonth)) && (entry.total > 0 || entry.rent > 0)
                 );
 
                 if (isBillingDay && !isUpdated) {
@@ -484,7 +484,7 @@ async function processLedgerReminders(slotType) {
                             tenant.alertCount = 3;
                             tenant.needsAssistance = true;
 
-                            const employeeMobile = "919993352339"; 
+                            const employeeMobile = await getActiveTelecallerPhone(); 
                             const empAlert = `🚨 CUSTOMER SUPPORT ACTION:\nOwner (${tenant.ownerEmail}) ne ${tenant.roomOrFlatNo} (${tenant.tenantName}) ka ledger update nahi kiya hai. Kal subah call ya agent bhej kar update karwayen.`;
                             await sendDirectWhatsApp(employeeMobile, empAlert);
                             await sleep(3000);
@@ -1451,7 +1451,7 @@ app.get('/api/get-profile', async (req, res) => {
         let actualRole = userDoc ? (userDoc.role || 'user') : 'user';
         if (cleanEmail === "devilking786k@sahu.com") actualRole = 'admin';
 
-        // Check karein ki user Employee / Employer / Admin hai ya normal User
+        // Check karein ki user Employee / Employer / Admin / Customer Care hai ya normal User
         const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer', 'customer_care'];
         const isEligibleForIdCard = allowedRoles.includes(actualRole.toLowerCase());
 
@@ -2243,11 +2243,12 @@ function getUniquePaymentAmount(baseAmount, userId) {
     }
     return null;
 }
+
 // =========================================================================
 // 🎧 MODULE: CUSTOMER CARE & SEQUENTIAL TELECALLER ENGINE (WEB + WHATSAPP)
 // =========================================================================
 
-const TELECALLER_WHATSAPP = "919993352339"; // 📱 Customer Care Official Number
+const TELECALLER_WHATSAPP = "919993352339"; // 📱 Customer Care Official Fallback Number
 
 const SupportTaskSchema = new mongoose.Schema({
     taskType: { 
@@ -2274,7 +2275,7 @@ const SupportTaskSchema = new mongoose.Schema({
         unitRate: { type: Number, default: 10 },
         dueAmount: { type: Number, default: 0 },
         monthDate: { type: String, default: '' },
-        meterPhotoUrl: { type: String, default: '' } // 📸 Yeh line zaroor jodein
+        meterPhotoUrl: { type: String, default: '' } // 📸 Meter photo URL
     },
     status: { type: String, enum: ['Pending', 'Hold', 'Completed'], default: 'Pending' },
     remark: { type: String, default: '' },
@@ -2283,6 +2284,16 @@ const SupportTaskSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const SupportTask = mongoose.models.SupportTask || mongoose.model('SupportTask', SupportTaskSchema);
+
+// 🔍 Dynamic Helper: Jis user ka role 'customer_care' hai uska WhatsApp number nikalna
+async function getActiveTelecallerPhone() {
+    const ccUser = await User.findOne({ role: 'customer_care', phone: { $ne: '' } });
+    if (ccUser && ccUser.phone) {
+        const clean = ccUser.phone.replace(/\D/g, '').slice(-10);
+        if (clean.length === 10) return '91' + clean;
+    }
+    return TELECALLER_WHATSAPP; // Fallback number (919993352339)
+}
 
 // 🔍 Helper: Agla Active Task (#1) Nikalna
 async function getNextActiveTask() {
@@ -2311,15 +2322,6 @@ async function pushCurrentTaskToWhatsApp() {
     const msg = `🎧 *CUSTOMER CARE TASK QUEUE*\n📊 *Total Pending Tasks:* ${totalPending}\n━━━━━━━━━━━━━━━━━━\n📌 *ACTIVE TASK #1 (${currentTask.taskType})*\n👤 *Call To:* ${currentTask.targetName} (${currentTask.callToRole})\n📞 *Phone:* ${currentTask.targetPhone}\n🏠 *Room:* ${currentTask.roomNo}\n\n🗣️ *Call Script:*\n"${currentTask.scriptText}"\n━━━━━━━━━━━━━━━━━━\n${actionHint}`;
 
     await sendDirectWhatsApp(targetPhone, msg);
-}
-// 🔍 Dynamic Helper: Jis user ka role 'customer_care' hai uska WhatsApp number nikalna
-async function getActiveTelecallerPhone() {
-    const ccUser = await User.findOne({ role: 'customer_care', phone: { $ne: '' } });
-    if (ccUser && ccUser.phone) {
-        const clean = ccUser.phone.replace(/\D/g, '').slice(-10);
-        if (clean.length === 10) return '91' + clean;
-    }
-    return TELECALLER_WHATSAPP; // Fallback number (919993352339)
 }
 
 // 🔄 Helper: Vacated Room ke 2 Leads (Owner + Tenant) Banana
@@ -2366,6 +2368,7 @@ async function generateDailySupportTasks() {
         const today = new Date();
         const currentDay = today.getDate();
         const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
+        const currentSlashMonth = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
         const activeTenants = await TenantLedger.find({ status: 'Active' });
 
         for (const tenant of activeTenants) {
@@ -2381,7 +2384,9 @@ async function generateDailySupportTasks() {
             // 1️⃣ TRIGGER A: Billing Day Meter Reading Task (Owner Call)
             if (tenant.joiningDate && ownerPhone) {
                 const joinDate = new Date(tenant.joiningDate);
-                const isUpdatedThisMonth = entries.some(e => e.monthDate && e.monthDate.includes(currentMonthStr) && (Number(e.total) > 0 || Number(e.rent) > 0));
+                const isUpdatedThisMonth = entries.some(e => 
+                    e.monthDate && (e.monthDate.includes(currentMonthStr) || e.monthDate.includes(currentSlashMonth)) && (Number(e.total) > 0 || Number(e.rent) > 0)
+                );
 
                 if (joinDate.getDate() === currentDay && !isUpdatedThisMonth) {
                     const alreadyExists = await SupportTask.findOne({
@@ -2560,8 +2565,9 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
         const { senderPhone, messageText } = req.body;
         if (!messageText) return res.json({ success: false });
 
+        const activeCCPhone = await getActiveTelecallerPhone();
         const cleanSender = (senderPhone || '').replace(/\D/g, '').slice(-10);
-        if (cleanSender !== TELECALLER_WHATSAPP.slice(-10)) {
+        if (cleanSender !== activeCCPhone.slice(-10)) {
             return res.json({ success: false, message: "Unauthorized Telecaller Number" });
         }
 
@@ -2576,7 +2582,7 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
         }
 
         if (!currentTask) {
-            await sendDirectWhatsApp(TELECALLER_WHATSAPP, `✅ अभी कोई पेंडिंग टास्क नहीं है!`);
+            await sendDirectWhatsApp(activeCCPhone, `✅ अभी कोई पेंडिंग टास्क नहीं है!`);
             return res.json({ success: true });
         }
 
@@ -2584,7 +2590,7 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
         if (upper.startsWith('READ ') && currentTask.allowedActions.includes('UPDATE_METER')) {
             const readingNum = Number(upper.replace('READ', '').trim());
             if (isNaN(readingNum) || readingNum <= 0) {
-                await sendDirectWhatsApp(TELECALLER_WHATSAPP, `❌ कृपया सही मीटर रीडिंग लिखें। उदाहरण: *READ 1250*`);
+                await sendDirectWhatsApp(activeCCPhone, `❌ कृपया सही मीटर रीडिंग लिखें। उदाहरण: *READ 1250*`);
                 return res.json({ success: false });
             }
             req.body = { taskId: currentTask._id, actionType: 'UPDATE_METER', newMeterReading: readingNum, remark: `Updated via WhatsApp: ${readingNum}` };
@@ -2662,6 +2668,7 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
         res.json({ success: true, message: "Command not recognized" });
     } catch (e) { res.status(500).json({ success: false }); }
 });
+
 // =========================================================================
 // 📸 OWNER METER PHOTO UPLOAD & TENANT DELEGATION ("Tenant se mang lo")
 // =========================================================================
@@ -2709,8 +2716,9 @@ app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'
             });
         }
 
+        const activeCCPhone = await getActiveTelecallerPhone();
         // Customer Care ko WhatsApp par turant alert + Photo link bhejein
-        await sendDirectWhatsApp(TELECALLER_WHATSAPP, `📸 *METER PHOTO RECEIVED!*\nRoom: *${tenant.roomOrFlatNo}* (${tenant.tenantName})\n🖼️ *Photo:* ${photoUrl}\n💬 *Owner Feedback:* ${feedback || 'N/A'}\n\n👉 फोटो देखकर रीडिंग अपडेट करने के लिए रिप्लाई करें: *READ [Reading]*`);
+        await sendDirectWhatsApp(activeCCPhone, `📸 *METER PHOTO RECEIVED!*\nRoom: *${tenant.roomOrFlatNo}* (${tenant.tenantName})\n🖼️ *Photo:* ${photoUrl}\n💬 *Owner Feedback:* ${feedback || 'N/A'}\n\n👉 फोटो देखकर रीडिंग अपडेट करने के लिए रिप्लाई करें: *READ [Reading]*`);
 
         res.json({ success: true, message: "✅ मीटर फोटो कस्टमर केयर को भेज दी गई है! जल्द ही लेजर अपडेट हो जाएगा।" });
     } catch (e) {
