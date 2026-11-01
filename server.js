@@ -935,6 +935,19 @@ app.get('/api/admin/pending-assistances', async (req, res) => {
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
+    // 📈 STOCK BOT WHATSAPP ALERT ROUTE
+app.post('/api/stock-alert', async (req, res) => {
+    try {
+        const { phone, message } = req.body;
+        if (!message) return res.status(400).json({ success: false });
+        const targetPhone = phone || "919993352339";
+        await sendDirectWhatsApp(targetPhone, message);
+        res.json({ success: true, message: "Stock report sent to WhatsApp!" });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
+
 
 // 📊 PUBLIC READ-ONLY PASSBOOK API
 app.get('/api/public/tenant-ledger/:id', async (req, res) => {
