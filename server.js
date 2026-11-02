@@ -935,15 +935,58 @@ app.get('/api/admin/pending-assistances', async (req, res) => {
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
-    // 📈 STOCK BOT WHATSAPP ALERT ROUTE
-app.post('/api/stock-alert', async (req, res) => {
+// ==========================================
+// 🤖 WHATSAPP AI PROPERTY SEARCH + ADMIN STOCK BOT ENGINE
+// ==========================================
+app.post('/api/whatsapp/incoming-bot', async (req, res) => {
     try {
-        const { phone, message } = req.body;
-        if (!message) return res.status(400).json({ success: false });
-        const targetPhone = phone || "919993352339";
-        await sendDirectWhatsApp(targetPhone, message);
-        res.json({ success: true, message: "Stock report sent to WhatsApp!" });
-    } catch (e) {
+        const { senderPhone, messageText } = req.body;
+        if (!senderPhone || !messageText) return res.status(400).json({ success: false });
+
+        const query = messageText.toLowerCase();
+
+        // 🔒 EXCLUSIVE STOCK & F&O COMMAND POWER ONLY FOR 919399115595
+        const cleanSender = senderPhone.replace(/\D/g, '').slice(-10);
+        const isStockCmd = ['stock', 'fno', 'f&o', 'nifty', 'banknifty', 'market report', 'stock report'].some(k => query.includes(k));
+        if (isStockCmd) {
+            if (cleanSender !== STOCK_TARGET_PHONE.slice(-10)) {
+                await sendDirectWhatsApp(senderPhone, "🔒 Yeh Stock & F&O AI Command sirf Authorized Admin Number ke liye locked hai.");
+                return res.json({ success: false, message: "Unauthorized stock command blocked" });
+            }
+            await sendDirectWhatsApp(STOCK_TARGET_PHONE, "⏳ *F&O 15m Chart + Swing Radar* scan ho raha hai, 10 second mein live report aa rahi hai...");
+            await sendScheduledStockNotification(false);
+            return res.json({ success: true, message: "On-demand Stock & F&O report sent to Admin!" });
+        }
+
+        let filter = { status: 'approved' };
+
+        // Location match
+        if (query.includes('arera')) filter.location = /arera/i;
+        else if (query.includes('new market')) filter.location = /new market/i;
+        else if (query.includes('mp nagar')) filter.location = /mp nagar/i;
+
+        // Purpose match (Rent / Sale)
+        if (query.includes('rent') || query.includes('kiraye')) filter.purpose = /rent/i;
+        else if (query.includes('buy') || query.includes('sale') || query.includes('kharidna')) filter.purpose = /sale/i;
+
+        const matchedProps = await Property.find(filter).limit(3).lean();
+
+        if (matchedProps.length === 0) {
+            await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Kripya hamari website visit karein: https://bhopal-real-estate.onrender.com`);
+        } else {
+            let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
+            matchedProps.forEach((p, index) => {
+                const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
+                replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
+            });
+            replyMsg += `📞 Adhik jankari ke liye call karein ya website par visit karein!`;
+            
+            await sendDirectWhatsApp(senderPhone, replyMsg);
+        }
+
+        res.json({ success: true, message: "Bot response sent successfully!" });
+    } catch (err) {
+        console.error("WhatsApp Bot Error:", err);
         res.status(500).json({ success: false });
     }
 });
@@ -2777,40 +2820,128 @@ app.post('/api/support/ask-tenant-meter/:tenantId', async (req, res) => {
     } catch (e) {
         res.status(500).json({ success: false });
     }
-});
+});// =========================================================================
+// 📈 F&O 15M CHART ANALYZER + LIVE OPPORTUNITY RADAR + ADMIN LOCK (919399115595)
 // =========================================================================
-// 📈 STOCK BOT WHATSAPP ALERT ROUTE + AUTOMATIC TIME CRON SCHEDULER
-// =========================================================================
-const STOCK_TARGET_PHONE = "919399115595";
+const STOCK_TARGET_PHONE = "919399115595"; // 🔒 Exclusive Authorized Number
 const STOCK_WATCHLIST = {
     "BEL.NS": "Bharat Electronics",
     "ICICIBANK.NS": "ICICI Bank",
     "TCS.NS": "TCS Tata Consultancy Services",
     "INFY.NS": "Infosys"
 };
+const FNO_WATCHLIST = {
+    "^NSEI": { name: "NIFTY 50", step: 50, slPts: 40, t1Pts: 80, t2Pts: 130 },
+    "^NSEBANK": { name: "BANK NIFTY", step: 100, slPts: 100, t1Pts: 200, t2Pts: 320 }
+};
+const alertedCloudOpportunities = new Set();
 
+// 🔒 Restricted Webhook Route: Sends ONLY to STOCK_TARGET_PHONE (919399115595)
 app.post('/api/stock-alert', async (req, res) => {
     try {
         const { phone, message } = req.body;
         if (!message) return res.status(400).json({ success: false });
-        const targetPhone = phone || STOCK_TARGET_PHONE;
-        await sendDirectWhatsApp(targetPhone, message);
-        res.json({ success: true, message: "Stock report sent to WhatsApp!" });
+
+        const cleanReqPhone = (phone || "").replace(/\D/g, "").slice(-10);
+        if (cleanReqPhone && cleanReqPhone !== STOCK_TARGET_PHONE.slice(-10)) {
+            return res.status(403).json({ success: false, message: "Unauthorized Number! Only Admin number has access." });
+        }
+
+        await sendDirectWhatsApp(STOCK_TARGET_PHONE, message);
+        res.json({ success: true, message: "Stock & F&O report sent to authorized WhatsApp!" });
     } catch (e) {
         res.status(500).json({ success: false });
     }
 });
 
-async function fetchYahooStockData(symbol) {
+// Helper: Calculate RSI (14) & EMA from 15m Candles
+function calcEMA(arr, period) {
+    const k = 2 / (period + 1);
+    let ema = arr[0];
+    for (let i = 1; i < arr.length; i++) {
+        ema = arr[i] * k + ema * (1 - k);
+    }
+    return Number(ema.toFixed(2));
+}
+
+function calcRSI(arr, period = 14) {
+    if (arr.length <= period) return 50;
+    let gains = 0, losses = 0;
+    for (let i = arr.length - period; i < arr.length; i++) {
+        const diff = arr[i] - arr[i - 1];
+        if (diff >= 0) gains += diff;
+        else losses -= diff;
+    }
+    if (losses === 0) return 100;
+    const rs = (gains / period) / (losses / period);
+    return Number((100 - (100 / (1 + rs))).toFixed(2));
+}
+
+// 1. Fetch 15-Minute F&O Chart Analysis (Nifty & BankNifty)
+async function fetchFnO15mAnalysis(symbol, meta) {
     try {
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=15m&range=5d`;
         const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
         const json = await res.json();
-        const result = json?.chart?.result?.[0];
-        if (!result) return null;
+        const quote = json?.chart?.result?.[0]?.indicators?.quote?.[0];
+        if (!quote) return null;
 
-        const closes = (result.indicators?.quote?.[0]?.close || []).filter(v => v !== null);
-        const highs = (result.indicators?.quote?.[0]?.high || []).filter(v => v !== null);
+        const closes = (quote.close || []).filter(v => v !== null);
+        const highs = (quote.high || []).filter(v => v !== null);
+        const lows = (quote.low || []).filter(v => v !== null);
+        if (closes.length < 22) return null;
+
+        const spot = Number(closes[closes.length - 1].toFixed(2));
+        const prevHigh = Number(highs[highs.length - 2].toFixed(2));
+        const prevLow = Number(lows[lows.length - 2].toFixed(2));
+        const ema9 = calcEMA(closes.slice(-25), 9);
+        const ema21 = calcEMA(closes.slice(-35), 21);
+        const rsi = calcRSI(closes, 14);
+        const atmStrike = Math.round(spot / meta.step) * meta.step;
+
+        let signal = "NO TRADE (SIDEWAYS)";
+        let optionPick = "WAIT";
+        let sl = 0, t1 = 0, t2 = 0, isJackpot = false;
+
+        if (spot > ema9 && ema9 > ema21 && rsi >= 56 && rsi <= 76) {
+            signal = "BUY CALL (CE) - BULLISH BREAKOUT";
+            optionPick = `${atmStrike} CE`;
+            sl = Number((spot - meta.slPts).toFixed(2));
+            t1 = Number((spot + meta.t1Pts).toFixed(2));
+            t2 = Number((spot + meta.t2Pts).toFixed(2));
+            if (spot > prevHigh && rsi >= 60) isJackpot = true;
+        } else if (spot < ema9 && ema9 < ema21 && rsi >= 24 && rsi <= 44) {
+            signal = "BUY PUT (PE) - BEARISH BREAKDOWN";
+            optionPick = `${atmStrike} PE`;
+            sl = Number((spot + meta.slPts).toFixed(2));
+            t1 = Number((spot - meta.t1Pts).toFixed(2));
+            t2 = Number((spot - meta.t2Pts).toFixed(2));
+            if (spot < prevLow && rsi <= 40) isJackpot = true;
+        }
+
+        return { symbol, name: meta.name, spot, ema9, ema21, rsi, signal, optionPick, sl, t1, t2, isJackpot };
+    } catch (e) {
+        return null;
+    }
+}
+
+// 2. Fetch Stock Daily + 15m RSI Data
+async function fetchYahooStockData(symbol) {
+    try {
+        const url1d = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+        const url15m = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=15m&range=5d`;
+        const [res1d, res15m] = await Promise.all([
+            fetch(url1d, { headers: { "User-Agent": "Mozilla/5.0" } }),
+            fetch(url15m, { headers: { "User-Agent": "Mozilla/5.0" } })
+        ]);
+        const json1d = await res1d.json();
+        const json15m = await res15m.json();
+
+        const r1d = json1d?.chart?.result?.[0]?.indicators?.quote?.[0];
+        if (!r1d) return null;
+
+        const closes = (r1d.close || []).filter(v => v !== null);
+        const highs = (r1d.high || []).filter(v => v !== null);
         if (closes.length < 2) return null;
 
         const price = Number(closes[closes.length - 1].toFixed(2));
@@ -2818,7 +2949,11 @@ async function fetchYahooStockData(symbol) {
         const morningHigh = Number(highs[highs.length - 1].toFixed(2));
         const changePct = Number((((price - prevClose) / prevClose) * 100).toFixed(2));
 
-        return { price, prevClose, changePct, morningHigh };
+        const closes15m = (json15m?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(v => v !== null);
+        const rsi15m = closes15m.length > 15 ? calcRSI(closes15m, 14) : 50;
+        const ema9_15m = closes15m.length > 15 ? calcEMA(closes15m.slice(-25), 9) : price;
+
+        return { price, prevClose, changePct, morningHigh, rsi15m, ema9_15m };
     } catch (e) {
         return null;
     }
@@ -2838,29 +2973,66 @@ async function fetchGoogleStockNews(companyName) {
     }
 }
 
-async function sendScheduledStockNotification() {
+// 3. Main Cloud Scanner (Full Report + 15-Min Opportunity Radar)
+async function sendScheduledStockNotification(onlyOpportunityMode = false) {
     try {
-        console.log("⏰ [Timed Stock Bot] Scanning live market & news...");
-        let summaryText = "";
+        const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        let summaryText = "=== F&O 15-MINUTE CHART DATA ===\n";
+        const fnoList = [];
         const stocksList = [];
+        const liveOpportunities = [];
+
+        for (const [symbol, meta] of Object.entries(FNO_WATCHLIST)) {
+            const fno = await fetchFnO15mAnalysis(symbol, meta);
+            if (fno) {
+                fnoList.push(fno);
+                summaryText += `\nIndex: ${fno.name}\nSpot: ₹${fno.spot} | 15m RSI: ${fno.rsi} | 9EMA: ${fno.ema9} | 21EMA: ${fno.ema21}\nSignal: ${fno.signal} | Strike: ${fno.optionPick} | SL: ₹${fno.sl} | T1: ₹${fno.t1} | T2: ₹${fno.t2}\n`;
+
+                const oppId = `${todayKey}_${symbol}_${fno.optionPick}`;
+                if (fno.isJackpot && !alertedCloudOpportunities.has(oppId)) {
+                    alertedCloudOpportunities.add(oppId);
+                    liveOpportunities.push(`🔥 *F&O 15M BREAKOUT: ${fno.name}*\n📈 *Signal:* *${fno.signal}*\n🎯 *Strike:* *${fno.optionPick}* (Spot: ₹${fno.spot})\n📊 *15m RSI:* ${fno.rsi} | *9/21 EMA:* Bullish/Bearish Cross\n🛑 *Spot SL:* ₹${fno.sl} | 🚀 *T1:* ₹${fno.t1} | 🔥 *T2:* ₹${fno.t2}`);
+                }
+            }
+        }
+
+        summaryText += "\n=== SWING STOCKS DATA ===\n";
+        const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell"];
 
         for (const [symbol, name] of Object.entries(STOCK_WATCHLIST)) {
             const data = await fetchYahooStockData(symbol);
             const news = await fetchGoogleStockNews(name);
             if (data) {
                 stocksList.push({ symbol, name, ...data, news });
-                summaryText += `\nStock: ${name} ({symbol})\nLive Price: ₹${data.price} (${data.changePct}%)\nDay High: ₹${data.morningHigh}\nLatest News: ${news.join(" | ")}\n------------------------------`;
+                summaryText += `\nStock: ${name} (${symbol})\nLive: ₹${data.price} (${data.changePct}%) | 15m RSI: ${data.rsi15m}\nNews: ${news.join(" | ")}\n`;
+
+                const hasBadNews = negWords.some(w => news.join(" ").toLowerCase().includes(w));
+                const oppId = `${todayKey}_${symbol}_BUY`;
+                if (data.changePct >= 1.2 && data.rsi15m >= 58 && data.price >= data.ema9_15m && !hasBadNews && !alertedCloudOpportunities.has(oppId)) {
+                    alertedCloudOpportunities.add(oppId);
+                    liveOpportunities.push(`🚀 *STOCK BREAKOUT OPPORTUNITY: ${name}*\n💰 *Live:* ₹${data.price} (+${data.changePct}%) | *15m RSI:* ${data.rsi15m}\n📰 *News:* ${news[0]}\n🎯 *Buy:* ₹${data.price} | 🛑 *SL (-3%):* ₹${(data.price * 0.97).toFixed(2)}\n🚀 *T1 (+6%):* ₹${(data.price * 1.06).toFixed(2)} | 🔥 *T2 (+10%):* ₹${(data.price * 1.10).toFixed(2)}`);
+                }
             }
         }
 
-        if (!stocksList.length) return;
+        // Agar 15-Min Opportunity Radar Mode hai toh sirf strong breakout milne par hi message bhejein
+        if (onlyOpportunityMode) {
+            if (liveOpportunities.length > 0) {
+                const oppMsg = `🚨 *LIVE MARKET OPPORTUNITY ALERT* 🚨\n_(15-Minute Chart High-Probability Setup!)_\n\n` + liveOpportunities.join("\n\n----------------------------\n\n");
+                await sendDirectWhatsApp(STOCK_TARGET_PHONE, oppMsg);
+                console.log(`🔥 [Live Opportunity Radar] Instant breakout alert sent to ${STOCK_TARGET_PHONE}`);
+            }
+            return;
+        }
+
+        if (!stocksList.length && !fnoList.length) return;
 
         let finalReport = "";
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (apiKey) {
             try {
-                const prompt = `Tum ek strict Indian Stock Market Swing Trading Analyst ho.\nNeeche live stock data aur latest news headlines hain:\n${summaryText}\n\nRules:\n1. Agar stock negative (-) hai ya news kharab hai, toh 'NO ENTRY (WAIT)' bolo.\n2. Sirf usi stock ko 'PAPER BUY' bolo jismein price positive ho AUR news negative na ho.\n3. Har 'PAPER BUY' stock ke liye:\n   - Buy Entry Price\n   - Stop-Loss (-3%)\n   - Target 1 (+6%) aur Trailing Target (+10%) calculate karke Hinglish mein short WhatsApp format mein likho.`;
+                const prompt = `Tum ek strict Indian Stock Market & F&O 15-Minute Chart Analyst ho.\nNeeche F&O Indices (Nifty, BankNifty) ka 15m RSI + 9/21 EMA data aur Stocks data hai:\n${summaryText}\n\nRules:\n1. Pehle '⚡ F&O 15-MIN CHART PREDICTION' section mein Nifty 50 aur Bank Nifty ka Call (CE) ya Put (PE) strike, Spot Entry, Spot SL aur Targets likho (sideways hone par NO TRADE bolo).\n2. Phir '🏢 SWING STOCKS RADAR' mein sirf positive price + RSI > 52 + good news wale stock ko PAPER BUY (Entry, -3% SL, +6% T1, +10% T2) bolo. Hinglish mein short WhatsApp format mein likho.`;
 
                 const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
                     method: "POST",
@@ -2875,60 +3047,46 @@ async function sendScheduledStockNotification() {
         }
 
         if (!finalReport) {
-            const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell", "bear", "low"];
-            const lines = ["📊 *INDIAN STOCK MARKET SWING TRADING REPORT*\n"];
+            const lines = ["📊 *F&O 15M CHART & SWING TRADING REPORT*\n", "⚡ *F&O 15-MIN CHART SIGNALS*"];
+            for (const f of fnoList) {
+                lines.push(`📈 *${f.name}* (Spot: ₹${f.spot} | RSI: ${f.rsi})`);
+                if (f.optionPick !== "WAIT") {
+                    lines.push(`🔥 *${f.signal}*\n🎯 *Strike:* *${f.optionPick}* | 🛑 SL: ₹${f.sl} | 🚀 T1: ₹${f.t1} | 🔥 T2: ₹${f.t2}`);
+                } else {
+                    lines.push(`⏳ *Signal: NO TRADE (Wait for 15m Breakout)*`);
+                }
+                lines.push("----------------------------");
+            }
+            lines.push("\n🏢 *SWING STOCKS RADAR*");
             for (const item of stocksList) {
                 const hasBadNews = negWords.some(w => item.news.join(" ").toLowerCase().includes(w));
-                lines.push(`🏢 *${item.name} (${item.symbol})*`);
-                lines.push(`💰 Live Price: ₹${item.price} (${item.changePct}%)`);
-                lines.push(`📰 News: ${item.news[0]}`);
-                if (item.changePct > 0 && !hasBadNews) {
-                    lines.push(`✅ *Signal: PAPER BUY*`);
-                    lines.push(`🎯 Buy Entry: ₹${item.price}`);
-                    lines.push(`🛑 Stop-Loss (-3%): ₹${(item.price * 0.97).toFixed(2)}`);
-                    lines.push(`🚀 Target 1 (+6%): ₹${(item.price * 1.06).toFixed(2)}`);
-                    lines.push(`🔥 Trailing Target (+10%): ₹${(item.price * 1.10).toFixed(2)}`);
+                lines.push(`🏢 *${item.name}* — ₹${item.price} (${item.changePct}% | RSI: ${item.rsi15m})`);
+                if (item.changePct > 0 && item.rsi15m >= 52 && !hasBadNews) {
+                    lines.push(`✅ *PAPER BUY* | 🎯 ₹${item.price} | 🛑 SL: ₹${(item.price * 0.97).toFixed(2)} | 🚀 T1: ₹${(item.price * 1.06).toFixed(2)}`);
                 } else {
-                    const reason = item.changePct <= 0 ? "Price Negative hai" : "News sentiment mixed/negative hai";
-                    lines.push(`⏳ *Signal: NO ENTRY (WAIT)* — (${reason})`);
+                    lines.push(`⏳ *NO ENTRY (WAIT)*`);
                 }
-                lines.push("--------------------------------");
+                lines.push("----------------------------");
             }
             finalReport = lines.join("\n");
         }
 
         await sendDirectWhatsApp(STOCK_TARGET_PHONE, finalReport);
-        console.log(`✅ [Timed Stock Bot] Report sent to WhatsApp (${STOCK_TARGET_PHONE})!`);
+        console.log(`✅ [Timed Stock & F&O Bot] Report sent to ${STOCK_TARGET_PHONE}!`);
     } catch (err) {
         console.error("Scheduled Stock Bot Error:", err.message);
     }
 }
 
-// ⏰ 1. Subah 9:30 AM (Monday - Friday)
-cron.schedule('30 9 * * 1-5', () => {
-    sendScheduledStockNotification();
-}, { timezone: "Asia/Kolkata" });
+// ⏰ 1. Fixed Daily Full Reports: 9:30 AM, 11:30 AM, 1:30 PM, 3:00 PM (Mon-Fri)
+cron.schedule('30 9,11,13 * * 1-5', () => sendScheduledStockNotification(false), { timezone: "Asia/Kolkata" });
+cron.schedule('0 15 * * 1-5', () => sendScheduledStockNotification(false), { timezone: "Asia/Kolkata" });
 
-// ⏰ 2. Subah 11:30 AM (Monday - Friday)
-cron.schedule('30 11 * * 1-5', () => {
-    sendScheduledStockNotification();
-}, { timezone: "Asia/Kolkata" });
-
-// ⏰ 3. Dopahar 1:30 PM (Monday - Friday)
-cron.schedule('30 13 * * 1-5', () => {
-    sendScheduledStockNotification();
-}, { timezone: "Asia/Kolkata" });
-
-// ⏰ 4. Dopahar 3:00 PM (Monday - Friday)
-cron.schedule('0 15 * * 1-5', () => {
-    sendScheduledStockNotification();
-}, { timezone: "Asia/Kolkata" });
-
-// 🔄 Render Wake-Up Ping: Market hours mein har 10 min par server ko active rakhega taaki time par notification miss na ho
-cron.schedule('*/10 9-15 * * 1-5', () => {
+// 🚨 2. Live Opportunity Radar: Har 15 Minute mein (9:15 AM se 3:15 PM, Mon-Fri)
+cron.schedule('*/15 9-15 * * 1-5', () => {
+    sendScheduledStockNotification(true);
     fetch('https://bhopal-real-estate.onrender.com/robots.txt').catch(() => {});
 }, { timezone: "Asia/Kolkata" });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
