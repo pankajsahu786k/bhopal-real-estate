@@ -2778,6 +2778,156 @@ app.post('/api/support/ask-tenant-meter/:tenantId', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+// =========================================================================
+// 📈 STOCK BOT WHATSAPP ALERT ROUTE + AUTOMATIC TIME CRON SCHEDULER
+// =========================================================================
+const STOCK_TARGET_PHONE = "919399115595";
+const STOCK_WATCHLIST = {
+    "BEL.NS": "Bharat Electronics",
+    "ICICIBANK.NS": "ICICI Bank",
+    "TCS.NS": "TCS Tata Consultancy Services",
+    "INFY.NS": "Infosys"
+};
+
+app.post('/api/stock-alert', async (req, res) => {
+    try {
+        const { phone, message } = req.body;
+        if (!message) return res.status(400).json({ success: false });
+        const targetPhone = phone || STOCK_TARGET_PHONE;
+        await sendDirectWhatsApp(targetPhone, message);
+        res.json({ success: true, message: "Stock report sent to WhatsApp!" });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
+
+async function fetchYahooStockData(symbol) {
+    try {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
+        const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+        const json = await res.json();
+        const result = json?.chart?.result?.[0];
+        if (!result) return null;
+
+        const closes = (result.indicators?.quote?.[0]?.close || []).filter(v => v !== null);
+        const highs = (result.indicators?.quote?.[0]?.high || []).filter(v => v !== null);
+        if (closes.length < 2) return null;
+
+        const price = Number(closes[closes.length - 1].toFixed(2));
+        const prevClose = Number(closes[closes.length - 2].toFixed(2));
+        const morningHigh = Number(highs[highs.length - 1].toFixed(2));
+        const changePct = Number((((price - prevClose) / prevClose) * 100).toFixed(2));
+
+        return { price, prevClose, changePct, morningHigh };
+    } catch (e) {
+        return null;
+    }
+}
+
+async function fetchGoogleStockNews(companyName) {
+    try {
+        const q = encodeURIComponent(`${companyName} stock news India`);
+        const url = `https://news.google.com/rss/search?q=${q}&hl=en-IN&gl=IN&ceid=IN:en`;
+        const res = await fetch(url, { headers: { "User-Agent": "Mozilla/5.0" } });
+        const xml = await res.text();
+        const matches = [...xml.matchAll(/<item>[\s\S]*?<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/g)];
+        const headlines = matches.slice(0, 3).map(m => m[1]);
+        return headlines.length ? headlines : ["No major news today."];
+    } catch (e) {
+        return ["No major news today."];
+    }
+}
+
+async function sendScheduledStockNotification() {
+    try {
+        console.log("⏰ [Timed Stock Bot] Scanning live market & news...");
+        let summaryText = "";
+        const stocksList = [];
+
+        for (const [symbol, name] of Object.entries(STOCK_WATCHLIST)) {
+            const data = await fetchYahooStockData(symbol);
+            const news = await fetchGoogleStockNews(name);
+            if (data) {
+                stocksList.push({ symbol, name, ...data, news });
+                summaryText += `\nStock: ${name} ({symbol})\nLive Price: ₹${data.price} (${data.changePct}%)\nDay High: ₹${data.morningHigh}\nLatest News: ${news.join(" | ")}\n------------------------------`;
+            }
+        }
+
+        if (!stocksList.length) return;
+
+        let finalReport = "";
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (apiKey) {
+            try {
+                const prompt = `Tum ek strict Indian Stock Market Swing Trading Analyst ho.\nNeeche live stock data aur latest news headlines hain:\n${summaryText}\n\nRules:\n1. Agar stock negative (-) hai ya news kharab hai, toh 'NO ENTRY (WAIT)' bolo.\n2. Sirf usi stock ko 'PAPER BUY' bolo jismein price positive ho AUR news negative na ho.\n3. Har 'PAPER BUY' stock ke liye:\n   - Buy Entry Price\n   - Stop-Loss (-3%)\n   - Target 1 (+6%) aur Trailing Target (+10%) calculate karke Hinglish mein short WhatsApp format mein likho.`;
+
+                const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const aiData = await aiRes.json();
+                finalReport = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+            } catch (e) {
+                console.error("Gemini Stock API Error:", e.message);
+            }
+        }
+
+        if (!finalReport) {
+            const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell", "bear", "low"];
+            const lines = ["📊 *INDIAN STOCK MARKET SWING TRADING REPORT*\n"];
+            for (const item of stocksList) {
+                const hasBadNews = negWords.some(w => item.news.join(" ").toLowerCase().includes(w));
+                lines.push(`🏢 *${item.name} (${item.symbol})*`);
+                lines.push(`💰 Live Price: ₹${item.price} (${item.changePct}%)`);
+                lines.push(`📰 News: ${item.news[0]}`);
+                if (item.changePct > 0 && !hasBadNews) {
+                    lines.push(`✅ *Signal: PAPER BUY*`);
+                    lines.push(`🎯 Buy Entry: ₹${item.price}`);
+                    lines.push(`🛑 Stop-Loss (-3%): ₹${(item.price * 0.97).toFixed(2)}`);
+                    lines.push(`🚀 Target 1 (+6%): ₹${(item.price * 1.06).toFixed(2)}`);
+                    lines.push(`🔥 Trailing Target (+10%): ₹${(item.price * 1.10).toFixed(2)}`);
+                } else {
+                    const reason = item.changePct <= 0 ? "Price Negative hai" : "News sentiment mixed/negative hai";
+                    lines.push(`⏳ *Signal: NO ENTRY (WAIT)* — (${reason})`);
+                }
+                lines.push("--------------------------------");
+            }
+            finalReport = lines.join("\n");
+        }
+
+        await sendDirectWhatsApp(STOCK_TARGET_PHONE, finalReport);
+        console.log(`✅ [Timed Stock Bot] Report sent to WhatsApp (${STOCK_TARGET_PHONE})!`);
+    } catch (err) {
+        console.error("Scheduled Stock Bot Error:", err.message);
+    }
+}
+
+// ⏰ 1. Subah 9:30 AM (Monday - Friday)
+cron.schedule('30 9 * * 1-5', () => {
+    sendScheduledStockNotification();
+}, { timezone: "Asia/Kolkata" });
+
+// ⏰ 2. Subah 11:30 AM (Monday - Friday)
+cron.schedule('30 11 * * 1-5', () => {
+    sendScheduledStockNotification();
+}, { timezone: "Asia/Kolkata" });
+
+// ⏰ 3. Dopahar 1:30 PM (Monday - Friday)
+cron.schedule('30 13 * * 1-5', () => {
+    sendScheduledStockNotification();
+}, { timezone: "Asia/Kolkata" });
+
+// ⏰ 4. Dopahar 3:00 PM (Monday - Friday)
+cron.schedule('0 15 * * 1-5', () => {
+    sendScheduledStockNotification();
+}, { timezone: "Asia/Kolkata" });
+
+// 🔄 Render Wake-Up Ping: Market hours mein har 10 min par server ko active rakhega taaki time par notification miss na ho
+cron.schedule('*/10 9-15 * * 1-5', () => {
+    fetch('https://bhopal-real-estate.onrender.com/robots.txt').catch(() => {});
+}, { timezone: "Asia/Kolkata" });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

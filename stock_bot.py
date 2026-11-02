@@ -1,5 +1,8 @@
 import os
+import time
 import warnings
+from datetime import datetime, timedelta, timezone
+
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.simplefilter("ignore")
 
@@ -22,6 +25,9 @@ GEMINI_API_KEY = get_env_key()
 WHATSAPP_WEBHOOK_URL = "https://bhopal-real-estate.onrender.com/api/stock-alert"
 TARGET_PHONE = "919399115595"
 
+# ⏰ Din mein kin-kin time par automatic WhatsApp notification bhejna hai (24-Hour IST Format)
+ALERT_TIMES_IST = ["09:30", "11:30", "13:30", "15:00"]
+
 WATCHLIST = {
     "BEL.NS": "Bharat Electronics",
     "ICICIBANK.NS": "ICICI Bank",
@@ -31,6 +37,10 @@ WATCHLIST = {
 # =================================================
 
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+def get_ist_now():
+    """Indian Standard Time (IST) nikalna"""
+    return datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
 
 def get_stock_data(symbol):
     """Fast tarike se Live Price aur Previous Close nikalna"""
@@ -124,7 +134,6 @@ def analyze_with_gemini(stock_summary, stocks_list):
        - Target 1 (+6%) aur Trailing Target (+10%) calculate karke Hinglish mein short WhatsApp format mein likho.
     """
 
-    # Primary working model
     try:
         print("🤖 AI Report generate ho rahi hai (gemini-flash-latest)...")
         response = client.models.generate_content(model="gemini-flash-latest", contents=prompt)
@@ -133,7 +142,6 @@ def analyze_with_gemini(stock_summary, stocks_list):
     except Exception as e:
         print(f"   ⚠️ gemini-flash-latest error: {str(e)[:100]}")
 
-    # Fallback: Check other available models in account
     try:
         available_models = []
         for m in client.models.list():
@@ -152,7 +160,6 @@ def analyze_with_gemini(stock_summary, stocks_list):
     except Exception as list_err:
         print(f"   ⚠️ Model list check skipped: {str(list_err)[:100]}")
 
-    # Guaranteed In-Built Smart Trading Engine Fallback
     print("⚡ Using Built-in Smart Swing Trading Engine...")
     return generate_smart_rule_report(stocks_list)
 
@@ -201,9 +208,28 @@ def run_scanner():
         if res.status_code == 200:
             print("✅ Report seedha aapke WhatsApp par bhej di gayi!")
         else:
-            print(f"⚠️ Server ne {res.status_code} return kiya. Ensure karein ki server.js mein /api/stock-alert route added aur deployed hai.")
+            print(f"⚠️ Server ne {res.status_code} return kiya.")
     except Exception as e:
         print(f"⚠️ WhatsApp Webhook connect nahi ho paya: {e}")
 
-if __name__ == "__main__":
+def start_timed_bot():
+    print(f"⏰ Stock Bot Time Scheduler Chalu Ho Gaya! (Alert Timings IST: {', '.join(ALERT_TIMES_IST)})")
+    # Script start hote hi ek baar turant report bhejega
     run_scanner()
+    last_sent_slot = ""
+
+    while True:
+        now_ist = get_ist_now()
+        current_hm = now_ist.strftime("%H:%M")
+        date_slot_key = f"{now_ist.strftime('%Y-%m-%d')}_{current_hm}"
+
+        # Monday (0) se Friday (4) ke beech scheduled time par automatic run karega
+        if now_ist.weekday() < 5 and current_hm in ALERT_TIMES_IST and last_sent_slot != date_slot_key:
+            print(f"\n🔔 [{current_hm} IST] Scheduled Market Alert Triggered!")
+            last_sent_slot = date_slot_key
+            run_scanner()
+
+        time.sleep(20)
+
+if __name__ == "__main__":
+    start_timed_bot()
