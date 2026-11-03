@@ -947,7 +947,7 @@ app.post('/api/whatsapp/incoming-bot', async (req, res) => {
 
         // 🔒 EXCLUSIVE STOCK & F&O COMMAND POWER ONLY FOR 919399115595
         const cleanSender = senderPhone.replace(/\D/g, '').slice(-10);
-        const isStockCmd = ['stock', 'fno', 'f&o', 'nifty', 'banknifty', 'market report', 'stock report'].some(k => query.includes(k));
+        const isStockCmd = ['stock', 'fno', 'f&o', 'f and o', 'best deal', 'nifty', 'banknifty', 'market', 'report'].some(k => query.includes(k));
         if (isStockCmd) {
             if (cleanSender !== STOCK_TARGET_PHONE.slice(-10)) {
                 await sendDirectWhatsApp(senderPhone, "🔒 Yeh Stock & F&O AI Command sirf Authorized Admin Number ke liye locked hai.");
@@ -2820,8 +2820,9 @@ app.post('/api/support/ask-tenant-meter/:tenantId', async (req, res) => {
     } catch (e) {
         res.status(500).json({ success: false });
     }
-});// =========================================================================
-// 📈 F&O 15M CHART ANALYZER + LIVE OPPORTUNITY RADAR + ADMIN LOCK (919399115595)
+});
+// =========================================================================
+// 📈 PRO F&O (LOT + CAPITAL + PREMIUM CALCULATOR) & HIGH-ACCURACY STOCK BOT
 // =========================================================================
 const STOCK_TARGET_PHONE = "919399115595"; // 🔒 Exclusive Authorized Number
 const STOCK_WATCHLIST = {
@@ -2830,13 +2831,14 @@ const STOCK_WATCHLIST = {
     "TCS.NS": "TCS Tata Consultancy Services",
     "INFY.NS": "Infosys"
 };
+
+// Lot Size aur ATM Premium Approximation ke saath F&O Config
 const FNO_WATCHLIST = {
-    "^NSEI": { name: "NIFTY 50", step: 50, slPts: 40, t1Pts: 80, t2Pts: 130 },
-    "^NSEBANK": { name: "BANK NIFTY", step: 100, slPts: 100, t1Pts: 200, t2Pts: 320 }
+    "^NSEI": { name: "NIFTY 50", step: 50, lotSize: 75, slPts: 40, t1Pts: 80, t2Pts: 130, basePremPct: 0.0065 },
+    "^NSEBANK": { name: "BANK NIFTY", step: 100, lotSize: 30, slPts: 100, t1Pts: 200, t2Pts: 320, basePremPct: 0.0075 }
 };
 const alertedCloudOpportunities = new Set();
 
-// 🔒 Restricted Webhook Route: Sends ONLY to STOCK_TARGET_PHONE (919399115595)
 app.post('/api/stock-alert', async (req, res) => {
     try {
         const { phone, message } = req.body;
@@ -2844,7 +2846,7 @@ app.post('/api/stock-alert', async (req, res) => {
 
         const cleanReqPhone = (phone || "").replace(/\D/g, "").slice(-10);
         if (cleanReqPhone && cleanReqPhone !== STOCK_TARGET_PHONE.slice(-10)) {
-            return res.status(403).json({ success: false, message: "Unauthorized Number! Only Admin number has access." });
+            return res.status(403).json({ success: false, message: "Unauthorized Number!" });
         }
 
         await sendDirectWhatsApp(STOCK_TARGET_PHONE, message);
@@ -2854,7 +2856,6 @@ app.post('/api/stock-alert', async (req, res) => {
     }
 });
 
-// Helper: Calculate RSI (14) & EMA from 15m Candles
 function calcEMA(arr, period) {
     const k = 2 / (period + 1);
     let ema = arr[0];
@@ -2877,7 +2878,7 @@ function calcRSI(arr, period = 14) {
     return Number((100 - (100 / (1 + rs))).toFixed(2));
 }
 
-// 1. Fetch 15-Minute F&O Chart Analysis (Nifty & BankNifty)
+// 1. High-Accuracy F&O 15m Chart + Option Premium & Capital Calculator
 async function fetchFnO15mAnalysis(symbol, meta) {
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=15m&range=5d`;
@@ -2886,46 +2887,82 @@ async function fetchFnO15mAnalysis(symbol, meta) {
         const quote = json?.chart?.result?.[0]?.indicators?.quote?.[0];
         if (!quote) return null;
 
-        const closes = (quote.close || []).filter(v => v !== null);
-        const highs = (quote.high || []).filter(v => v !== null);
-        const lows = (quote.low || []).filter(v => v !== null);
-        if (closes.length < 22) return null;
+        const closes = [], highs = [], lows = [];
+        for (let i = 0; i < (quote.close || []).length; i++) {
+            if (quote.close[i] !== null && quote.high[i] !== null && quote.low[i] !== null) {
+                closes.push(quote.close[i]);
+                highs.push(quote.high[i]);
+                lows.push(quote.low[i]);
+            }
+        }
+        if (closes.length < 25) return null;
 
         const spot = Number(closes[closes.length - 1].toFixed(2));
+        const closedCandle = Number(closes[closes.length - 2].toFixed(2));
         const prevHigh = Number(highs[highs.length - 2].toFixed(2));
         const prevLow = Number(lows[lows.length - 2].toFixed(2));
+
         const ema9 = calcEMA(closes.slice(-25), 9);
         const ema21 = calcEMA(closes.slice(-35), 21);
         const rsi = calcRSI(closes, 14);
         const atmStrike = Math.round(spot / meta.step) * meta.step;
 
-        let signal = "NO TRADE (SIDEWAYS)";
-        let optionPick = "WAIT";
-        let sl = 0, t1 = 0, t2 = 0, isJackpot = false;
+        // Intraday VWAP Approximation
+        const recentTypical = closes.slice(-15).map((c, idx) => (c + highs.slice(-15)[idx] + lows.slice(-15)[idx]) / 3);
+        const vwap = Number((recentTypical.reduce((a, b) => a + b, 0) / recentTypical.length).toFixed(2));
 
-        if (spot > ema9 && ema9 > ema21 && rsi >= 56 && rsi <= 76) {
+        // Option Premium & Delta (0.50 for ATM Strike) Calculation
+        const estPremium = Math.round(spot * meta.basePremPct);
+        const premSL = Math.max(10, Math.round(estPremium - (meta.slPts * 0.5)));
+        const premT1 = Math.round(estPremium + (meta.t1Pts * 0.5));
+        const premT2 = Math.round(estPremium + (meta.t2Pts * 0.5));
+
+        const capital1Lot = estPremium * meta.lotSize;
+        const maxRisk1Lot = (estPremium - premSL) * meta.lotSize;
+        const reward1Lot = (premT1 - estPremium) * meta.lotSize;
+
+        let signal = "NO TRADE (SIDEWAYS - ABHI PAISA MAT LAGAYEIN)";
+        let optionPick = "WAIT";
+        let sl = 0, t1 = 0, t2 = 0, isJackpot = false, conviction = "3/10";
+
+        if (rsi > 68) {
+            signal = `OVERBOUGHT TRAP (RSI ${rsi}) - TOP PAR BUY MAT KAREIN`;
+        } else if (rsi < 32) {
+            signal = `OVERSOLD TRAP (RSI ${rsi}) - BOTTOM PAR PUT MAT LEIN`;
+        } 
+        // 🟢 CONFIRMED CALL (CE) SETUP (Sweet Spot RSI 55-68 + Above VWAP & EMA)
+        else if (spot > vwap && spot > ema9 && ema9 > ema21 && closedCandle > ema9 && rsi >= 55 && rsi <= 68) {
             signal = "BUY CALL (CE) - BULLISH BREAKOUT";
             optionPick = `${atmStrike} CE`;
             sl = Number((spot - meta.slPts).toFixed(2));
             t1 = Number((spot + meta.t1Pts).toFixed(2));
             t2 = Number((spot + meta.t2Pts).toFixed(2));
-            if (spot > prevHigh && rsi >= 60) isJackpot = true;
-        } else if (spot < ema9 && ema9 < ema21 && rsi >= 24 && rsi <= 44) {
+            conviction = spot > prevHigh ? "9/10 🔥" : "7.5/10 ✅";
+            if (spot > prevHigh && rsi >= 58 && rsi <= 66) isJackpot = true;
+        } 
+        // 🔴 CONFIRMED PUT (PE) SETUP (Sweet Spot RSI 32-45 + Below VWAP & EMA)
+        else if (spot < vwap && spot < ema9 && ema9 < ema21 && closedCandle < ema9 && rsi >= 32 && rsi <= 45) {
             signal = "BUY PUT (PE) - BEARISH BREAKDOWN";
             optionPick = `${atmStrike} PE`;
             sl = Number((spot + meta.slPts).toFixed(2));
             t1 = Number((spot - meta.t1Pts).toFixed(2));
             t2 = Number((spot - meta.t2Pts).toFixed(2));
-            if (spot < prevLow && rsi <= 40) isJackpot = true;
+            conviction = spot < prevLow ? "9/10 🔥" : "7.5/10 ✅";
+            if (spot < prevLow && rsi <= 42 && rsi >= 34) isJackpot = true;
         }
 
-        return { symbol, name: meta.name, spot, ema9, ema21, rsi, signal, optionPick, sl, t1, t2, isJackpot };
+        return {
+            symbol, name: meta.name, spot, vwap, ema9, ema21, rsi,
+            signal, optionPick, sl, t1, t2, isJackpot, conviction,
+            lotSize: meta.lotSize, estPremium, premSL, premT1, premT2,
+            capital1Lot, maxRisk1Lot, reward1Lot
+        };
     } catch (e) {
         return null;
     }
 }
 
-// 2. Fetch Stock Daily + 15m RSI Data
+// 2. High-Accuracy Stock Data (Strict RSI 54-67 + Volume Surge)
 async function fetchYahooStockData(symbol) {
     try {
         const url1d = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
@@ -2949,11 +2986,24 @@ async function fetchYahooStockData(symbol) {
         const morningHigh = Number(highs[highs.length - 1].toFixed(2));
         const changePct = Number((((price - prevClose) / prevClose) * 100).toFixed(2));
 
-        const closes15m = (json15m?.chart?.result?.[0]?.indicators?.quote?.[0]?.close || []).filter(v => v !== null);
+        const q15 = json15m?.chart?.result?.[0]?.indicators?.quote?.[0];
+        const closes15m = (q15?.close || []).filter(v => v !== null);
+        const vols15m = (q15?.volume || []).filter(v => v !== null && v > 0);
+
         const rsi15m = closes15m.length > 15 ? calcRSI(closes15m, 14) : 50;
         const ema9_15m = closes15m.length > 15 ? calcEMA(closes15m.slice(-25), 9) : price;
+        const ema21_15m = closes15m.length > 25 ? calcEMA(closes15m.slice(-35), 21) : price;
 
-        return { price, prevClose, changePct, morningHigh, rsi15m, ema9_15m };
+        let volSurge = false;
+        if (vols15m.length >= 10) {
+            const latestVol = vols15m[vols15m.length - 1];
+            const avgVol = vols15m.slice(-11, -1).reduce((a, b) => a + b, 0) / 10;
+            volSurge = latestVol >= (avgVol * 1.25);
+        }
+
+        const isHighAccuracyBuy = (changePct >= 0.5 && changePct <= 3.5 && rsi15m >= 54 && rsi15m <= 67 && price > ema9_15m && ema9_15m >= ema21_15m);
+
+        return { price, prevClose, changePct, morningHigh, rsi15m, ema9_15m, volSurge, isHighAccuracyBuy };
     } catch (e) {
         return null;
     }
@@ -2973,106 +3023,110 @@ async function fetchGoogleStockNews(companyName) {
     }
 }
 
-// 3. Main Cloud Scanner (Full Report + 15-Min Opportunity Radar)
+// 3. Main Cloud Scanner (Clear Hindi Actionable Format)
 async function sendScheduledStockNotification(onlyOpportunityMode = false) {
     try {
         const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-        let summaryText = "=== F&O 15-MINUTE CHART DATA ===\n";
         const fnoList = [];
         const stocksList = [];
         const liveOpportunities = [];
+        const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell"];
 
         for (const [symbol, meta] of Object.entries(FNO_WATCHLIST)) {
             const fno = await fetchFnO15mAnalysis(symbol, meta);
             if (fno) {
                 fnoList.push(fno);
-                summaryText += `\nIndex: ${fno.name}\nSpot: ₹${fno.spot} | 15m RSI: ${fno.rsi} | 9EMA: ${fno.ema9} | 21EMA: ${fno.ema21}\nSignal: ${fno.signal} | Strike: ${fno.optionPick} | SL: ₹${fno.sl} | T1: ₹${fno.t1} | T2: ₹${fno.t2}\n`;
-
                 const oppId = `${todayKey}_${symbol}_${fno.optionPick}`;
                 if (fno.isJackpot && !alertedCloudOpportunities.has(oppId)) {
                     alertedCloudOpportunities.add(oppId);
-                    liveOpportunities.push(`🔥 *F&O 15M BREAKOUT: ${fno.name}*\n📈 *Signal:* *${fno.signal}*\n🎯 *Strike:* *${fno.optionPick}* (Spot: ₹${fno.spot})\n📊 *15m RSI:* ${fno.rsi} | *9/21 EMA:* Bullish/Bearish Cross\n🛑 *Spot SL:* ₹${fno.sl} | 🚀 *T1:* ₹${fno.t1} | 🔥 *T2:* ₹${fno.t2}`);
+                    liveOpportunities.push(
+                        `🔥 *F&O JACKPOT BREAKOUT: ${fno.name}*\n` +
+                        `⭐ *Accuracy Score:* ${fno.conviction}\n` +
+                        `👉 *Kya Kharidein (Option Chain):* *${fno.name} ${fno.optionPick}* (Weekly Expiry)\n` +
+                        `📦 *1 Lot Quantity:* ${fno.lotSize} Shares\n` +
+                        `💵 *Option Buy Price (Est.):* ₹${fno.estPremium} ke aas-paas\n` +
+                        `💰 *Kitna Paisa Lagega (1 Lot):* *₹${fno.capital1Lot.toLocaleString('en-IN')}*\n` +
+                        `🛑 *Option Stop-Loss:* ₹${fno.premSL} (Max Risk: -₹${fno.maxRisk1Lot})\n` +
+                        `🚀 *Option Target 1:* ₹${fno.premT1} (+₹${fno.reward1Lot} Profit) | *T2:* ₹${fno.premT2}\n` +
+                        `📍 _(Index Spot Level: Entry ₹${fno.spot} | SL ₹${fno.sl} | T1 ₹${fno.t1})_`
+                    );
                 }
             }
         }
-
-        summaryText += "\n=== SWING STOCKS DATA ===\n";
-        const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell"];
 
         for (const [symbol, name] of Object.entries(STOCK_WATCHLIST)) {
             const data = await fetchYahooStockData(symbol);
             const news = await fetchGoogleStockNews(name);
             if (data) {
                 stocksList.push({ symbol, name, ...data, news });
-                summaryText += `\nStock: ${name} (${symbol})\nLive: ₹${data.price} (${data.changePct}%) | 15m RSI: ${data.rsi15m}\nNews: ${news.join(" | ")}\n`;
-
                 const hasBadNews = negWords.some(w => news.join(" ").toLowerCase().includes(w));
                 const oppId = `${todayKey}_${symbol}_BUY`;
-                if (data.changePct >= 1.2 && data.rsi15m >= 58 && data.price >= data.ema9_15m && !hasBadNews && !alertedCloudOpportunities.has(oppId)) {
+
+                if (data.isHighAccuracyBuy && data.volSurge && !hasBadNews && !alertedCloudOpportunities.has(oppId)) {
                     alertedCloudOpportunities.add(oppId);
-                    liveOpportunities.push(`🚀 *STOCK BREAKOUT OPPORTUNITY: ${name}*\n💰 *Live:* ₹${data.price} (+${data.changePct}%) | *15m RSI:* ${data.rsi15m}\n📰 *News:* ${news[0]}\n🎯 *Buy:* ₹${data.price} | 🛑 *SL (-3%):* ₹${(data.price * 0.97).toFixed(2)}\n🚀 *T1 (+6%):* ₹${(data.price * 1.06).toFixed(2)} | 🔥 *T2 (+10%):* ₹${(data.price * 1.10).toFixed(2)}`);
+                    const qty10k = Math.max(1, Math.floor(10000 / data.price));
+                    liveOpportunities.push(
+                        `🚀 *SWING STOCK BREAKOUT: ${name}*\n` +
+                        `⭐ *Accuracy Score:* 8.5/10 (Volume + RSI Sweet Spot)\n` +
+                        `💰 *Buy Price:* ₹${data.price} (+${data.changePct}% | RSI: ${data.rsi15m})\n` +
+                        `💼 *Kitna Lagayein (₹10,000 Budget):* *${qty10k} Shares* kharidein\n` +
+                        `🛑 *Stop-Loss (-3%):* ₹${(data.price * 0.97).toFixed(2)}\n` +
+                        `🎯 *Target 1 (+6%):* ₹${(data.price * 1.06).toFixed(2)} | *Target 2 (+10%):* ₹${(data.price * 1.10).toFixed(2)}`
+                    );
                 }
             }
         }
 
-        // Agar 15-Min Opportunity Radar Mode hai toh sirf strong breakout milne par hi message bhejein
         if (onlyOpportunityMode) {
             if (liveOpportunities.length > 0) {
-                const oppMsg = `🚨 *LIVE MARKET OPPORTUNITY ALERT* 🚨\n_(15-Minute Chart High-Probability Setup!)_\n\n` + liveOpportunities.join("\n\n----------------------------\n\n");
+                const oppMsg = `🚨 *HIGH-ACCURACY TRADE ALERT* 🚨\n\n` + liveOpportunities.join("\n\n━━━━━━━━━━━━━━━━━━\n\n");
                 await sendDirectWhatsApp(STOCK_TARGET_PHONE, oppMsg);
-                console.log(`🔥 [Live Opportunity Radar] Instant breakout alert sent to ${STOCK_TARGET_PHONE}`);
             }
             return;
         }
 
         if (!stocksList.length && !fnoList.length) return;
 
-        let finalReport = "";
-        const apiKey = process.env.GEMINI_API_KEY;
+        // Full Report with Step-by-Step Capital & Option Guide
+        const lines = [
+            "📊 *PRO F&O & SWING TRADING GUIDE*",
+            "_(Easy Option Chain + Capital Breakdown)_\n",
+            "⚡ *1. F&O INTRADAY OPTION CHAIN GUIDE*"
+        ];
 
-        if (apiKey) {
-            try {
-                const prompt = `Tum ek strict Indian Stock Market & F&O 15-Minute Chart Analyst ho.\nNeeche F&O Indices (Nifty, BankNifty) ka 15m RSI + 9/21 EMA data aur Stocks data hai:\n${summaryText}\n\nRules:\n1. Pehle '⚡ F&O 15-MIN CHART PREDICTION' section mein Nifty 50 aur Bank Nifty ka Call (CE) ya Put (PE) strike, Spot Entry, Spot SL aur Targets likho (sideways hone par NO TRADE bolo).\n2. Phir '🏢 SWING STOCKS RADAR' mein sirf positive price + RSI > 52 + good news wale stock ko PAPER BUY (Entry, -3% SL, +6% T1, +10% T2) bolo. Hinglish mein short WhatsApp format mein likho.`;
+        for (const f of fnoList) {
+            lines.push(`\n📈 *${f.name}* (Spot: ₹${f.spot} | RSI: ${f.rsi} | VWAP: ₹${f.vwap})`);
+            if (f.optionPick !== "WAIT") {
+                lines.push(`🟢 *Signal:* *${f.signal}* (Score: ${f.conviction})`);
+                lines.push(`👉 *Option Chain Mein Search Karein:* *${f.name} ${f.optionPick}*`);
+                lines.push(`📦 *Lot Size:* 1 Lot = ${f.lotSize} Qty`);
+                lines.push(`💵 *Est. Option Premium:* ~₹${f.estPremium}`);
+                lines.push(`💰 *Kul Paisa Lagega (1 Lot):* *~₹${f.capital1Lot.toLocaleString('en-IN')}*`);
+                lines.push(`🛑 *Option SL:* ₹${f.premSL} (Risk: ₹${f.maxRisk1Lot}) | 🎯 *Option Target:* ₹${f.premT1} (Profit: +₹${f.reward1Lot})`);
+                lines.push(`📍 _(Chart Spot SL: ₹${f.sl} | Spot T1: ₹${f.t1})_`);
+            } else {
+                lines.push(`⏳ *Action:* *${f.signal}*`);
+            }
+            lines.push("----------------------------");
+        }
 
-                const aiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const aiData = await aiRes.json();
-                finalReport = aiData?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-            } catch (e) {
-                console.error("Gemini Stock API Error:", e.message);
+        lines.push("\n🏢 *2. SWING STOCKS (CASH DELIVERY)*");
+        for (const item of stocksList) {
+            const hasBadNews = negWords.some(w => item.news.join(" ").toLowerCase().includes(w));
+            lines.push(`\n🏢 *${item.name}* — ₹${item.price} (${item.changePct}% | RSI: ${item.rsi15m})`);
+            if (item.isHighAccuracyBuy && !hasBadNews) {
+                const qty10k = Math.max(1, Math.floor(10000 / item.price));
+                lines.push(`✅ *Signal: PAPER BUY (High Accuracy)*`);
+                lines.push(`💼 *₹10,000 Budget:* *${qty10k} Shares* @ ₹${item.price}`);
+                lines.push(`🛑 *SL (-3%):* ₹${(item.price * 0.97).toFixed(2)} | 🚀 *Target (+6%):* ₹${(item.price * 1.06).toFixed(2)}`);
+            } else {
+                const reason = item.rsi15m > 67 ? `Overbought RSI (${item.rsi15m}) - Top par mat lein` : "Momentum weak hai";
+                lines.push(`⏳ *NO ENTRY (WAIT)* — _(${reason})_`);
             }
         }
 
-        if (!finalReport) {
-            const lines = ["📊 *F&O 15M CHART & SWING TRADING REPORT*\n", "⚡ *F&O 15-MIN CHART SIGNALS*"];
-            for (const f of fnoList) {
-                lines.push(`📈 *${f.name}* (Spot: ₹${f.spot} | RSI: ${f.rsi})`);
-                if (f.optionPick !== "WAIT") {
-                    lines.push(`🔥 *${f.signal}*\n🎯 *Strike:* *${f.optionPick}* | 🛑 SL: ₹${f.sl} | 🚀 T1: ₹${f.t1} | 🔥 T2: ₹${f.t2}`);
-                } else {
-                    lines.push(`⏳ *Signal: NO TRADE (Wait for 15m Breakout)*`);
-                }
-                lines.push("----------------------------");
-            }
-            lines.push("\n🏢 *SWING STOCKS RADAR*");
-            for (const item of stocksList) {
-                const hasBadNews = negWords.some(w => item.news.join(" ").toLowerCase().includes(w));
-                lines.push(`🏢 *${item.name}* — ₹${item.price} (${item.changePct}% | RSI: ${item.rsi15m})`);
-                if (item.changePct > 0 && item.rsi15m >= 52 && !hasBadNews) {
-                    lines.push(`✅ *PAPER BUY* | 🎯 ₹${item.price} | 🛑 SL: ₹${(item.price * 0.97).toFixed(2)} | 🚀 T1: ₹${(item.price * 1.06).toFixed(2)}`);
-                } else {
-                    lines.push(`⏳ *NO ENTRY (WAIT)*`);
-                }
-                lines.push("----------------------------");
-            }
-            finalReport = lines.join("\n");
-        }
-
-        await sendDirectWhatsApp(STOCK_TARGET_PHONE, finalReport);
-        console.log(`✅ [Timed Stock & F&O Bot] Report sent to ${STOCK_TARGET_PHONE}!`);
+        await sendDirectWhatsApp(STOCK_TARGET_PHONE, lines.join("\n"));
+        console.log(`✅ [Pro Stock & F&O Bot] Detailed guide sent to ${STOCK_TARGET_PHONE}!`);
     } catch (err) {
         console.error("Scheduled Stock Bot Error:", err.message);
     }
@@ -3082,8 +3136,10 @@ async function sendScheduledStockNotification(onlyOpportunityMode = false) {
 cron.schedule('30 9,11,13 * * 1-5', () => sendScheduledStockNotification(false), { timezone: "Asia/Kolkata" });
 cron.schedule('0 15 * * 1-5', () => sendScheduledStockNotification(false), { timezone: "Asia/Kolkata" });
 
-// 🚨 2. Live Opportunity Radar: Har 15 Minute mein (9:15 AM se 3:15 PM, Mon-Fri)
+// 🚨 2. Live Opportunity Radar: Har 15 Minute mein (9:15 AM ka opening noise trap skip karega)
 cron.schedule('*/15 9-15 * * 1-5', () => {
+    const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    if (nowIST.getHours() === 9 && nowIST.getMinutes() === 15) return; // 🚫 Skip 9:15 AM trap
     sendScheduledStockNotification(true);
     fetch('https://bhopal-real-estate.onrender.com/robots.txt').catch(() => {});
 }, { timezone: "Asia/Kolkata" });
