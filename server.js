@@ -185,7 +185,6 @@ const UniversalReceipt = mongoose.model('UniversalReceipt', universalReceiptSche
 const TenantLedgerSchema = new mongoose.Schema({
     ownerEmail: { type: String, required: true },
     roomOrFlatNo: { type: String, required: true },
-    
     tenantName: String,
     tenantFatherName: String,
     tenantDOB: { type: String, default: '' }, // 🎂 Birthday Wishes Integration
@@ -196,19 +195,13 @@ const TenantLedgerSchema = new mongoose.Schema({
     aadharNumber: String, 
     jobStatus: String, 
     tenantEmail: String, 
-    
     currentMeterReading: { type: Number, default: 0 }, 
-
-    // 🚀 NEW: Payment Link Tracking Fields
     activeOrderId: { type: String, default: null },
     activePaymentLink: { type: String, default: null },
     linkExpiryTime: { type: Date, default: null },
-
-    // 🌟 SMART BRAIN TRACKING FIELDS
     lastAlertSentAt: { type: Date, default: null },       
     alertCount: { type: Number, default: 0 },             
     needsAssistance: { type: Boolean, default: false },   
-
     monthlyEntries: [{
         monthDate: String,
         rent: Number,
@@ -217,10 +210,10 @@ const TenantLedgerSchema = new mongoose.Schema({
         waterUnit: { type: Number, default: 0 },
         waterBill: Number,
         total: Number,
-        paidAmount: { type: Number, default: 0 }, // 💵 Kitna paisa jama hua
-        balance: { type: Number, default: 0 },    // ⚖️ Kitna baki raha (Carry Forward)
-        billNotified: { type: Boolean, default: false }, // 📤 Bill WhatsApp gaya ya nahi
-        paidNotified: { type: Boolean, default: false }, // ✅ Receipt WhatsApp gayi ya nahi
+        paidAmount: { type: Number, default: 0 },
+        balance: { type: Number, default: 0 },
+        billNotified: { type: Boolean, default: false },
+        paidNotified: { type: Boolean, default: false },
         isLocked: { type: Boolean, default: false }
     }],
     status: { type: String, enum: ['Active', 'Left'], default: 'Active' }
@@ -239,7 +232,6 @@ async function getOrGeneratePaymentLink(tenant) {
     const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
     const dueAmount = latestEntry ? (Number(latestEntry.balance !== undefined ? latestEntry.balance : latestEntry.total) || 0) : 0;
 
-    // 1. Agar link valid hai (24 hours expire nahi hui) -> Return old link
     if (tenant.activePaymentLink && tenant.linkExpiryTime && new Date(tenant.linkExpiryTime) > currentTime) {
         if (!customPaymentDB[tenant.activeOrderId]) {
             customPaymentDB[tenant.activeOrderId] = {
@@ -255,7 +247,6 @@ async function getOrGeneratePaymentLink(tenant) {
         return tenant.activePaymentLink; 
     }
 
-    // 2. Agar expire ho gayi hai -> Generate NEW 24-hr link
     const newOrderId = 'BRE-INV-' + Date.now().toString().slice(-8);
     const newExpiry = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
     const newLink = `https://bhopal-real-estate.onrender.com/pay/${newOrderId}`;
@@ -346,7 +337,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 { ownerEmail, roomOrFlatNo, status: 'Active' },
                 { $set: { status: 'Left' } }
             );
-            // 🚀 NEW: Generate Vacancy Call Tasks for Owner & Leaving Tenant
             if (oldTenant) {
                 await createVacancyLeadTasks(ownerEmail, roomOrFlatNo, oldTenant.tenantName, oldTenant.mobileNo);
             }
@@ -355,7 +345,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 
         const existingRecord = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
 
-        // Preserve notification flags from old entries before saving
         if (Array.isArray(monthlyEntries) && existingRecord && Array.isArray(existingRecord.monthlyEntries)) {
             for (let i = 0; i < monthlyEntries.length; i++) {
                 const oldEntry = existingRecord.monthlyEntries[i];
@@ -370,7 +359,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             }
         }
 
-        // 1. Update Database First
         await TenantLedger.updateOne(
             { ownerEmail, roomOrFlatNo, status: 'Active' },
             { 
@@ -382,7 +370,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             { upsert: true }
         );
 
-        // 2. Fetch the saved record to process notifications and dynamic links
         const savedTenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
 
         if (savedTenant && savedTenant.monthlyEntries && savedTenant.monthlyEntries.length > 0) {
@@ -390,9 +377,8 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 const entry = savedTenant.monthlyEntries[i];
                 const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${savedTenant._id}`;
 
-                // 📲 1. AUTOMATIC BILL WHATSAPP WITH PAYMENT LINK
                 if (Number(entry.total) > 0 && !entry.billNotified && savedTenant.mobileNo) {
-                    const paymentLink = await getOrGeneratePaymentLink(savedTenant); // Magic Link
+                    const paymentLink = await getOrGeneratePaymentLink(savedTenant);
                     const prevBal = i > 0 ? (Number(savedTenant.monthlyEntries[i - 1].balance) || 0) : 0;
                     
                     const billMsg = `📊 *मासिक किराया एवं बिल हिसाब (Bhopal Properties)*\n\nनमस्ते *${savedTenant.tenantName}* जी (रूम/फ्लैट: *${roomOrFlatNo}*),\nआपका *${entry.monthDate}* का लेजर बिल अपडेट हो गया है:\n\n🏠 मासिक किराया: ₹${entry.rent || 0}\n⚡ बिजली बिल: ₹${entry.billAmount || 0} (Reading: ${entry.electricityUnit || 0})\n💧 पानी बिल: ₹${entry.waterBill || 0}\n🔄 पिछला बकाया: ₹${prevBal}\n----------------------\n💰 *कुल देय राशि (Total): ₹${entry.total}*\n💵 जमा राशि (Paid): ₹${entry.paidAmount || 0}\n⚖️ *शेष बकाया (Balance): ₹${entry.balance || 0}*\n\n🔗 *ऑनलाइन भुगतान करें (24 घंटे मान्य):*\n${paymentLink}\n\nकृपया समय पर पेमेंट कर अपना डिजिटल खाता क्लियर रखें। 🙏\n🌐 Passbook: ${passbookUrl}`;
@@ -401,7 +387,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                     savedTenant.monthlyEntries[i].billNotified = true;
                 }
 
-                // 📲 2. AUTOMATIC PAYMENT RECEIPT WHATSAPP (Jab Owner manual entry kare)
                 const newPaid = Number(entry.paidAmount) || 0;
                 if (newPaid > 0 && !entry.paidNotified && savedTenant.mobileNo) {
                     const receiptMsg = `✅ *पेमेंट प्राप्त रसीद (Payment Received)*\n\nनमस्ते *${savedTenant.tenantName}* जी (${roomOrFlatNo}),\n*${entry.monthDate}* के कुल बिल (₹${entry.total}) में से आपकी *₹${newPaid}* की राशि प्राप्त हो गई है।\n\n⚖️ *शेष बकाया (Balance): ₹${entry.balance || 0}*\n(यदि कोई शेष राशि है, तो वह अगले माह के बिल में जुड़कर आएगी)\n\nधन्यवाद! 🙏\n🌐 Passbook: ${passbookUrl}`;
@@ -411,7 +396,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
                 }
             }
             savedTenant.markModified('monthlyEntries');
-            await savedTenant.save(); // Save notification flags and links
+            await savedTenant.save();
         }
         res.json({ success: true, message: "✅ डेटा सफलतापूर्वक सेव हो गया और WhatsApp पर पेमेंट लिंक भेज दिया गया!" });
     } catch (error) {
@@ -453,9 +438,6 @@ async function processLedgerReminders(slotType) {
             const activeEntries = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0);
             const latestEntry = activeEntries.length > 0 ? activeEntries[activeEntries.length - 1] : null;
 
-            // =================================================================
-            // 1️⃣ OWNER REMINDER: Billing date par agar Owner ne ledger update nahi kiya
-            // =================================================================
             if (tenant.joiningDate) {
                 const joinDate = new Date(tenant.joiningDate);
                 const isBillingDay = (joinDate.getDate() === currentDay);
@@ -504,11 +486,7 @@ async function processLedgerReminders(slotType) {
                 }
             }
 
-            // =================================================================
-            // 2️⃣ TENANT PAYMENT CHASER WITH SMART LINK (9 AM, 12 PM, 8 PM)
-            // =================================================================
             if (latestEntry && Number(latestEntry.total) > 0 && Number(latestEntry.paidAmount || 0) === 0 && tenant.mobileNo) {
-                
                 const paymentLink = await getOrGeneratePaymentLink(tenant); 
                 let tenantReminderMsg = "";
                 const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
@@ -538,8 +516,6 @@ async function processLedgerReminders(slotType) {
 // =========================================================================
 // 💳 CUSTOM HOSTED PAYMENT PAGE, LIVE POLLING & DUAL WHATSAPP RECEIPTS
 // =========================================================================
-
-// Common Function: Ledger ko Paid mark karne aur Tenant + Owner dono ko WhatsApp Receipt bhejne ke liye
 async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
     const tenant = await TenantLedger.findById(tenantId);
     if (!tenant || !tenant.monthlyEntries) return false;
@@ -552,7 +528,6 @@ async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
         const entry = tenant.monthlyEntries[i];
         const currentBalance = Number(entry.balance !== undefined ? entry.balance : entry.total) || 0;
 
-        // Latest unpaid entry dhoondhein
         if (Number(entry.total) > 0 && currentBalance > 0) {
             finalAddedAmt = Number(paidAmt) || currentBalance;
             entry.paidAmount = (Number(entry.paidAmount) || 0) + finalAddedAmt;
@@ -579,7 +554,6 @@ async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
         });
         const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
 
-        // 💾 1. UniversalReceipt me bhi save karein taaki Admin / Owner ke record me rahe
         try {
             await new UniversalReceipt({
                 userEmail: tenant.ownerEmail,
@@ -590,14 +564,12 @@ async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
             }).save();
         } catch (e) { console.error("UniversalReceipt Save Error:", e); }
 
-        // 📲 2. TENANT (किरायेदार) KO WHATSAPP RECEIPT BHEJEIN
         if (tenant.mobileNo) {
             const tenantReceiptMsg = `✅ *ऑटोमैटिक पेमेंट रसीद (Bhopal Properties)*\n\nनमस्ते *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nआपके मासिक बिल (*${paidEntryDetails.monthDate}*) में से *₹${finalAddedAmt}* का ऑनलाइन भुगतान सफलतापूर्वक प्राप्त हो गया है! 🎉\n\n━━━━━━━━━━━━━━━━━━\n🏠 *रूम/फ्लैट:* ${tenant.roomOrFlatNo}\n💰 *कुल बिल:* ₹${paidEntryDetails.total}\n💵 *जमा राशि (Paid):* ₹${paidEntryDetails.paidAmount}\n⚖️ *शेष बकाया (Balance):* ₹${paidEntryDetails.balance}\n🔢 *UTR / Ref:* ${txnRef}\n📅 *दिनांक:* ${dateStr}\n━━━━━━━━━━━━━━━━━━\n\nआपका डिजिटल खाता अपडेट कर दिया गया है।\n🌐 *Live Passbook:* ${passbookUrl}\n\nधन्यवाद! 🙏`;
 
             sendDirectWhatsApp(tenant.mobileNo, tenantReceiptMsg).catch(e => console.error("Tenant WA Receipt Err:", e));
         }
 
-        // 📲 3. OWNER (मकान मालिक) KO BHI WHATSAPP RECEIPT AUR CONFIRMATION BHEJEIN
         try {
             let ownerPhone = '';
             let ownerName = 'Owner';
@@ -623,12 +595,10 @@ async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
     return updated;
 }
 
-// 1. Render Smart Payment Page (With Auto-Detect Polling & Receipt View)
 app.get('/pay/:orderId', async (req, res) => {
     const orderId = req.params.orderId;
     let order = customPaymentDB[orderId];
 
-    // Agar server restart hua ho toh MongoDB se order recover karein
     if (!order) {
         const tenant = await TenantLedger.findOne({ activeOrderId: orderId, status: 'Active' });
         if (tenant) {
@@ -652,7 +622,6 @@ app.get('/pay/:orderId', async (req, res) => {
         return res.status(404).send("<h2 style='text-align:center; padding:50px; font-family:sans-serif;'>❌ Invalid Payment Link</h2>");
     }
 
-    // ✅ AGAR PAYMENT HO CHUKA HAI TOH SEEDHA PAKKI RECEIPT DIKHAYEIN
     if (order.status === 'PAID') {
         return res.send(`
         <!DOCTYPE html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -679,7 +648,6 @@ app.get('/pay/:orderId', async (req, res) => {
         return res.send("<h2 style='text-align:center; padding:50px; color:red; font-family:sans-serif;'>⏳ Link Expired! Nayi link agle reminder me aayegi.</h2>");
     }
 
-    // 🔴 AAPKI ASLI UPI ID
     const yourUpiId = "bhopalrealestate@axl"; 
     const merchantName = "Bhopal-Real-Estate";
 
@@ -699,31 +667,25 @@ app.get('/pay/:orderId', async (req, res) => {
             <h3 style="margin:0; color:#1e1b4b;">Bhopal Real Estate</h3>
             <p style="font-size:12px;color:#666; margin-top:4px;">Order ID: <b>${order.orderId}</b></p>
             <h1 style="color:#16a34a; font-size:36px; margin:12px 0;">₹${order.amount}</h1>
-            
             <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1.5px dashed #cbd5e1; display:inline-block;">
                 <img src="${qrUrl}" alt="QR" style="width:180px;height:180px;display:block;">
                 <p style="font-size:11px; color:#475569; margin:6px 0 0; font-weight:bold;">Scan with PhonePe / GPay / Paytm</p>
             </div>
-            
             <a href="${upiString}" class="btn">📲 Pay ₹${order.amount} via PhonePe / GPay</a>
-
             <div class="pulse">⏳ Waiting for payment...<br><span style="font-size:11px;font-weight:normal;">Payment hote hi yeh page apne aap Receipt ban jayega, ya neeche UTR daal kar turant verify karein:</span></div>
-            
             <form action="/api/custom-gateway/webhook" method="POST" style="margin-top:12px; border-top:1px solid #eee; padding-top:12px;">
                 <input type="hidden" name="orderId" value="${order.orderId}">
                 <input type="text" name="transactionRef" placeholder="Enter 12-Digit UTR No. (e.g. 919808...)" required style="width:100%;padding:11px;margin-bottom:10px;border:1px solid #cbd5e1;border-radius:6px;box-sizing:border-box;font-size:13px;text-align:center;">
                 <button type="submit" class="btn" style="background:#1e1b4b; margin-top:0;">✔ Submit UTR & Get Instant Receipt</button>
             </form>
         </div>
-
         <script>
-            // 🔄 Har 3 second me check karega ki MacroDroid webhook aaya ya nahi
             setInterval(async () => {
                 try {
                     const res = await fetch('/api/custom-gateway/status/${order.orderId}');
                     const data = await res.json();
                     if (data.status === 'PAID') {
-                        window.location.reload(); // Paid hote hi page reload hokar Receipt dikhayega!
+                        window.location.reload();
                     }
                 } catch(e) {}
             }, 3000);
@@ -732,14 +694,12 @@ app.get('/pay/:orderId', async (req, res) => {
     `);
 });
 
-// Status Polling API for Payment Page
 app.get('/api/custom-gateway/status/:orderId', (req, res) => {
     const order = customPaymentDB[req.params.orderId];
     if (!order) return res.json({ status: 'NOT_FOUND' });
     res.json({ status: order.status });
 });
 
-// 2. Manual UTR Submit Webhook (Customer UTR daale toh bhi turant update ho)
 app.post('/api/custom-gateway/webhook', async (req, res) => {
     const { orderId, transactionRef } = req.body;
     let order = customPaymentDB[orderId];
@@ -760,7 +720,6 @@ app.post('/api/custom-gateway/webhook', async (req, res) => {
         console.log(`✅ Manual UTR Verified & Ledger Updated for ${orderId}`);
     }
 
-    // Redirect back to /pay/:orderId so customer immediately sees the Receipt Page!
     res.redirect(`/pay/${orderId}`);
 });
 
@@ -811,7 +770,7 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         const today = new Date();
         const currentDay = String(today.getDate()).padStart(2, '0');
         const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
-        const todayKey = `${currentDay}-${currentMonth}`; // DD-MM format
+        const todayKey = `${currentDay}-${currentMonth}`;
 
         const activeTenants = await TenantLedger.find({ status: 'Active' });
         const allBrokers = await BrokerProfile.find({ phone: { $exists: true, $ne: '' } });
@@ -821,19 +780,17 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
             const clean = dobString.replace(/\//g, '-');
             const parts = clean.split('-');
             let d = '', m = '';
-            if (parts[0].length === 4) { // YYYY-MM-DD
+            if (parts[0].length === 4) {
                 m = parts[1].padStart(2, '0');
                 d = parts[2].padStart(2, '0');
-            } else { // DD-MM-YYYY
+            } else {
                 d = parts[0].padStart(2, '0');
                 m = parts[1].padStart(2, '0');
             }
             return (d === currentDay && m === currentMonth);
         };
 
-        // 🎂 1 & 2. BIRTHDAY WISHES (Sirf tab chalega jab force festival test NA ho raha ho)
         if (!forcedFestivalName) {
-            // Brokers Birthday
             for (const broker of allBrokers) {
                 if (broker.dob && broker.phone && isBirthdayToday(broker.dob)) {
                     const brokerUser = await User.findOne({ email: broker.brokerEmail });
@@ -846,7 +803,6 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
                 }
             }
 
-            // Tenants Birthday
             for (const tenant of activeTenants) {
                 if (tenant.tenantDOB && tenant.mobileNo && isBirthdayToday(tenant.tenantDOB)) {
                     const bdayMsg = `🎂 जन्मदिन की हार्दिक शुभकामनाएँ, ${tenant.tenantName} ji! 🎉\n\nभोपाल प्रॉपर्टीज परिवार की तरफ से आपके उत्तम स्वास्थ्य, दीर्घायु और खुशियों भरे वर्ष की मंगलकामना करते हैं। Have a fantastic day ahead! 🌟\n\n🌐 Visit Us: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
@@ -857,7 +813,6 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
             }
         }
 
-        // 🪔 3. FESTIVAL GREETINGS: BROKERS FIRST, THEN TENANTS
         const festivalName = forcedFestivalName || festivalCache[todayKey];
 
         if (festivalName) {
@@ -891,31 +846,26 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
     }
 }
 
-// ⏰ Roz Subah 8:00 AM Cron Job (Automated Daily Check)
 cron.schedule('0 8 * * *', () => {
     console.log("🌅 Running 8:00 AM Birthday & Festival Check...");
     processGreetingsAndWishes();
 }, { timezone: "Asia/Kolkata" });
 
-// ⏰ Har Mahine ki 1 tareekh ko auto calendar sync
 cron.schedule('0 0 1 * *', () => {
     console.log("🔄 Syncing holiday calendar from internet...");
     updateFestivalCalendar();
 }, { timezone: "Asia/Kolkata" });
 
-// ⏰ 1. SUBAH 9:00 AM (09:00 IST)
 cron.schedule('0 9 * * *', () => {
     console.log("🌅 Running 9:00 AM Morning Check...");
     processLedgerReminders('morning_9am');
 }, { timezone: "Asia/Kolkata" });
 
-// ⏰ 2. DOPAHER 12:00 PM (12:00 IST)
 cron.schedule('0 12 * * *', () => {
     console.log("☀️ Running 12:00 PM Afternoon Check...");
     processLedgerReminders('afternoon_12pm');
 }, { timezone: "Asia/Kolkata" });
 
-// ⏰ 3. SHAAM 8:00 PM (20:00 IST)
 cron.schedule('0 20 * * *', () => {
     console.log("🌙 Running 8:00 PM Evening Check...");
     processLedgerReminders('evening_8pm');
@@ -935,25 +885,51 @@ app.get('/api/admin/pending-assistances', async (req, res) => {
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
+
 // ==========================================
-// 🤖 WHATSAPP AI PROPERTY SEARCH + ADMIN STOCK BOT ENGINE
+// 🤖 WHATSAPP AI PROPERTY SEARCH + ADMIN AI TRADING AGENT & F&O ENGINE
 // ==========================================
 app.post('/api/whatsapp/incoming-bot', async (req, res) => {
     try {
         const { senderPhone, messageText } = req.body;
         if (!senderPhone || !messageText) return res.status(400).json({ success: false });
 
-        const query = messageText.toLowerCase();
-
-        // 🔒 EXCLUSIVE STOCK & F&O COMMAND POWER ONLY FOR 919399115595
+        const query = messageText.toLowerCase().trim();
         const cleanSender = senderPhone.replace(/\D/g, '').slice(-10);
-        const isStockCmd = ['stock', 'fno', 'f&o', 'f and o', 'best deal', 'nifty', 'banknifty', 'market', 'report'].some(k => query.includes(k));
-        if (isStockCmd) {
+
+        // 🔒 EXCLUSIVE STOCK, F&O & ₹10K AI AGENT COMMANDS ONLY FOR 919399115595
+        const isFastFnO = ['fno', 'f&o', 'f and o', 'nifty', 'banknifty'].some(k => query.includes(k));
+        const isWalletCmd = ['wallet', 'portfolio', 'agent', 'fund', 'balance', 'reset wallet'].some(k => query.includes(k));
+        const isStockCmd = ['stock', 'best deal', 'market', 'report'].some(k => query.includes(k));
+
+        if (isFastFnO || isWalletCmd || isStockCmd) {
             if (cleanSender !== STOCK_TARGET_PHONE.slice(-10)) {
-                await sendDirectWhatsApp(senderPhone, "🔒 Yeh Stock & F&O AI Command sirf Authorized Admin Number ke liye locked hai.");
+                await sendDirectWhatsApp(senderPhone, "🔒 Yeh Stock & AI Trading Agent Command sirf Authorized Admin Number ke liye locked hai.");
                 return res.json({ success: false, message: "Unauthorized stock command blocked" });
             }
-            await sendDirectWhatsApp(STOCK_TARGET_PHONE, "⏳ *F&O 15m Chart + Swing Radar* scan ho raha hai, 10 second mein live report aa rahi hai...");
+
+            // 1. Reset ₹10,000 Wallet Command
+            if (query.includes('reset wallet')) {
+                await AiAgentWallet.deleteMany({ adminPhone: STOCK_TARGET_PHONE });
+                await getOrInitWallet();
+                await sendDirectWhatsApp(STOCK_TARGET_PHONE, "🔄 *AI AGENT WALLET RESET!* Aapka virtual trading fund wapas *₹10,000* par set kar diya gaya hai aur saare open trades clear ho gaye hain.");
+                return res.json({ success: true });
+            }
+
+            // 2. Check Live ₹10,000 Portfolio & P&L Status
+            if (isWalletCmd) {
+                await sendWalletStatusToWhatsApp();
+                return res.json({ success: true });
+            }
+
+            // 3. Instant 1.5-Second F&O Radar (Bina News/Stock Delay Ke)
+            if (isFastFnO && !query.includes('stock')) {
+                await sendFastFnORadar();
+                return res.json({ success: true });
+            }
+
+            // 4. Full Market + AI Agent Scan
+            await sendDirectWhatsApp(STOCK_TARGET_PHONE, "🤖 *AI Trading Agent* live 15m chart patterns aur aapka ₹10,000 portfolio scan kar raha hai...");
             await sendScheduledStockNotification(false);
             return res.json({ success: true, message: "On-demand Stock & F&O report sent to Admin!" });
         }
@@ -990,7 +966,6 @@ app.post('/api/whatsapp/incoming-bot', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
-
 
 // 📊 PUBLIC READ-ONLY PASSBOOK API
 app.get('/api/public/tenant-ledger/:id', async (req, res) => {
@@ -1091,9 +1066,7 @@ app.post('/api/webhook', async (req, res) => {
         const smsText = req.body.smsText || req.query.smsText || ""; 
         console.log(`📱 PhonePe/Bank Notification Aaya: ${smsText}`);
 
-        // Match both whole numbers (₹11, Rs. 7860) and decimals (149.05)
         const amountMatch = smsText.match(/(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i) || smsText.match(/\b(\d+\.\d{2})\b/);
-        // Extract 12-digit UTR if present in notification
         const utrMatch = smsText.match(/\b(\d{12})\b/);
         const extractedUtr = utrMatch ? utrMatch[1] : ('AUTO_' + Date.now().toString().slice(-6));
 
@@ -1101,13 +1074,11 @@ app.post('/api/webhook', async (req, res) => {
             const rawAmount = amountMatch[1].replace(/,/g, '');
             const numericAmount = Number(rawAmount);
 
-            // 1. Check in old decimal activePayments system (Services / Verification fee ke liye)
             if (activePayments[rawAmount] && activePayments[rawAmount].status === "pending") {
                 activePayments[rawAmount].status = 'Success'; 
                 console.log(`✅ Old System Payment Confirmed for ₹${rawAmount}`);
             }
 
-            // 2. 🚀 NEW: Check in Custom Payment Links & Tenant Ledger!
             let matchedOrder = Object.values(customPaymentDB).find(
                 o => o.status === 'PENDING' && Number(o.amount) === numericAmount
             );
@@ -1118,7 +1089,6 @@ app.post('/api/webhook', async (req, res) => {
                 await markTenantLedgerPaid(matchedOrder.tenantId, numericAmount, extractedUtr);
                 console.log(`✅ MacroDroid Auto-Updated Ledger Order ${matchedOrder.orderId} for ₹${numericAmount}!`);
             } else {
-                // Fallback: Agar server restart hua ho toh seedha MongoDB TenantLedger me dhoondhein
                 const activeTenants = await TenantLedger.find({ status: 'Active' });
                 for (const tenant of activeTenants) {
                     const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
@@ -1507,7 +1477,6 @@ app.get('/api/get-profile', async (req, res) => {
         let actualRole = userDoc ? (userDoc.role || 'user') : 'user';
         if (cleanEmail === "devilking786k@sahu.com") actualRole = 'admin';
 
-        // Check karein ki user Employee / Employer / Admin / Customer Care hai ya normal User
         const allowedRoles = ['employee', 'employer', 'agent', 'admin', 'staff', 'field_officer', 'customer_care'];
         const isEligibleForIdCard = allowedRoles.includes(actualRole.toLowerCase());
 
@@ -1540,7 +1509,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
 
         const cleanInputPhone = phone ? phone.trim().replace(/\D/g, '').slice(-10) : '';
 
-        // 🔍 CHECK 1: DUPLICATE PHONE NUMBER CHECK
         if (cleanInputPhone) {
             const existingProfile = await BrokerProfile.findOne({
                 phone: { $regex: cleanInputPhone },
@@ -1584,7 +1552,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             ? updateData.dealingAreas 
             : (currentProfile ? currentProfile.dealingAreas : []);
 
-        // 🔒 CHECK 2: MANDATORY PROFILE COMPLETION
         if (finalPhone && finalPhoto && finalDOB && finalAreas.length > 0) {
             updateData.isProfileComplete = true;
         } else {
@@ -1602,7 +1569,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             { new: true, upsert: true }
         );
 
-        // 🔗 SYNC: User table me bhi phone number update kar dein taaki Forgot Password me turant mile
         if (finalPhone) {
             await User.updateOne(
                 { email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } }, 
@@ -1610,7 +1576,6 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
             );
         }
 
-        // 🚀 LIVE TRIGGER: SEEDHE NAYE PHONE NUMBER (finalPhone) PAR WELCOME MESSAGE BHEJEIN
         if (finalPhone && (!updatedProfile.welcomeSent || isPhoneChanged)) {
             const user = await User.findOne({ email: cleanEmail });
             const brokerName = user ? user.name : 'Partner';
@@ -1656,13 +1621,11 @@ app.post('/api/signup', async (req, res) => {
             return res.status(400).json({ success: false, message: 'कृपया सही 10 अंकों का WhatsApp नंबर डालें!' });
         }
 
-        // 🔍 Check 1: Email pehle se registered to nahi?
         const existingUser = await User.findOne({ email: emailLower });
         if (existingUser) {
             return res.status(400).json({ success: false, message: 'यह Email पहले से रजिस्टर्ड है!' });
         }
 
-        // 🔍 Check 2: Phone number pehle se kisi user/broker ke pass to nahi?
         const existingPhoneUser = await User.findOne({ phone: cleanPhone });
         const existingPhoneBroker = await BrokerProfile.findOne({ phone: { $regex: cleanPhone } });
         if (existingPhoneUser || existingPhoneBroker) {
@@ -1682,7 +1645,6 @@ app.post('/api/signup', async (req, res) => {
         });
         await newPendingUser.save();
 
-        // 📲 SEND OTP VIA WHATSAPP
         const otpMessage = `🔐 *Bhopal Properties Verification*\n\nनमस्ते *${name}* ji,\nआपका अकाउंट वेरिफिकेशन OTP है: *${otp}*\n\nयह कोड 10 मिनट के लिए मान्य है। कृपया इसे किसी के साथ साझा न करें।\n\n🌐 https://bhopal-real-estate.onrender.com`;
         
         const isSent = await sendDirectWhatsApp(cleanPhone, otpMessage);
@@ -1717,7 +1679,6 @@ app.post('/api/verify-otp', async (req, res) => {
             return res.status(400).json({ success: false, message: '❌ गलत OTP! कृपया अपना WhatsApp चेक करके सही कोड डालें।' });
         }
 
-        // 1. User account create karein
         const newUser = new User({ 
             name: pendingUser.name, 
             email: pendingUser.email, 
@@ -1727,7 +1688,6 @@ app.post('/api/verify-otp', async (req, res) => {
         });
         await newUser.save();
 
-        // 2. BrokerProfile me verified phone number pehle se auto-save kar dein
         await BrokerProfile.findOneAndUpdate(
             { brokerEmail: pendingUser.email },
             { $set: { phone: pendingUser.phone } },
@@ -1759,7 +1719,6 @@ app.post('/api/forgot-password', async (req, res) => {
         let targetPhone = '';
         let targetName = 'Partner';
 
-        // 1. Agar user ne Email dala hai
         if (cleanInput.includes('@')) {
             targetEmail = cleanInput;
             const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
@@ -1771,9 +1730,7 @@ app.post('/api/forgot-password', async (req, res) => {
             if (brokerDoc && brokerDoc.phone && !targetPhone) {
                 targetPhone = brokerDoc.phone;
             }
-        } 
-        // 2. Agar user ne 10-digit Mobile Number dala hai
-        else if (digitsOnly.length === 10) {
+        } else if (digitsOnly.length === 10) {
             let brokerProf = await BrokerProfile.findOne({ phone: { $regex: digitsOnly } });
             let userDoc = await User.findOne({ phone: { $regex: digitsOnly } });
 
@@ -1837,7 +1794,6 @@ app.post('/api/forgot-password', async (req, res) => {
     }
 });
 
-// 🔍 STEP 2: VERIFY OTP & REVEAL USER ID (EMAIL)
 app.post('/api/verify-reset-otp', async (req, res) => {
     try {
         const { email, otp } = req.body;
@@ -1863,7 +1819,6 @@ app.post('/api/verify-reset-otp', async (req, res) => {
     }
 });
 
-// 🔐 STEP 3: SAVE NEW PASSWORD
 app.post('/api/reset-password', async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
@@ -2136,7 +2091,7 @@ app.get('/api/admin/get-payments', async (req, res) => {
             const endDate = new Date(queryDate);
             endDate.setHours(23, 59, 59, 999);
 
-            filter.createdAt = { $gte: startDate,$lte: endDate };
+            filter.createdAt = { $gte: startDate, $lte: endDate };
         }
 
         const paymentsData = await UniversalReceipt.find(filter).sort({ createdAt: -1 }); 
@@ -2145,7 +2100,6 @@ app.get('/api/admin/get-payments', async (req, res) => {
             success: true,
             payments: paymentsData
         });
-
     } catch (error) {
         console.error("Payment Fetch API Error:", error);
         res.status(500).json({ success: false, message: 'Server Error' });
@@ -2188,48 +2142,6 @@ app.get('/api/tenant/my-ledger', async (req, res) => {
         if (!ledger) return res.status(404).json({ success: false, message: 'कोई रिकॉर्ड नहीं मिला।' });
         res.json({ success: true, data: ledger });
     } catch (error) {
-        res.status(500).json({ success: false });
-    }
-});
-
-// ==========================================
-// 🤖 WHATSAPP AI PROPERTY SEARCH BOT ENGINE
-// ==========================================
-app.post('/api/whatsapp/incoming-bot', async (req, res) => {
-    try {
-        const { senderPhone, messageText } = req.body;
-        if (!senderPhone || !messageText) return res.status(400).json({ success: false });
-
-        const query = messageText.toLowerCase();
-        let filter = { status: 'approved' };
-
-        // Location match
-        if (query.includes('arera')) filter.location = /arera/i;
-        else if (query.includes('new market')) filter.location = /new market/i;
-        else if (query.includes('mp nagar')) filter.location = /mp nagar/i;
-
-        // Purpose match (Rent / Sale)
-        if (query.includes('rent') || query.includes('kiraye')) filter.purpose = /rent/i;
-        else if (query.includes('buy') || query.includes('sale') || query.includes('kharidna')) filter.purpose = /sale/i;
-
-        const matchedProps = await Property.find(filter).limit(3).lean();
-
-        if (matchedProps.length === 0) {
-            await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Kripya hamari website visit karein: https://bhopal-real-estate.onrender.com`);
-        } else {
-            let replyMsg = `🏢 *Bhopal Properties AI Bot*\nAapki talash ke anusaar yeh top properties milti hain:\n\n`;
-            matchedProps.forEach((p, index) => {
-                const propUrl = `https://bhopal-real-estate.onrender.com/property-details.html?id=${p._id}`;
-                replyMsg += `${index + 1}. *${p.title || 'Property'}*\n📍 Location: ${p.location}\n💰 Price: ₹${p.price}\n🔗 Dekhein: ${propUrl}\n\n`;
-            });
-            replyMsg += `📞 Adhik jankari ke liye call karein ya website par visit karein!`;
-            
-            await sendDirectWhatsApp(senderPhone, replyMsg);
-        }
-
-        res.json({ success: true, message: "Bot response sent successfully!" });
-    } catch (err) {
-        console.error("WhatsApp Bot Error:", err);
         res.status(500).json({ success: false });
     }
 });
@@ -2303,7 +2215,6 @@ function getUniquePaymentAmount(baseAmount, userId) {
 // =========================================================================
 // 🎧 MODULE: CUSTOMER CARE & SEQUENTIAL TELECALLER ENGINE (WEB + WHATSAPP)
 // =========================================================================
-
 const TELECALLER_WHATSAPP = "919993352339"; // 📱 Customer Care Official Fallback Number
 
 const SupportTaskSchema = new mongoose.Schema({
@@ -2323,15 +2234,13 @@ const SupportTaskSchema = new mongoose.Schema({
     targetName: { type: String, required: true },
     targetPhone: { type: String, required: true },
     scriptText: { type: String, required: true },
-    
-    // 🔒 Micro-Permissions (Sirf zaroori box khulega)
-    allowedActions: [{ type: String }], // ['UPDATE_METER', 'MARK_LEAVE', 'ADD_REMARK']
+    allowedActions: [{ type: String }],
     metaData: {
         prevMeterReading: { type: Number, default: 0 },
         unitRate: { type: Number, default: 10 },
         dueAmount: { type: Number, default: 0 },
         monthDate: { type: String, default: '' },
-        meterPhotoUrl: { type: String, default: '' } // 📸 Meter photo URL
+        meterPhotoUrl: { type: String, default: '' }
     },
     status: { type: String, enum: ['Pending', 'Hold', 'Completed'], default: 'Pending' },
     remark: { type: String, default: '' },
@@ -2341,38 +2250,32 @@ const SupportTaskSchema = new mongoose.Schema({
 
 const SupportTask = mongoose.models.SupportTask || mongoose.model('SupportTask', SupportTaskSchema);
 
-// 🔍 Dynamic Helper: Jis user ka role 'customer_care' hai uska WhatsApp number nikalna
 async function getActiveTelecallerPhone() {
     const ccUser = await User.findOne({ role: 'customer_care', phone: { $ne: '' } });
     if (ccUser && ccUser.phone) {
         const clean = ccUser.phone.replace(/\D/g, '').slice(-10);
         if (clean.length === 10) return '91' + clean;
     }
-    return TELECALLER_WHATSAPP; // Fallback number (919993352339)
+    return TELECALLER_WHATSAPP;
 }
 
-// 🔍 Helper: Agla Active Task (#1) Nikalna
 async function getNextActiveTask() {
     const totalPending = await SupportTask.countDocuments({ status: { $in: ['Pending', 'Hold'] } });
-    // Pehle Pending tasks aayenge, phir Hold wale aakhir mein
     const currentTask = await SupportTask.findOne({ status: { $in: ['Pending', 'Hold'] } })
         .sort({ status: -1, sequenceOrder: 1 }); 
     return { totalPending, currentTask };
 }
 
-// 📲 Helper: Telecaller ke WhatsApp par Current Task (#1) ya NIL Status Bhejna
 async function pushCurrentTaskToWhatsApp() {
     const targetPhone = await getActiveTelecallerPhone();
     const { totalPending, currentTask } = await getNextActiveTask();
     
-    // ✅ CASE 1: Agar aaj koi bhi task nahi hai (NIL / 0 Tasks)
     if (!currentTask || totalPending === 0) {
         const nilMsg = `📋 *CUSTOMER CARE DAILY STATUS*\n━━━━━━━━━━━━━━━━━━\n📊 *Aaj ke Total Tasks: 0 (NIL)*\n\n✅ Abhi koi bhi call ya task pending nahi hai! Aaj ke saare tasks poore ho chuke hain ya aaj koi naya task nahi hai.`;
         await sendDirectWhatsApp(targetPhone, nilMsg);
         return;
     }
 
-    // ✅ CASE 2: Agar tasks hain (e.g. 10 Tasks) -> Total count + Sirf Task #1 bhejein
     let actionHint = `👉 *WhatsApp Commands:*\n`;
     if (currentTask.allowedActions.includes('UPDATE_METER')) {
         actionHint += `• Meter reading update karne ke liye likhein: *READ 1250*\n• Yadi room khali ho gaya hai toh likhein: *LEAVE*\n`;
@@ -2384,7 +2287,6 @@ async function pushCurrentTaskToWhatsApp() {
     await sendDirectWhatsApp(targetPhone, msg);
 }
 
-// 🔄 Helper: Vacated Room ke 2 Leads (Owner + Tenant) Banana
 async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhone) {
     try {
         const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${ownerEmail}$`, 'i') } });
@@ -2392,7 +2294,6 @@ async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhon
         const ownerName = (userDoc && userDoc.name) ? userDoc.name : 'Sir';
         const ownerPhone = (brokerDoc && brokerDoc.phone) ? brokerDoc.phone : (userDoc ? userDoc.phone : '');
 
-        // 1. Call Task for Owner (New Tenant Lead)
         if (ownerPhone) {
             await SupportTask.create({
                 taskType: 'VACANCY_OWNER',
@@ -2406,7 +2307,6 @@ async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhon
             });
         }
 
-        // 2. Call Task for Leaving Tenant (Room Shifting Lead)
         if (tenantPhone) {
             await SupportTask.create({
                 taskType: 'VACANCY_TENANT',
@@ -2422,7 +2322,6 @@ async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhon
     } catch (e) { console.error("Vacancy Task Error:", e); }
 }
 
-// 🧠 Auto-Generator: Roz Subah Billing Day & 24-Hr Unpaid Tasks Banana
 async function generateDailySupportTasks() {
     try {
         const today = new Date();
@@ -2441,7 +2340,6 @@ async function generateDailySupportTasks() {
             const latestEntry = entries.length > 0 ? entries[entries.length - 1] : null;
             const prevMeter = latestEntry && latestEntry.electricityUnit > 0 ? latestEntry.electricityUnit : (tenant.currentMeterReading || 0);
 
-            // 1️⃣ TRIGGER A: Billing Day Meter Reading Task (Owner Call)
             if (tenant.joiningDate && ownerPhone) {
                 const joinDate = new Date(tenant.joiningDate);
                 const isUpdatedThisMonth = entries.some(e => 
@@ -2475,8 +2373,6 @@ async function generateDailySupportTasks() {
                 }
             }
 
-            // 2️⃣ TRIGGER B: 24-Hour Post-Billing Payment Follow-up (Tenant Call)
-            // Rule: Bill bane 24 ghante ho gaye (updatedAt <= 24 hrs ago) aur Paid Amount == 0 hai
             if (latestEntry && Number(latestEntry.total) > 0 && Number(latestEntry.paidAmount || 0) === 0 && tenant.mobileNo) {
                 const hoursSinceUpdate = (today.getTime() - new Date(tenant.updatedAt).getTime()) / (1000 * 60 * 60);
 
@@ -2510,39 +2406,34 @@ async function generateDailySupportTasks() {
     } catch (e) { console.error("Daily Support Task Gen Error:", e); }
 }
 
-// ⏰ Roz Subah 9:30 AM par Tasks Generate karke Telecaller ko WhatsApp par Task #1 bhejna
 cron.schedule('30 9 * * *', async () => {
     await generateDailySupportTasks();
     await pushCurrentTaskToWhatsApp();
 }, { timezone: "Asia/Kolkata" });
 
-// 🖥️ API 1: Get Current Sequential Task (#1 Only) for Dashboard
 app.get('/api/support/current-task', async (req, res) => {
     try {
-        await generateDailySupportTasks(); // Sync latest tasks
+        await generateDailySupportTasks();
         const { totalPending, currentTask } = await getNextActiveTask();
         res.json({ success: true, totalPending, task: currentTask });
     } catch (e) { res.status(500).json({ success: false, message: "Server Error" }); }
 });
 
-// ⚡ API 2: Execute Restricted Action & Complete/Hold Task (Web Dashboard)
 app.post('/api/support/complete-task', async (req, res) => {
     try {
         const { taskId, actionType, newMeterReading, remark } = req.body;
         const task = await SupportTask.findById(taskId);
         if (!task) return res.status(404).json({ success: false, message: "Task not found" });
 
-        // 1. Agar Telecaller ne Call Hold/Skip kiya (Call Not Picked)
         if (actionType === 'HOLD') {
             task.status = 'Hold';
-            task.sequenceOrder = Date.now() + 999999; // Queue ke bilkul aakhir me bhej dein
+            task.sequenceOrder = Date.now() + 999999;
             task.remark = remark || 'Call Not Picked / Hold';
             await task.save();
             const nextData = await getNextActiveTask();
             return res.json({ success: true, message: "⏭️ Task को लाइन के आखिर में डाल दिया गया है!", next: nextData });
         }
 
-        // 2. Micro-Permission Action A: सिर्फ Meter Reading अपडेट करना
         if (actionType === 'UPDATE_METER' && task.allowedActions.includes('UPDATE_METER')) {
             const tenant = await TenantLedger.findById(task.tenantId);
             if (tenant) {
@@ -2559,7 +2450,6 @@ app.post('/api/support/complete-task', async (req, res) => {
                 const rate = Number(tenant.unitRate || 10);
                 const elecBill = unitsConsumed * rate;
 
-                // Naya mahina ya existing active entry me bill jodna
                 const todayStr = new Date().toLocaleDateString('en-GB');
                 const defaultRent = lastIdx >= 0 ? (Number(entries[lastIdx].rent) || 0) : 0;
                 const prevBal = lastIdx >= 0 ? (Number(entries[lastIdx].balance) || 0) : 0;
@@ -2583,7 +2473,6 @@ app.post('/api/support/complete-task', async (req, res) => {
                 tenant.markModified('monthlyEntries');
                 await tenant.save();
 
-                // Generate 24-Hr Payment Link & Send WhatsApp to Tenant (24-hr Grace Period Starts!)
                 const payLink = await getOrGeneratePaymentLink(tenant);
                 const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${tenant._id}`;
                 if (tenant.mobileNo) {
@@ -2593,7 +2482,6 @@ app.post('/api/support/complete-task', async (req, res) => {
             }
         }
 
-        // 3. Micro-Permission Action B: Room Leave मार्क करना
         if (actionType === 'MARK_LEAVE' && task.allowedActions.includes('MARK_LEAVE')) {
             const tenant = await TenantLedger.findById(task.tenantId);
             if (tenant) {
@@ -2603,13 +2491,11 @@ app.post('/api/support/complete-task', async (req, res) => {
             }
         }
 
-        // Mark Current Task Completed
         task.status = 'Completed';
         task.remark = remark || 'Completed by Customer Care';
         task.completedAt = new Date();
         await task.save();
 
-        // Sync WhatsApp & Return Next Task (#2 becomes #1)
         pushCurrentTaskToWhatsApp().catch(() => {});
         const nextData = await getNextActiveTask();
         res.json({ success: true, message: "✅ Task #1 Complete! अगला टास्क खुल गया है।", next: nextData });
@@ -2619,7 +2505,6 @@ app.post('/api/support/complete-task', async (req, res) => {
     }
 });
 
-// 💬 API 3: WhatsApp Bot Command Receiver for Telecaller (Bina Laptop ke Kaam)
 app.post('/api/support/whatsapp-command', async (req, res) => {
     try {
         const { senderPhone, messageText } = req.body;
@@ -2634,7 +2519,6 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
         const text = messageText.trim();
         const upper = text.toUpperCase();
 
-        // 🚀 NEW: Jab Customer Care wala likhe "aj ke task", "aaj ke task", "task", ya "start"
         if (
             upper === 'START' || 
             upper === 'TASK' || 
@@ -2656,7 +2540,6 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
             return res.json({ success: true });
         }
 
-        // Command 1: READ <meter_number>
         if (upper.startsWith('READ ') && currentTask.allowedActions.includes('UPDATE_METER')) {
             const readingNum = Number(upper.replace('READ', '').trim());
             if (isNaN(readingNum) || readingNum <= 0) {
@@ -2697,7 +2580,6 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
             return res.json({ success: true });
         }
 
-        // Command 2: LEAVE (Room Vacated)
         if (upper === 'LEAVE' && currentTask.allowedActions.includes('MARK_LEAVE')) {
             const tenant = await TenantLedger.findById(currentTask.tenantId);
             if (tenant) {
@@ -2713,7 +2595,6 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
             return res.json({ success: true });
         }
 
-        // Command 3: HOLD
         if (upper.startsWith('HOLD')) {
             currentTask.status = 'Hold';
             currentTask.sequenceOrder = Date.now() + 999999;
@@ -2723,7 +2604,6 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
             return res.json({ success: true });
         }
 
-        // Command 4: DONE / TASK 1 DONE
         if (upper.includes('DONE')) {
             currentTask.status = 'Completed';
             currentTask.remark = text;
@@ -2740,8 +2620,6 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
 // =========================================================================
 // 📸 OWNER METER PHOTO UPLOAD & TENANT DELEGATION ("Tenant se mang lo")
 // =========================================================================
-
-// A. Jab Owner Meter ki Photo Upload kare
 app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'), async (req, res) => {
     try {
         const tenant = await TenantLedger.findById(req.params.tenantId);
@@ -2750,7 +2628,6 @@ app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'
         const photoUrl = req.file ? (req.file.path || req.file.url) : '';
         const feedback = req.body.feedback || '';
 
-        // Existing task update karein ya naya High-Priority Task #1 banayein
         let task = await SupportTask.findOne({ 
             tenantId: tenant._id, 
             taskType: 'METER_READING', 
@@ -2760,7 +2637,7 @@ app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'
         if (task) {
             task.remark = `📸 Meter Photo Received! ${feedback ? 'Feedback: ' + feedback : ''}`;
             task.scriptText = `✅ Owner ने मीटर की फोटो भेज दी है! फोटो देखकर नीचे बॉक्स में मीटर रीडिंग अपडेट करें और किरायेदार (${tenant.tenantName} - ${tenant.mobileNo}) को कॉल करके बताएं कि उनका महीना पूरा हो गया है और बिल व पेमेंट लिंक WhatsApp पर भेज दी गई है।`;
-            task.sequenceOrder = 1; // Sabse upar (Task #1) par le aayein
+            task.sequenceOrder = 1;
             task.status = 'Pending';
             task.metaData = { ...task.metaData, meterPhotoUrl: photoUrl };
             await task.save();
@@ -2785,7 +2662,6 @@ app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'
         }
 
         const activeCCPhone = await getActiveTelecallerPhone();
-        // Customer Care ko WhatsApp par turant alert + Photo link bhejein
         await sendDirectWhatsApp(activeCCPhone, `📸 *METER PHOTO RECEIVED!*\nRoom: *${tenant.roomOrFlatNo}* (${tenant.tenantName})\n🖼️ *Photo:* ${photoUrl}\n💬 *Owner Feedback:* ${feedback || 'N/A'}\n\n👉 फोटो देखकर रीडिंग अपडेट करने के लिए रिप्लाई करें: *READ [Reading]*`);
 
         res.json({ success: true, message: "✅ मीटर फोटो कस्टमर केयर को भेज दी गई है! जल्द ही लेजर अपडेट हो जाएगा।" });
@@ -2794,7 +2670,6 @@ app.post('/api/support/upload-meter-photo/:tenantId', upload.single('meterPhoto'
     }
 });
 
-// B. Jab Owner bole: "Tenant se meter photo mang lo"
 app.post('/api/support/ask-tenant-meter/:tenantId', async (req, res) => {
     try {
         const tenant = await TenantLedger.findById(req.params.tenantId);
@@ -2821,10 +2696,14 @@ app.post('/api/support/ask-tenant-meter/:tenantId', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+
 // =========================================================================
-// 📈 PRO F&O (LOT + CAPITAL + PREMIUM CALCULATOR) & HIGH-ACCURACY STOCK BOT
+// 🤖 AUTONOMOUS ₹10,000 AI FUND MANAGER + PRO F&O PATTERN & CHART ENGINE
 // =========================================================================
 const STOCK_TARGET_PHONE = "919399115595"; // 🔒 Exclusive Authorized Number
+const INITIAL_AI_CAPITAL = 10000;          // 💰 ₹10,000 Starting AI Budget
+const MAX_PER_TRADE_BUDGET = 5000;         // 🛡️ Max ₹5,000 per stock (Smart Diversification)
+
 const STOCK_WATCHLIST = {
     "BEL.NS": "Bharat Electronics",
     "ICICIBANK.NS": "ICICI Bank",
@@ -2832,12 +2711,72 @@ const STOCK_WATCHLIST = {
     "INFY.NS": "Infosys"
 };
 
-// Lot Size aur ATM Premium Approximation ke saath F&O Config
+// Lot Size, TradingView Chart Symbol aur Real Monthly/Weekly Premium Approximation ke saath F&O Config
 const FNO_WATCHLIST = {
-    "^NSEI": { name: "NIFTY 50", step: 50, lotSize: 75, slPts: 40, t1Pts: 80, t2Pts: 130, basePremPct: 0.0065 },
-    "^NSEBANK": { name: "BANK NIFTY", step: 100, lotSize: 30, slPts: 100, t1Pts: 200, t2Pts: 320, basePremPct: 0.0075 }
+    "^NSEI": { name: "NIFTY 50 (Weekly)", tvSym: "NSE:NIFTY", step: 50, lotSize: 75, slPts: 40, t1Pts: 80, t2Pts: 130, basePremPct: 0.0075 },
+    "^NSEBANK": { name: "BANK NIFTY (Monthly)", tvSym: "NSE:BANKNIFTY", step: 100, lotSize: 30, slPts: 100, t1Pts: 200, t2Pts: 320, basePremPct: 0.0122 }
 };
 const alertedCloudOpportunities = new Set();
+
+// 💾 MONGODB SCHEMA FOR ₹10,000 AI AGENT WALLET & TRADES
+const AiAgentWalletSchema = new mongoose.Schema({
+    adminPhone: { type: String, unique: true, default: STOCK_TARGET_PHONE },
+    initialCapital: { type: Number, default: INITIAL_AI_CAPITAL },
+    availableCash: { type: Number, default: INITIAL_AI_CAPITAL },
+    realizedPnL: { type: Number, default: 0 },
+    totalTrades: { type: Number, default: 0 },
+    winningTrades: { type: Number, default: 0 },
+    openPositions: [{
+        symbol: String,
+        name: String,
+        qty: Number,
+        entryPrice: Number,
+        investedAmount: Number,
+        stopLoss: Number,
+        target1: Number,
+        target2: Number,
+        trailingActivated: { type: Boolean, default: false },
+        patternAtEntry: String,
+        chartUrl: String,
+        entryTime: { type: String, default: () => new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) }
+    }],
+    closedHistory: [{
+        symbol: String,
+        name: String,
+        qty: Number,
+        entryPrice: Number,
+        exitPrice: Number,
+        pnl: Number,
+        exitReason: String,
+        closedAt: String
+    }]
+}, { timestamps: true });
+
+const AiAgentWallet = mongoose.models.AiAgentWallet || mongoose.model('AiAgentWallet', AiAgentWalletSchema);
+
+async function getOrInitWallet() {
+    let wallet = await AiAgentWallet.findOne({ adminPhone: STOCK_TARGET_PHONE });
+    if (!wallet) {
+        wallet = await AiAgentWallet.create({
+            adminPhone: STOCK_TARGET_PHONE,
+            initialCapital: INITIAL_AI_CAPITAL,
+            availableCash: INITIAL_AI_CAPITAL,
+            realizedPnL: 0,
+            openPositions: [],
+            closedHistory: []
+        });
+    }
+    return wallet;
+}
+
+app.get('/api/ai-agent/wallet', async (req, res) => {
+    try {
+        const wallet = await getOrInitWallet();
+        res.json({ success: true, wallet });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
 
 app.post('/api/stock-alert', async (req, res) => {
     try {
@@ -2878,7 +2817,34 @@ function calcRSI(arr, period = 14) {
     return Number((100 - (100 / (1 + rs))).toFixed(2));
 }
 
-// 1. High-Accuracy F&O 15m Chart + Option Premium & Capital Calculator
+// 📐 15-Min Candlestick & Breakout Pattern Detector
+function detectCandlePattern(opens, highs, lows, closes, ema9, ema21, vwap) {
+    const i = closes.length - 1;
+    const o = opens[i], h = highs[i], l = lows[i], c = closes[i];
+    const po = opens[i - 1], ph = highs[i - 1], pl = lows[i - 1], pc = closes[i - 1];
+    const body = Math.abs(c - o);
+    const totalRange = Math.max(0.1, h - l);
+    const lowerWick = Math.min(o, c) - l;
+    const upperWick = h - Math.max(o, c);
+
+    const patterns = [];
+    if (c > o && pc < po && c > po && o <= pc) patterns.push("Bullish Engulfing");
+    else if (c > o && body >= totalRange * 0.75) patterns.push("Strong Bullish Marubozu");
+    else if (lowerWick >= body * 2 && upperWick <= body * 0.5) patterns.push("Bullish Hammer Bounce");
+    else if (c < o && pc > po && c < po && o >= pc) patterns.push("Bearish Engulfing");
+    else if (c < o && body >= totalRange * 0.75) patterns.push("Strong Bearish Marubozu");
+    else if (upperWick >= body * 2 && lowerWick <= body * 0.5) patterns.push("Shooting Star Rejection");
+
+    if (c > ph) patterns.push(`Prev 15m High (₹${ph.toFixed(1)}) Breakout`);
+    else if (c < pl) patterns.push(`Prev 15m Low (₹${pl.toFixed(1)}) Breakdown`);
+
+    if (c > vwap && c > ema9 && ema9 > ema21) patterns.push("Above VWAP + 9/21 EMA");
+    else if (c < vwap && c < ema9 && ema9 < ema21) patterns.push("Below VWAP + 9/21 EMA");
+
+    return patterns.length > 0 ? patterns.join(" + ") : "15m Range Consolidation";
+}
+
+// 1. High-Accuracy F&O 15m Chart + Pattern Reference + Pullback Protection
 async function fetchFnO15mAnalysis(symbol, meta) {
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=15m&range=5d`;
@@ -2887,39 +2853,50 @@ async function fetchFnO15mAnalysis(symbol, meta) {
         const quote = json?.chart?.result?.[0]?.indicators?.quote?.[0];
         if (!quote) return null;
 
-        const closes = [], highs = [], lows = [];
+        const closes = [], highs = [], lows = [], opens = [];
         for (let i = 0; i < (quote.close || []).length; i++) {
-            if (quote.close[i] !== null && quote.high[i] !== null && quote.low[i] !== null) {
+            if (quote.close[i] !== null && quote.high[i] !== null && quote.low[i] !== null && quote.open[i] !== null) {
                 closes.push(quote.close[i]);
                 highs.push(quote.high[i]);
                 lows.push(quote.low[i]);
+                opens.push(quote.open[i]);
             }
         }
         if (closes.length < 25) return null;
 
         const spot = Number(closes[closes.length - 1].toFixed(2));
+        const currentOpen = Number(opens[opens.length - 1].toFixed(2));
         const closedCandle = Number(closes[closes.length - 2].toFixed(2));
         const prevHigh = Number(highs[highs.length - 2].toFixed(2));
         const prevLow = Number(lows[lows.length - 2].toFixed(2));
+        const recentHigh = Math.max(...highs.slice(-6));
 
         const ema9 = calcEMA(closes.slice(-25), 9);
         const ema21 = calcEMA(closes.slice(-35), 21);
         const rsi = calcRSI(closes, 14);
+        const prevRsi = calcRSI(closes.slice(0, -1), 14);
         const atmStrike = Math.round(spot / meta.step) * meta.step;
 
-        // Intraday VWAP Approximation
         const recentTypical = closes.slice(-15).map((c, idx) => (c + highs.slice(-15)[idx] + lows.slice(-15)[idx]) / 3);
         const vwap = Number((recentTypical.reduce((a, b) => a + b, 0) / recentTypical.length).toFixed(2));
 
-        // Option Premium & Delta (0.50 for ATM Strike) Calculation
+        const patternRef = detectCandlePattern(opens, highs, lows, closes, ema9, ema21, vwap);
+        const chartUrl = `https://in.tradingview.com/chart/?symbol=${encodeURIComponent(meta.tvSym)}&interval=15`;
+
         const estPremium = Math.round(spot * meta.basePremPct);
-        const premSL = Math.max(10, Math.round(estPremium - (meta.slPts * 0.5)));
-        const premT1 = Math.round(estPremium + (meta.t1Pts * 0.5));
-        const premT2 = Math.round(estPremium + (meta.t2Pts * 0.5));
+        const slOptionPts = Math.round(meta.slPts * 0.5);
+        const t1OptionPts = Math.round(meta.t1Pts * 0.5);
+        const premSL = Math.max(10, estPremium - slOptionPts);
+        const premT1 = estPremium + t1OptionPts;
+        const premT2 = estPremium + Math.round(meta.t2Pts * 0.5);
 
         const capital1Lot = estPremium * meta.lotSize;
-        const maxRisk1Lot = (estPremium - premSL) * meta.lotSize;
-        const reward1Lot = (premT1 - estPremium) * meta.lotSize;
+        const maxRisk1Lot = slOptionPts * meta.lotSize;
+        const reward1Lot = t1OptionPts * meta.lotSize;
+
+        const isCandleGreen = spot >= currentOpen && spot >= closedCandle;
+        const isCandleRed = spot <= currentOpen && spot <= closedCandle;
+        const isFallingFromTop = (recentHigh - spot) > (meta.slPts * 0.8);
 
         let signal = "NO TRADE (SIDEWAYS - ABHI PAISA MAT LAGAYEIN)";
         let optionPick = "WAIT";
@@ -2929,25 +2906,27 @@ async function fetchFnO15mAnalysis(symbol, meta) {
             signal = `OVERBOUGHT TRAP (RSI ${rsi}) - TOP PAR BUY MAT KAREIN`;
         } else if (rsi < 32) {
             signal = `OVERSOLD TRAP (RSI ${rsi}) - BOTTOM PAR PUT MAT LEIN`;
+        } else if (spot > ema9 && isFallingFromTop) {
+            signal = `PULLBACK WARNING (Top ₹${recentHigh.toFixed(0)} se gir raha hai - Reversal ka wait karein)`;
         } 
-        // 🟢 CONFIRMED CALL (CE) SETUP (Sweet Spot RSI 55-68 + Above VWAP & EMA)
-        else if (spot > vwap && spot > ema9 && ema9 > ema21 && closedCandle > ema9 && rsi >= 55 && rsi <= 68) {
-            signal = "BUY CALL (CE) - BULLISH BREAKOUT";
+        // 🟢 CONFIRMED CALL (CE) SETUP (Sweet Spot RSI 55-68 + Green Candle + Above VWAP & EMA)
+        else if (spot > vwap && spot > ema9 && ema9 > ema21 && isCandleGreen && rsi >= prevRsi && rsi >= 55 && rsi <= 68) {
+            signal = "BUY CALL (CE) - FRESH BREAKOUT";
             optionPick = `${atmStrike} CE`;
             sl = Number((spot - meta.slPts).toFixed(2));
             t1 = Number((spot + meta.t1Pts).toFixed(2));
             t2 = Number((spot + meta.t2Pts).toFixed(2));
-            conviction = spot > prevHigh ? "9/10 🔥" : "7.5/10 ✅";
+            conviction = spot > prevHigh ? "9/10 🔥" : "8/10 ✅";
             if (spot > prevHigh && rsi >= 58 && rsi <= 66) isJackpot = true;
         } 
-        // 🔴 CONFIRMED PUT (PE) SETUP (Sweet Spot RSI 32-45 + Below VWAP & EMA)
-        else if (spot < vwap && spot < ema9 && ema9 < ema21 && closedCandle < ema9 && rsi >= 32 && rsi <= 45) {
-            signal = "BUY PUT (PE) - BEARISH BREAKDOWN";
+        // 🔴 CONFIRMED PUT (PE) SETUP (Sweet Spot RSI 32-45 + Red Candle + Below VWAP & EMA)
+        else if (spot < vwap && spot < ema9 && ema9 < ema21 && isCandleRed && rsi <= prevRsi && rsi >= 32 && rsi <= 45) {
+            signal = "BUY PUT (PE) - FRESH BREAKDOWN";
             optionPick = `${atmStrike} PE`;
             sl = Number((spot + meta.slPts).toFixed(2));
             t1 = Number((spot - meta.t1Pts).toFixed(2));
             t2 = Number((spot - meta.t2Pts).toFixed(2));
-            conviction = spot < prevLow ? "9/10 🔥" : "7.5/10 ✅";
+            conviction = spot < prevLow ? "9/10 🔥" : "8/10 ✅";
             if (spot < prevLow && rsi <= 42 && rsi >= 34) isJackpot = true;
         }
 
@@ -2955,14 +2934,15 @@ async function fetchFnO15mAnalysis(symbol, meta) {
             symbol, name: meta.name, spot, vwap, ema9, ema21, rsi,
             signal, optionPick, sl, t1, t2, isJackpot, conviction,
             lotSize: meta.lotSize, estPremium, premSL, premT1, premT2,
-            capital1Lot, maxRisk1Lot, reward1Lot
+            slOptionPts, t1OptionPts, capital1Lot, maxRisk1Lot, reward1Lot,
+            patternRef, chartUrl, prevHigh, prevLow
         };
     } catch (e) {
         return null;
     }
 }
 
-// 2. High-Accuracy Stock Data (Strict RSI 54-67 + Volume Surge)
+// 2. High-Accuracy Stock Data (Strict RSI 54-67 + Volume Surge + Pattern + Chart URL)
 async function fetchYahooStockData(symbol) {
     try {
         const url1d = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
@@ -2988,6 +2968,9 @@ async function fetchYahooStockData(symbol) {
 
         const q15 = json15m?.chart?.result?.[0]?.indicators?.quote?.[0];
         const closes15m = (q15?.close || []).filter(v => v !== null);
+        const opens15m = (q15?.open || []).filter(v => v !== null);
+        const highs15m = (q15?.high || []).filter(v => v !== null);
+        const lows15m = (q15?.low || []).filter(v => v !== null);
         const vols15m = (q15?.volume || []).filter(v => v !== null && v > 0);
 
         const rsi15m = closes15m.length > 15 ? calcRSI(closes15m, 14) : 50;
@@ -3002,8 +2985,13 @@ async function fetchYahooStockData(symbol) {
         }
 
         const isHighAccuracyBuy = (changePct >= 0.5 && changePct <= 3.5 && rsi15m >= 54 && rsi15m <= 67 && price > ema9_15m && ema9_15m >= ema21_15m);
+        const cleanSym = symbol.replace(".NS", "");
+        const chartUrl = `https://in.tradingview.com/chart/?symbol=NSE:${cleanSym}&interval=15`;
+        const patternRef = closes15m.length > 5
+            ? detectCandlePattern(opens15m, highs15m, lows15m, closes15m, ema9_15m, ema21_15m, ema9_15m)
+            : `15m EMA Alignment (RSI ${rsi15m})`;
 
-        return { price, prevClose, changePct, morningHigh, rsi15m, ema9_15m, volSurge, isHighAccuracyBuy };
+        return { price, prevClose, changePct, morningHigh, rsi15m, ema9_15m, volSurge, isHighAccuracyBuy, patternRef, chartUrl };
     } catch (e) {
         return null;
     }
@@ -3023,14 +3011,202 @@ async function fetchGoogleStockNews(companyName) {
     }
 }
 
-// 3. Main Cloud Scanner (Clear Hindi Actionable Format)
+// 🧠 3. AI AGENT AUTONOMOUS ₹10,000 PORTFOLIO MANAGER (Auto-Entry, Trailing SL & Auto-Exit)
+async function runAutonomousPortfolioManager(stocksList) {
+    const wallet = await getOrInitWallet();
+    const agentActions = [];
+    const nowTime = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+
+    // STEP A: Monitor Open Positions for Target / Stop-Loss / Trailing SL
+    const remainingPositions = [];
+    for (const pos of wallet.openPositions) {
+        const liveStock = stocksList.find(s => s.symbol === pos.symbol);
+        const livePrice = liveStock ? liveStock.price : pos.entryPrice;
+        const currentPnL = Number(((livePrice - pos.entryPrice) * pos.qty).toFixed(2));
+        const movePct = Number((((livePrice - pos.entryPrice) / pos.entryPrice) * 100).toFixed(2));
+
+        // 1. Check Target 1 Hit (+6%)
+        if (livePrice >= pos.target1) {
+            const saleProceeds = Number((livePrice * pos.qty).toFixed(2));
+            wallet.availableCash = Number((wallet.availableCash + saleProceeds).toFixed(2));
+            wallet.realizedPnL = Number((wallet.realizedPnL + currentPnL).toFixed(2));
+            wallet.totalTrades += 1;
+            wallet.winningTrades += 1;
+            wallet.closedHistory.push({
+                symbol: pos.symbol, name: pos.name, qty: pos.qty,
+                entryPrice: pos.entryPrice, exitPrice: livePrice,
+                pnl: currentPnL, exitReason: "TARGET HIT 🎯 (+6%)", closedAt: nowTime
+            });
+            agentActions.push(
+                `🎯 *AI AGENT PROFIT BOOKED: ${pos.name}*\n` +
+                `✅ *Action:* Auto-Sold ${pos.qty} Shares @ ₹${livePrice} (Entry: ₹${pos.entryPrice})\n` +
+                `💰 *Net Profit:* *+₹${currentPnL}* (+${movePct}%)\n` +
+                `🏦 *Updated Wallet Cash:* ₹${wallet.availableCash.toLocaleString('en-IN')}`
+            );
+        }
+        // 2. Check Stop-Loss Hit (-3% or Cost-to-Cost Trailing SL)
+        else if (livePrice <= pos.stopLoss) {
+            const saleProceeds = Number((livePrice * pos.qty).toFixed(2));
+            wallet.availableCash = Number((wallet.availableCash + saleProceeds).toFixed(2));
+            wallet.realizedPnL = Number((wallet.realizedPnL + currentPnL).toFixed(2));
+            wallet.totalTrades += 1;
+            if (currentPnL >= 0) wallet.winningTrades += 1;
+            const reason = pos.trailingActivated ? "TRAILING SL HIT 🛡️ (Capital Protected)" : "STOP-LOSS HIT 🛑 (-3%)";
+            wallet.closedHistory.push({
+                symbol: pos.symbol, name: pos.name, qty: pos.qty,
+                entryPrice: pos.entryPrice, exitPrice: livePrice,
+                pnl: currentPnL, exitReason: reason, closedAt: nowTime
+            });
+            agentActions.push(
+                `🛑 *AI AGENT AUTO-EXIT: ${pos.name}*\n` +
+                `⚡ *Reason:* ${reason}\n` +
+                `📤 *Sold:* ${pos.qty} Shares @ ₹${livePrice} (P&L: ₹${currentPnL})\n` +
+                `🏦 *Updated Wallet Cash:* ₹${wallet.availableCash.toLocaleString('en-IN')}`
+            );
+        }
+        // 3. Activate Risk-Free Trailing SL if Stock moves +3% up
+        else {
+            if (!pos.trailingActivated && movePct >= 3.0) {
+                pos.stopLoss = pos.entryPrice;
+                pos.trailingActivated = true;
+                agentActions.push(
+                    `🛡️ *AI AGENT TRAILING SL ACTIVATED: ${pos.name}*\n` +
+                    `📈 Stock +${movePct}% upar hai (₹${livePrice}). Stop-Loss utha kar Buy Price (*₹${pos.entryPrice}*) par lock kar diya gaya hai—ab is trade mein 0% loss risk hai!`
+                );
+            }
+            remainingPositions.push(pos);
+        }
+    }
+    wallet.openPositions = remainingPositions;
+
+    // STEP B: Smart Auto-Invest in New High-Accuracy Breakouts
+    const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell"];
+    for (const item of stocksList) {
+        const alreadyHolding = wallet.openPositions.some(p => p.symbol === item.symbol);
+        const hasBadNews = negWords.some(w => item.news.join(" ").toLowerCase().includes(w));
+
+        if (!alreadyHolding && item.isHighAccuracyBuy && !hasBadNews && wallet.availableCash >= item.price) {
+            const allocatableCash = Math.min(wallet.availableCash, MAX_PER_TRADE_BUDGET);
+            const qtyToBuy = Math.floor(allocatableCash / item.price);
+
+            if (qtyToBuy >= 1) {
+                const investedAmt = Number((qtyToBuy * item.price).toFixed(2));
+                const slPrice = Number((item.price * 0.97).toFixed(2));
+                const t1Price = Number((item.price * 1.06).toFixed(2));
+                const t2Price = Number((item.price * 1.10).toFixed(2));
+
+                wallet.availableCash = Number((wallet.availableCash - investedAmt).toFixed(2));
+                wallet.openPositions.push({
+                    symbol: item.symbol,
+                    name: item.name,
+                    qty: qtyToBuy,
+                    entryPrice: item.price,
+                    investedAmount: investedAmt,
+                    stopLoss: slPrice,
+                    target1: t1Price,
+                    target2: t2Price,
+                    trailingActivated: false,
+                    patternAtEntry: item.patternRef,
+                    chartUrl: item.chartUrl,
+                    entryTime: nowTime
+                });
+
+                agentActions.push(
+                    `🤖 *AI AGENT NEW AUTO-INVESTMENT: ${item.name}*\n` +
+                    `📐 *Matched Pattern:* ${item.patternRef}\n` +
+                    `🛒 *Bought:* *${qtyToBuy} Shares* @ ₹${item.price}\n` +
+                    `💼 *Invested Amount:* *₹${investedAmt.toLocaleString('en-IN')}*\n` +
+                    `🛑 *Auto Stop-Loss (-3%):* ₹${slPrice} | 🎯 *Auto Target (+6%):* ₹${t1Price}\n` +
+                    `🏦 *Remaining Wallet Cash:* ₹${wallet.availableCash.toLocaleString('en-IN')}\n` +
+                    `🔗 *Verify Chart:* ${item.chartUrl}`
+                );
+            }
+        }
+    }
+
+    wallet.markModified('openPositions');
+    wallet.markModified('closedHistory');
+    await wallet.save();
+
+    return { wallet, agentActions };
+}
+
+// 📲 Helper: Send Live ₹10,000 Wallet Status on "wallet" / "agent" Command
+async function sendWalletStatusToWhatsApp() {
+    const wallet = await getOrInitWallet();
+    let totalInvested = 0;
+    let unrealizedPnL = 0;
+    const posLines = [];
+
+    for (const pos of wallet.openPositions) {
+        const liveData = await fetchYahooStockData(pos.symbol);
+        const livePrice = liveData ? liveData.price : pos.entryPrice;
+        const pnl = Number(((livePrice - pos.entryPrice) * pos.qty).toFixed(2));
+        const pnlPct = Number((((livePrice - pos.entryPrice) / pos.entryPrice) * 100).toFixed(2));
+        totalInvested += pos.investedAmount;
+        unrealizedPnL += pnl;
+
+        posLines.push(
+            `• *${pos.name}* (${pos.qty} Qty)\n` +
+            `  Buy: ₹${pos.entryPrice} | Live: ₹${livePrice} | P&L: *${pnl >= 0 ? '+' : ''}₹${pnl} (${pnlPct}%)*\n` +
+            `  SL: ₹${pos.stopLoss} | Target: ₹${pos.target1}\n` +
+            `  🔗 ${pos.chartUrl}`
+        );
+    }
+
+    const totalPortfolioValue = Number((wallet.availableCash + totalInvested + unrealizedPnL).toFixed(2));
+    const msg = [
+        `🤖 *AI AGENT ₹10,000 PORTFOLIO DASHBOARD*`,
+        `━━━━━━━━━━━━━━━━━━`,
+        `💼 *Starting Budget:* ₹${wallet.initialCapital.toLocaleString('en-IN')}`,
+        `🏦 *Available Cash:* *₹${wallet.availableCash.toLocaleString('en-IN')}*`,
+        `📊 *Invested in Market:* ₹${totalInvested.toFixed(2)}`,
+        `📈 *Live Open P&L:* *${unrealizedPnL >= 0 ? '+' : ''}₹${unrealizedPnL.toFixed(2)}*`,
+        `💰 *Realized Profit/Loss:* *${wallet.realizedPnL >= 0 ? '+' : ''}₹${wallet.realizedPnL.toFixed(2)}*`,
+        `🏆 *Total Net Worth:* *₹${totalPortfolioValue.toLocaleString('en-IN')}*`,
+        `━━━━━━━━━━━━━━━━━━`,
+        `📂 *ACTIVE OPEN POSITIONS (${wallet.openPositions.length}):*`,
+        posLines.length > 0 ? posLines.join("\n\n") : "_Abhi koi open trade nahi hai. AI Agent high-accuracy breakout ka wait kar raha hai._",
+        `\n💡 _Commands: 'fno' (1.5s F&O Radar) | 'stock' (Full Scan) | 'reset wallet' (Reset ₹10k)_`
+    ].join("\n");
+
+    await sendDirectWhatsApp(STOCK_TARGET_PHONE, msg);
+}
+
+// ⚡ Helper: 1.5-Second Instant F&O Radar on "fno" Command
+async function sendFastFnORadar() {
+    const [nifty, bnf] = await Promise.all([
+        fetchFnO15mAnalysis("^NSEI", FNO_WATCHLIST["^NSEI"]),
+        fetchFnO15mAnalysis("^NSEBANK", FNO_WATCHLIST["^NSEBANK"])
+    ]);
+
+    const lines = [`⚡ *INSTANT F&O 15M CHART RADAR (1.5s)*`];
+    for (const f of [nifty, bnf].filter(Boolean)) {
+        lines.push(`\n📈 *${f.name}* (Spot: ₹${f.spot} | RSI: ${f.rsi} | VWAP: ₹${f.vwap})`);
+        lines.push(`📐 *Chart Pattern:* ${f.patternRef}`);
+        lines.push(`📊 *15m Levels:* Resistance: ₹${f.prevHigh} | Support: ₹${f.prevLow}`);
+        if (f.optionPick !== "WAIT") {
+            lines.push(`🔥 *Signal:* *${f.signal}* (${f.conviction})`);
+            lines.push(`👉 *Option Chain:* *${f.name} ${f.optionPick}* (1 Lot = ${f.lotSize} Qty)`);
+            lines.push(`💵 *Est. Premium:* ~₹${f.estPremium} (1 Lot Capital: ~₹${f.capital1Lot.toLocaleString('en-IN')})`);
+            lines.push(`🎯 *Action Rule:* Broker app mein is strike ke Live Price se *-${f.slOptionPts} pts SL* aur *+${f.t1OptionPts} pts Target* lagayein!`);
+            lines.push(`📍 _(Spot SL: ₹${f.sl} | Spot T1: ₹${f.t1})_`);
+        } else {
+            lines.push(`⏳ *Status:* ${f.signal}`);
+        }
+        lines.push(`🔗 *Live 15m Chart:* ${f.chartUrl}`);
+        lines.push(`----------------------------`);
+    }
+    await sendDirectWhatsApp(STOCK_TARGET_PHONE, lines.join("\n"));
+}
+
+// 4. Main Cloud Scanner + Autonomous AI Agent Execution
 async function sendScheduledStockNotification(onlyOpportunityMode = false) {
     try {
         const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
         const fnoList = [];
         const stocksList = [];
         const liveOpportunities = [];
-        const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell"];
 
         for (const [symbol, meta] of Object.entries(FNO_WATCHLIST)) {
             const fno = await fetchFnO15mAnalysis(symbol, meta);
@@ -3042,13 +3218,13 @@ async function sendScheduledStockNotification(onlyOpportunityMode = false) {
                     liveOpportunities.push(
                         `🔥 *F&O JACKPOT BREAKOUT: ${fno.name}*\n` +
                         `⭐ *Accuracy Score:* ${fno.conviction}\n` +
-                        `👉 *Kya Kharidein (Option Chain):* *${fno.name} ${fno.optionPick}* (Weekly Expiry)\n` +
+                        `📐 *Pattern Match:* ${fno.patternRef}\n` +
+                        `👉 *Kya Kharidein (Option Chain):* *${fno.name} ${fno.optionPick}*\n` +
                         `📦 *1 Lot Quantity:* ${fno.lotSize} Shares\n` +
-                        `💵 *Option Buy Price (Est.):* ₹${fno.estPremium} ke aas-paas\n` +
-                        `💰 *Kitna Paisa Lagega (1 Lot):* *₹${fno.capital1Lot.toLocaleString('en-IN')}*\n` +
-                        `🛑 *Option Stop-Loss:* ₹${fno.premSL} (Max Risk: -₹${fno.maxRisk1Lot})\n` +
-                        `🚀 *Option Target 1:* ₹${fno.premT1} (+₹${fno.reward1Lot} Profit) | *T2:* ₹${fno.premT2}\n` +
-                        `📍 _(Index Spot Level: Entry ₹${fno.spot} | SL ₹${fno.sl} | T1 ₹${fno.t1})_`
+                        `💵 *Est. Option Premium:* ~₹${fno.estPremium} (1 Lot Capital: ~₹${fno.capital1Lot.toLocaleString('en-IN')})\n` +
+                        `🎯 *SL/Target Rule:* Live Option Price se *-${fno.slOptionPts} pts SL* (Max Risk: ₹${fno.maxRisk1Lot}) aur *+${fno.t1OptionPts} pts Target* (+₹${fno.reward1Lot} Profit) lagayein!\n` +
+                        `📍 _(Index Spot Level: Entry ₹${fno.spot} | SL ₹${fno.sl} | T1 ₹${fno.t1})_\n` +
+                        `🔗 *Live 15m Chart:* ${fno.chartUrl}`
                     );
                 }
             }
@@ -3059,27 +3235,18 @@ async function sendScheduledStockNotification(onlyOpportunityMode = false) {
             const news = await fetchGoogleStockNews(name);
             if (data) {
                 stocksList.push({ symbol, name, ...data, news });
-                const hasBadNews = negWords.some(w => news.join(" ").toLowerCase().includes(w));
-                const oppId = `${todayKey}_${symbol}_BUY`;
-
-                if (data.isHighAccuracyBuy && data.volSurge && !hasBadNews && !alertedCloudOpportunities.has(oppId)) {
-                    alertedCloudOpportunities.add(oppId);
-                    const qty10k = Math.max(1, Math.floor(10000 / data.price));
-                    liveOpportunities.push(
-                        `🚀 *SWING STOCK BREAKOUT: ${name}*\n` +
-                        `⭐ *Accuracy Score:* 8.5/10 (Volume + RSI Sweet Spot)\n` +
-                        `💰 *Buy Price:* ₹${data.price} (+${data.changePct}% | RSI: ${data.rsi15m})\n` +
-                        `💼 *Kitna Lagayein (₹10,000 Budget):* *${qty10k} Shares* kharidein\n` +
-                        `🛑 *Stop-Loss (-3%):* ₹${(data.price * 0.97).toFixed(2)}\n` +
-                        `🎯 *Target 1 (+6%):* ₹${(data.price * 1.06).toFixed(2)} | *Target 2 (+10%):* ₹${(data.price * 1.10).toFixed(2)}`
-                    );
-                }
             }
+        }
+
+        // 🤖 Run Autonomous ₹10,000 AI Agent (Checks SL/Target & Auto-Invests in Breakouts)
+        const { wallet, agentActions } = await runAutonomousPortfolioManager(stocksList);
+        if (agentActions.length > 0) {
+            liveOpportunities.push(...agentActions);
         }
 
         if (onlyOpportunityMode) {
             if (liveOpportunities.length > 0) {
-                const oppMsg = `🚨 *HIGH-ACCURACY TRADE ALERT* 🚨\n\n` + liveOpportunities.join("\n\n━━━━━━━━━━━━━━━━━━\n\n");
+                const oppMsg = `🚨 *AI AGENT & HIGH-ACCURACY TRADE ALERT* 🚨\n\n` + liveOpportunities.join("\n\n━━━━━━━━━━━━━━━━━━\n\n");
                 await sendDirectWhatsApp(STOCK_TARGET_PHONE, oppMsg);
             }
             return;
@@ -3087,46 +3254,52 @@ async function sendScheduledStockNotification(onlyOpportunityMode = false) {
 
         if (!stocksList.length && !fnoList.length) return;
 
-        // Full Report with Step-by-Step Capital & Option Guide
         const lines = [
-            "📊 *PRO F&O & SWING TRADING GUIDE*",
-            "_(Easy Option Chain + Capital Breakdown)_\n",
+            "📊 *PRO F&O & ₹10,000 AI AGENT TRADING GUIDE*",
+            `💼 *AI Wallet Cash:* ₹${wallet.availableCash.toLocaleString('en-IN')} | *Open Trades:* ${wallet.openPositions.length} | *Realized P&L:* ₹${wallet.realizedPnL}\n`,
             "⚡ *1. F&O INTRADAY OPTION CHAIN GUIDE*"
         ];
 
         for (const f of fnoList) {
             lines.push(`\n📈 *${f.name}* (Spot: ₹${f.spot} | RSI: ${f.rsi} | VWAP: ₹${f.vwap})`);
+            lines.push(`📐 *Chart Pattern:* ${f.patternRef}`);
             if (f.optionPick !== "WAIT") {
                 lines.push(`🟢 *Signal:* *${f.signal}* (Score: ${f.conviction})`);
                 lines.push(`👉 *Option Chain Mein Search Karein:* *${f.name} ${f.optionPick}*`);
-                lines.push(`📦 *Lot Size:* 1 Lot = ${f.lotSize} Qty`);
-                lines.push(`💵 *Est. Option Premium:* ~₹${f.estPremium}`);
+                lines.push(`📦 *Lot Size:* 1 Lot = ${f.lotSize} Qty | *Est. Premium:* ~₹${f.estPremium}`);
                 lines.push(`💰 *Kul Paisa Lagega (1 Lot):* *~₹${f.capital1Lot.toLocaleString('en-IN')}*`);
-                lines.push(`🛑 *Option SL:* ₹${f.premSL} (Risk: ₹${f.maxRisk1Lot}) | 🎯 *Option Target:* ₹${f.premT1} (Profit: +₹${f.reward1Lot})`);
+                lines.push(`🎯 *SL/Target Rule:* Live Option Price se *-${f.slOptionPts} pts SL* (Risk: ₹${f.maxRisk1Lot}) | *+${f.t1OptionPts} pts Target* (Profit: +₹${f.reward1Lot})`);
                 lines.push(`📍 _(Chart Spot SL: ₹${f.sl} | Spot T1: ₹${f.t1})_`);
             } else {
                 lines.push(`⏳ *Action:* *${f.signal}*`);
             }
+            lines.push(`🔗 *Live 15m Chart:* ${f.chartUrl}`);
             lines.push("----------------------------");
         }
 
-        lines.push("\n🏢 *2. SWING STOCKS (CASH DELIVERY)*");
+        lines.push("\n🏢 *2. AI AGENT SWING STOCKS (₹10,000 FUND)*");
         for (const item of stocksList) {
-            const hasBadNews = negWords.some(w => item.news.join(" ").toLowerCase().includes(w));
+            const inPortfolio = wallet.openPositions.find(p => p.symbol === item.symbol);
             lines.push(`\n🏢 *${item.name}* — ₹${item.price} (${item.changePct}% | RSI: ${item.rsi15m})`);
-            if (item.isHighAccuracyBuy && !hasBadNews) {
-                const qty10k = Math.max(1, Math.floor(10000 / item.price));
-                lines.push(`✅ *Signal: PAPER BUY (High Accuracy)*`);
-                lines.push(`💼 *₹10,000 Budget:* *${qty10k} Shares* @ ₹${item.price}`);
+            lines.push(`📐 *Chart Setup:* ${item.patternRef}`);
+            if (inPortfolio) {
+                const livePnl = ((item.price - inPortfolio.entryPrice) * inPortfolio.qty).toFixed(2);
+                lines.push(`🤖 *AI AGENT HOLDING:* ${inPortfolio.qty} Shares @ ₹${inPortfolio.entryPrice} (Live P&L: ₹${livePnl})`);
+                lines.push(`🛑 *Auto SL:* ₹${inPortfolio.stopLoss} | 🎯 *Auto Target:* ₹${inPortfolio.target1}`);
+            } else if (item.isHighAccuracyBuy) {
+                const qty5k = Math.max(1, Math.floor(MAX_PER_TRADE_BUDGET / item.price));
+                lines.push(`✅ *Signal: HIGH-ACCURACY BUY (${qty5k} Shares for ₹5,000)*`);
                 lines.push(`🛑 *SL (-3%):* ₹${(item.price * 0.97).toFixed(2)} | 🚀 *Target (+6%):* ₹${(item.price * 1.06).toFixed(2)}`);
             } else {
-                const reason = item.rsi15m > 67 ? `Overbought RSI (${item.rsi15m}) - Top par mat lein` : "Momentum weak hai";
+                const reason = item.rsi15m > 67 ? `Overbought RSI (${item.rsi15m}) - Top par mat lein` : "Waiting for 15m EMA+RSI Breakout";
                 lines.push(`⏳ *NO ENTRY (WAIT)* — _(${reason})_`);
             }
+            lines.push(`🔗 *Live Chart:* ${item.chartUrl}`);
         }
 
+        lines.push(`\n💡 _WhatsApp Commands: *'wallet'* (₹10k AI Fund) | *'fno'* (1.5s F&O Radar) | *'reset wallet'*_`);
         await sendDirectWhatsApp(STOCK_TARGET_PHONE, lines.join("\n"));
-        console.log(`✅ [Pro Stock & F&O Bot] Detailed guide sent to ${STOCK_TARGET_PHONE}!`);
+        console.log(`✅ [Pro Stock & AI Agent Bot] Detailed guide sent to ${STOCK_TARGET_PHONE}!`);
     } catch (err) {
         console.error("Scheduled Stock Bot Error:", err.message);
     }
@@ -3136,13 +3309,14 @@ async function sendScheduledStockNotification(onlyOpportunityMode = false) {
 cron.schedule('30 9,11,13 * * 1-5', () => sendScheduledStockNotification(false), { timezone: "Asia/Kolkata" });
 cron.schedule('0 15 * * 1-5', () => sendScheduledStockNotification(false), { timezone: "Asia/Kolkata" });
 
-// 🚨 2. Live Opportunity Radar: Har 15 Minute mein (9:15 AM ka opening noise trap skip karega)
+// 🚨 2. Live Opportunity Radar + AI Agent SL/Target Monitor: Har 15 Minute mein (Skips 9:15 AM Opening Trap)
 cron.schedule('*/15 9-15 * * 1-5', () => {
     const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
     if (nowIST.getHours() === 9 && nowIST.getMinutes() === 15) return; // 🚫 Skip 9:15 AM trap
     sendScheduledStockNotification(true);
     fetch('https://bhopal-real-estate.onrender.com/robots.txt').catch(() => {});
 }, { timezone: "Asia/Kolkata" });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
