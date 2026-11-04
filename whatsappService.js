@@ -14,6 +14,8 @@ const { handlePersonalBot } = require('./personalBot');
 let sock = null;
 let currentQrData = null; 
 
+const ADMIN_STOCK_PHONE = "919399115595"; // 🔒 Exclusive Admin Number for Stock, F&O & ₹10k AI Agent
+
 const whatsappAuthSchema = new mongoose.Schema({
     _id: String,
     data: String
@@ -82,22 +84,76 @@ async function connectToWhatsApp() {
             try {
                 if (type !== 'notify') return;
                 const msg = messages[0];
-                if (!msg.message || msg.key.fromMe) return;
+                if (!msg.message) return;
 
-                const senderPhone = msg.key.remoteJid; 
-                
+                const senderPhone = msg.key.remoteJid || ''; 
+                if (senderPhone.includes('@g.us') || senderPhone === 'status@broadcast') return;
+
                 let m = msg.message;
                 if (m.ephemeralMessage) m = m.ephemeralMessage.message;
                 if (m.viewOnceMessage) m = m.viewOnceMessage.message;
                 if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message;
 
-                const messageText = (m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || '').toLowerCase().trim();
+                const rawText = (m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || '').trim();
+                const messageText = rawText.toLowerCase();
                 if (!messageText) return;
+
+                // Short Admin Commands allowed even if sent from self-chat (fromMe)
+                const exactAdminCommands = [
+                    'stock', 'fno', 'f&o', 'f and o', 'best deal', 'nifty', 'banknifty',
+                    'market', 'report', 'market report', 'stock report',
+                    'wallet', 'portfolio', 'agent', 'fund', 'balance', 'reset wallet'
+                ];
+                const isExactStockCmd = exactAdminCommands.includes(messageText);
+
+                if (msg.key.fromMe && !isExactStockCmd) return;
 
                 console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
 
+                const cleanSenderNumber = senderPhone.replace(/[^0-9]/g, '');
+                const PORT = process.env.PORT || 3000;
+
                 // =========================================================================
-                // 🎯 ROUTER: VIP PERSONAL BOT VS PROPERTY BOT (Sabhi VIP Numbers & @lid yahan hain)
+                // ⚡ 1. INSTANT 1.5s ADMIN F&O, STOCK & ₹10,000 AI WALLET COMMAND BRIDGE
+                // =========================================================================
+                const isStockOrAgentQuery = exactAdminCommands.some(
+                    k => messageText === k || (messageText.length <= 25 && messageText.includes(k))
+                );
+                const isFromAdmin = cleanSenderNumber.includes('9399115595') || msg.key.fromMe || senderPhone.includes('@lid');
+
+                if (isStockOrAgentQuery && isFromAdmin) {
+                    console.log(`📈 [AI Stock Agent Router] Triggering Instant Command "${messageText}" for Admin...`);
+                    await fetch(`http://127.0.0.1:${PORT}/api/whatsapp/incoming-bot`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            senderPhone: ADMIN_STOCK_PHONE,
+                            messageText: messageText
+                        })
+                    }).catch(err => console.error("Stock Bot Local Trigger Error:", err.message));
+                    return;
+                }
+
+                // =========================================================================
+                // 🎧 2. CUSTOMER CARE TELECALLER WHATSAPP COMMAND BRIDGE
+                // =========================================================================
+                const upperText = rawText.toUpperCase();
+                const isTelecallerCmd = (
+                    upperText === 'START' || upperText === 'TASK' || upperText === 'TASKS' ||
+                    upperText.includes('AJ KE TASK') || upperText.includes('AAJ KE TASK') ||
+                    upperText.startsWith('READ ') || upperText === 'LEAVE' ||
+                    upperText.startsWith('HOLD') || upperText.includes('DONE')
+                );
+                if (isTelecallerCmd && !msg.key.fromMe) {
+                    fetch(`http://127.0.0.1:${PORT}/api/support/whatsapp-command`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ senderPhone: cleanSenderNumber, messageText: rawText })
+                    }).catch(() => {});
+                }
+
+                // =========================================================================
+                // 🎯 3. ROUTER: VIP PERSONAL BOT VS PROPERTY BOT (Sabhi VIP Numbers & @lid yahan hain)
                 // =========================================================================
                 const vipSpecialNumbers = [
                     '9575611622', 
@@ -108,8 +164,6 @@ async function connectToWhatsApp() {
                     '108070118121648'
                 ]; 
 
-                const cleanSenderNumber = senderPhone.replace(/[^0-9]/g, '');
-                
                 const isVip = vipSpecialNumbers.some(vip => senderPhone.includes(vip) || cleanSenderNumber.includes(vip));
 
                 if (isVip) {
@@ -132,7 +186,7 @@ async function connectToWhatsApp() {
                 setTimeout(() => connectToWhatsApp(), 3000);
             } else if (connection === 'open') {
                 currentQrData = null;
-                console.log('✅ WhatsApp Connected with Modular Dual-Bot System!');
+                console.log('✅ WhatsApp Connected with Modular Dual-Bot + ₹10k AI Stock Agent System!');
             }
         });
     } catch (err) {}
