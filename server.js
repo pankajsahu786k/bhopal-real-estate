@@ -427,7 +427,7 @@ async function sendAutomationWhatsApp(phone, message) {
 
 async function processLedgerReminders(slotType) {
     try {
-        const today = new Date();
+        const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
         const currentDay = today.getDate();
         const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
         const currentSlashMonth = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -724,53 +724,134 @@ app.post('/api/custom-gateway/webhook', async (req, res) => {
 });
 
 // =========================================================================
-// 🌐 100% FULLY AUTOMATED INTERNET FESTIVAL & BIRTHDAY ENGINE (TENANTS + BROKERS)
+// 🌐 100% AUTOMATIC YEARLY FESTIVAL & BIRTHDAY ENGINE (ZERO MANUAL UPDATES)
 // =========================================================================
-let festivalCache = {};
+// Layer 1: Fixed Solar Holidays (Same every year)
+const FIXED_YEARLY_FESTIVALS = {
+    "01-01": "Naya Saal (New Year)",
+    "14-01": "Makar Sankranti",
+    "26-01": "Gantantra Diwas (Republic Day)",
+    "14-04": "Ambedkar Jayanti / Baisakhi",
+    "15-08": "Swatantrata Diwas (Independence Day)",
+    "02-10": "Gandhi Jayanti",
+    "25-12": "Christmas"
+};
 
+// Layer 2: Multi-Year Lunar Hindu Calendar Fallback (Auto-switches by year if internet is slow)
+const LUNAR_YEARLY_CALENDAR = {
+    2026: {
+        "15-02": "Maha Shivratri", "04-03": "Holi", "19-03": "Gudi Padwa / Chaitra Navratri",
+        "27-03": "Ram Navami", "28-08": "Raksha Bandhan", "04-09": "Janmashtami",
+        "14-09": "Ganesh Chaturthi", "20-10": "Dussehra (Vijayadashami)", "06-11": "Dhanteras",
+        "07-11": "Chhoti Diwali", "08-11": "Deepavali (Diwali)", "09-11": "Govardhan Puja", "10-11": "Bhai Dooj"
+    },
+    2027: {
+        "06-03": "Maha Shivratri", "22-03": "Holi", "07-04": "Gudi Padwa / Chaitra Navratri",
+        "15-04": "Ram Navami", "17-08": "Raksha Bandhan", "25-08": "Janmashtami",
+        "04-09": "Ganesh Chaturthi", "09-10": "Dussehra (Vijayadashami)", "27-10": "Dhanteras",
+        "28-10": "Chhoti Diwali", "29-10": "Deepavali (Diwali)", "30-10": "Govardhan Puja", "31-10": "Bhai Dooj"
+    },
+    2028: {
+        "23-02": "Maha Shivratri", "11-03": "Holi", "27-03": "Gudi Padwa / Chaitra Navratri",
+        "03-04": "Ram Navami", "05-08": "Raksha Bandhan", "13-08": "Janmashtami",
+        "23-08": "Ganesh Chaturthi", "27-09": "Dussehra (Vijayadashami)", "15-10": "Dhanteras",
+        "16-10": "Chhoti Diwali", "17-10": "Deepavali (Diwali)", "18-10": "Govardhan Puja", "19-10": "Bhai Dooj"
+    },
+    2029: {
+        "11-02": "Maha Shivratri", "01-03": "Holi", "16-03": "Gudi Padwa / Chaitra Navratri",
+        "24-03": "Ram Navami", "23-08": "Raksha Bandhan", "01-09": "Janmashtami",
+        "11-09": "Ganesh Chaturthi", "16-10": "Dussehra (Vijayadashami)", "03-11": "Dhanteras",
+        "04-11": "Chhoti Diwali", "05-11": "Deepavali (Diwali)", "06-11": "Govardhan Puja", "07-11": "Bhai Dooj"
+    },
+    2030: {
+        "02-03": "Maha Shivratri", "20-03": "Holi", "04-04": "Gudi Padwa / Chaitra Navratri",
+        "12-04": "Ram Navami", "13-08": "Raksha Bandhan", "21-08": "Janmashtami",
+        "01-09": "Ganesh Chaturthi", "06-10": "Dussehra (Vijayadashami)", "24-10": "Dhanteras",
+        "25-10": "Chhoti Diwali", "26-10": "Deepavali (Diwali)", "27-10": "Govardhan Puja", "28-10": "Bhai Dooj"
+    }
+};
+
+let festivalCache = { ...FIXED_YEARLY_FESTIVALS };
+let lastSyncedYear = null;
+
+// Layer 3: Auto-Fetch Every Year from Official Google Indian Holidays iCal + Nager.Date API
 async function updateFestivalCalendar() {
+    const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+    const currentYear = nowIST.getFullYear();
+
+    // Start with Fixed + Current Year's Lunar Festivals
+    const updated = {
+        ...FIXED_YEARLY_FESTIVALS,
+        ...(LUNAR_YEARLY_CALENDAR[currentYear] || {})
+    };
+
+    // 1. Live Fetch from Google Official Indian Holidays Public iCal (Contains Dhanteras, Diwali, Holi, Eid, etc. for every year!)
     try {
-        const currentYear = new Date().getFullYear();
-        console.log(`📡 Fetching live festival calendar for year ${currentYear}...`);
-        
+        console.log(`📡 Auto-Syncing Live Indian Festival Calendar for year ${currentYear}...`);
+        const icsUrl = "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics";
+        const icsRes = await fetch(icsUrl, { headers: { "User-Agent": "Mozilla/5.0" } });
+        if (icsRes.ok) {
+            const icsText = await icsRes.text();
+            const events = icsText.split("BEGIN:VEVENT");
+            for (const ev of events) {
+                const dateMatch = ev.match(/DTSTART(?:;VALUE=DATE)?:(\d{4})(\d{2})(\d{2})/);
+                const sumMatch = ev.match(/SUMMARY:(.*)/);
+                if (dateMatch && sumMatch && Number(dateMatch[1]) === currentYear) {
+                    const key = `${dateMatch[3]}-${dateMatch[2]}`; // DD-MM
+                    let festTitle = sumMatch[1].replace(/\\,/g, ',').trim();
+                    if (!festTitle.toLowerCase().includes('restricted') && !festTitle.toLowerCase().includes('bank holiday')) {
+                        if (!updated[key]) updated[key] = festTitle;
+                    }
+                }
+            }
+        }
+    } catch (icsErr) {
+        console.log(`ℹ️ Google iCal sync fallback used: ${icsErr.message}`);
+    }
+
+    // 2. Live Fetch from Nager.Date Public Holidays API
+    try {
         const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
         const text = await response.text();
-        
-        if (!response.ok || !text) {
-            console.log(`ℹ️ External API returned empty data, using built-in Indian calendar.`);
-            return festivalCache;
+        if (response.ok && text) {
+            const holidays = JSON.parse(text);
+            holidays.forEach(holiday => {
+                const parts = holiday.date.split('-');
+                const key = `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                if (!updated[key]) updated[key] = holiday.localName || holiday.name;
+            });
         }
-        
-        const holidays = JSON.parse(text);
-        const updated = {};
+    } catch (err) {}
 
-        holidays.forEach(holiday => {
-            const parts = holiday.date.split('-');
-            const day = parts[2].padStart(2, '0');
-            const month = parts[1].padStart(2, '0');
-            const key = `${day}-${month}`;
-            updated[key] = holiday.localName || holiday.name;
-        });
-
-        festivalCache = { ...festivalCache, ...updated };
-        console.log(`✅ Internet se ${currentYear} ke ${holidays.length} festivals auto-load ho gaye!`);
-        return festivalCache;
-    } catch (err) {
-        console.error('❌ Festival auto-fetch error:', err.message);
-        return festivalCache;
-    }
+    festivalCache = updated;
+    lastSyncedYear = currentYear;
+    console.log(`✅ Year ${currentYear} ke कुल ${Object.keys(festivalCache).length} Festivals Auto-Load ho gaye!`);
+    return festivalCache;
 }
 
 async function processGreetingsAndWishes(forcedFestivalName = null) {
     try {
-        if (Object.keys(festivalCache).length === 0) {
+        const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+        const currentYear = nowIST.getFullYear();
+        const currentDay = String(nowIST.getDate()).padStart(2, '0');
+        const currentMonth = String(nowIST.getMonth() + 1).padStart(2, '0');
+        const todayKey = `${currentDay}-${currentMonth}`;
+
+        // Auto-refresh calendar if year changed or cache hasn't synced this year
+        if (lastSyncedYear !== currentYear || Object.keys(festivalCache).length <= 10) {
             await updateFestivalCalendar();
         }
 
-        const today = new Date();
-        const currentDay = String(today.getDate()).padStart(2, '0');
-        const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
-        const todayKey = `${currentDay}-${currentMonth}`;
+        const yearWishFlag = `wish_sent_${currentYear}_${todayKey}`;
+
+        // Prevent duplicate auto-send on the same day if Render restarts
+        if (!forcedFestivalName) {
+            const alreadySent = await Config.findOne({ key: yearWishFlag });
+            if (alreadySent && alreadySent.value) {
+                console.log(`ℹ️ Aaj (${todayKey}-${currentYear}) ke wishes pehle hi bheje ja chuke hain.`);
+                return;
+            }
+        }
 
         const activeTenants = await TenantLedger.find({ status: 'Active' });
         const allBrokers = await BrokerProfile.find({ phone: { $exists: true, $ne: '' } });
@@ -779,6 +860,7 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
             if (!dobString) return false;
             const clean = dobString.replace(/\//g, '-');
             const parts = clean.split('-');
+            if (parts.length < 3) return false;
             let d = '', m = '';
             if (parts[0].length === 4) {
                 m = parts[1].padStart(2, '0');
@@ -790,6 +872,8 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
             return (d === currentDay && m === currentMonth);
         };
 
+        let anyWishSentToday = false;
+
         if (!forcedFestivalName) {
             for (const broker of allBrokers) {
                 if (broker.dob && broker.phone && isBirthdayToday(broker.dob)) {
@@ -799,6 +883,7 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
                     const brokerBdayMsg = `🎂 जन्मदिन की ढेरों शुभकामनाएँ, ${brokerName} ji! 🎉💐\n\nBhopal Properties की पूरी टीम की ओर से आपको जन्मदिन की हार्दिक बधाई। ईश्वर आपको व्यवसाय में नई ऊँचाइयाँ, उत्तम स्वास्थ्य और अपार सफलता प्रदान करें। 🌟🚀\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Bhopal Properties Business Network`;
                     await sendDirectWhatsApp(broker.phone, brokerBdayMsg);
                     console.log(`🎂 Birthday wish sent to Broker: ${brokerName} (${broker.phone})`);
+                    anyWishSentToday = true;
                     await sleep(3000);
                 }
             }
@@ -808,6 +893,7 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
                     const bdayMsg = `🎂 जन्मदिन की हार्दिक शुभकामनाएँ, ${tenant.tenantName} ji! 🎉\n\nभोपाल प्रॉपर्टीज परिवार की तरफ से आपके उत्तम स्वास्थ्य, दीर्घायु और खुशियों भरे वर्ष की मंगलकामना करते हैं। Have a fantastic day ahead! 🌟\n\n🌐 Visit Us: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
                     await sendDirectWhatsApp(tenant.mobileNo, bdayMsg);
                     console.log(`🎂 Birthday wish sent to Tenant: ${tenant.tenantName}`);
+                    anyWishSentToday = true;
                     await sleep(3000);
                 }
             }
@@ -816,30 +902,39 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         const festivalName = forcedFestivalName || festivalCache[todayKey];
 
         if (festivalName) {
-            console.log(`🎉 Tyohar Triggered: ${festivalName}. Broadcasting wishes...`);
+            console.log(`🎉 Tyohar Triggered: ${festivalName} (${todayKey}). Broadcasting wishes...`);
+
+            // Send instant confirmation to Admin WhatsApp
+            await sendDirectWhatsApp("919399115595", `🪔 *Festival Auto-Broadcast Started:* Aaj *${festivalName}* (${todayKey}-${currentYear}) ki shubhkamnayein sabhi Brokers (${allBrokers.length}) aur Active Tenants (${activeTenants.length}) ko bheji ja rahi hain!`);
 
             for (const broker of allBrokers) {
                 if (broker.phone) {
                     const brokerUser = await User.findOne({ email: broker.brokerEmail });
                     const brokerName = brokerUser ? brokerUser.name : 'Partner';
 
-                    const brokerFestMsg = `नमस्ते ${brokerName} ji! 🙏\n\nआपको और आपके परिवार को ${festivalName} के पावन अवसर पर Bhopal Properties की ओर से हार्दिक शुभकामनाएँ! 🪔✨\n\nयह त्योहार आपके व्यापार में नई खुशियाँ, तरक्की और नए अवसर लेकर आए। 💼📈\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
+                    const brokerFestMsg = `नमस्ते ${brokerName} ji! 🙏\n\nआपको और आपके परिवार को *${festivalName}* के पावन अवसर पर Bhopal Properties की ओर से हार्दिक शुभकामनाएँ! 🪔✨\n\nयह त्योहार आपके व्यापार में नई खुशियाँ, तरक्की और नए अवसर लेकर आए। 💼📈\n\n🌐 Portal: https://bhopal-real-estate.onrender.com\n- Team Bhopal Properties`;
                     await sendDirectWhatsApp(broker.phone, brokerFestMsg);
                     console.log(`📤 Festival wish sent to Broker: ${brokerName}`);
+                    anyWishSentToday = true;
                     await sleep(3000);
                 }
             }
 
-            const tenantFestMsg = `आपको और आपके पूरे परिवार को ${festivalName} की हार्दिक शुभकामनाएँ! 🪔✨\nजीवन में सुख, शांति और समृद्धि बनी रहे।\n\n🌐 Visit: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
+            const tenantFestMsg = `आपको और आपके पूरे परिवार को *${festivalName}* की हार्दिक शुभकामनाएँ! 🪔✨\nजीवन में सुख, शांति और समृद्धि बनी रहे।\n\n🌐 Visit: https://bhopal-real-estate.onrender.com\n- Bhopal Properties`;
             for (const tenant of activeTenants) {
                 if (tenant.mobileNo) {
                     await sendDirectWhatsApp(tenant.mobileNo, tenantFestMsg);
                     console.log(`📤 Festival wish sent to Tenant: ${tenant.tenantName}`);
+                    anyWishSentToday = true;
                     await sleep(3000);
                 }
             }
         } else {
-            console.log(`ℹ️ Aaj (${todayKey}) koi festival scheduled nahi hai.`);
+            console.log(`ℹ️ Aaj (${todayKey}-${currentYear}) koi festival scheduled nahi hai.`);
+        }
+
+        if (!forcedFestivalName && (festivalName || anyWishSentToday)) {
+            await Config.findOneAndUpdate({ key: yearWishFlag }, { value: true }, { upsert: true });
         }
     } catch (err) {
         console.error("Wishes Engine Error:", err);
@@ -896,6 +991,26 @@ app.post('/api/whatsapp/incoming-bot', async (req, res) => {
 
         const query = messageText.toLowerCase().trim();
         const cleanSender = senderPhone.replace(/\D/g, '').slice(-10);
+
+        // 🪔 ADMIN INSTANT FESTIVAL BROADCAST COMMAND (e.g., "wish Dhanteras")
+        if (query.startsWith('wish ') && cleanSender === STOCK_TARGET_PHONE.slice(-10)) {
+            const festName = messageText.trim().slice(5).trim();
+            await sendDirectWhatsApp(STOCK_TARGET_PHONE, `🪔 *${festName}* ki shubhkamnayein sabhi Brokers aur Tenants ko bheji ja rahi hain...`);
+            processGreetingsAndWishes(festName);
+            return res.json({ success: true });
+        }
+
+        // 🔗 AUTO-RESEND PAYMENT LINK WHEN TENANT REPLIES "1" OR "LINK"
+        if ((query === '1' || query === 'link' || query.includes('payment link') || query.includes('link bhej')) && cleanSender.length === 10) {
+            const tenant = await TenantLedger.findOne({ mobileNo: { $regex: cleanSender }, status: 'Active' });
+            if (tenant) {
+                const payLink = await getOrGeneratePaymentLink(tenant);
+                const latestEntry = (tenant.monthlyEntries || []).filter(e => Number(e.total) > 0).pop();
+                const dueAmt = latestEntry ? (latestEntry.balance || latestEntry.total) : 0;
+                await sendDirectWhatsApp(senderPhone, `🔗 *ऑनलाइन पेमेंट लिंक (Bhopal Properties)*\n\nनमस्ते *${tenant.tenantName}* जी (${tenant.roomOrFlatNo}),\nआपकी देय राशि *₹${dueAmt}* के भुगतान के लिए नई लिंक यहाँ है:\n\n👉 ${payLink}`);
+                return res.json({ success: true });
+            }
+        }
 
         // 🔒 EXCLUSIVE STOCK, F&O & ₹10K AI AGENT COMMANDS ONLY FOR 919399115595
         const isFastFnO = ['fno', 'f&o', 'f and o', 'nifty', 'banknifty'].some(k => query.includes(k));
@@ -1245,17 +1360,14 @@ app.post('/api/admin/toggle-payment', async (req, res) => {
 
 app.get('/api/test-wishes', async (req, res) => {
     console.log("Manual trigger for wishes & festivals...");
+    await updateFestivalCalendar();
     
-    if (Object.keys(festivalCache).length === 0) {
-        await updateFestivalCalendar();
-    }
-    
-    const forcedFestival = req.query.force === 'true' ? "Deepavali Utsav (Test)" : null;
+    const forcedFestival = req.query.name || (req.query.force === 'true' ? "शुभ धनतेरस (Dhanteras)" : null);
     await processGreetingsAndWishes(forcedFestival);
     
     res.json({ 
         success: true, 
-        message: forcedFestival ? "Forced festival test executed!" : "Wishes check completed!", 
+        message: forcedFestival ? `Forced festival (${forcedFestival}) broadcasted!` : "Wishes check completed!", 
         totalFestivals: Object.keys(festivalCache).length,
         loadedFestivals: festivalCache 
     });
@@ -2324,7 +2436,7 @@ async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhon
 
 async function generateDailySupportTasks() {
     try {
-        const today = new Date();
+        const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
         const currentDay = today.getDate();
         const currentMonthStr = today.toLocaleDateString('hi-IN', { month: 'short', year: 'numeric' });
         const currentSlashMonth = `${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
@@ -2505,14 +2617,16 @@ app.post('/api/support/complete-task', async (req, res) => {
     }
 });
 
+// 💬 API 3: WhatsApp Bot Command Receiver for Telecaller (Supports @lid & Instant Next Task)
 app.post('/api/support/whatsapp-command', async (req, res) => {
     try {
-        const { senderPhone, messageText } = req.body;
+        const { senderPhone, messageText, isTrustedBridge } = req.body;
         if (!messageText) return res.json({ success: false });
 
         const activeCCPhone = await getActiveTelecallerPhone();
         const cleanSender = (senderPhone || '').replace(/\D/g, '').slice(-10);
-        if (cleanSender !== activeCCPhone.slice(-10)) {
+
+        if (!isTrustedBridge && cleanSender !== activeCCPhone.slice(-10) && cleanSender !== STOCK_TARGET_PHONE.slice(-10)) {
             return res.json({ success: false, message: "Unauthorized Telecaller Number" });
         }
 
@@ -2523,6 +2637,7 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
             upper === 'START' || 
             upper === 'TASK' || 
             upper === 'TASKS' || 
+            upper === 'NEXT' ||
             upper.includes('AJ KE TASK') || 
             upper.includes('AAJ KE TASK') || 
             upper.includes('AAJ KA TASK') ||
@@ -2595,20 +2710,22 @@ app.post('/api/support/whatsapp-command', async (req, res) => {
             return res.json({ success: true });
         }
 
-        if (upper.startsWith('HOLD')) {
+        if (upper === 'HOLD' || upper.startsWith('HOLD ')) {
             currentTask.status = 'Hold';
             currentTask.sequenceOrder = Date.now() + 999999;
             currentTask.remark = text;
             await currentTask.save();
+            await sendDirectWhatsApp(activeCCPhone, `⏭️ *Task Hold par daal diya gaya hai!* Agla task niche diya gaya hai:`);
             await pushCurrentTaskToWhatsApp();
             return res.json({ success: true });
         }
 
-        if (upper.includes('DONE')) {
+        if (upper === 'DONE' || upper.includes('DONE')) {
             currentTask.status = 'Completed';
             currentTask.remark = text;
             currentTask.completedAt = new Date();
             await currentTask.save();
+            await sendDirectWhatsApp(activeCCPhone, `✅ *Task Complete ho gaya!* Agla task (#1) niche bhej diya gaya hai:`);
             await pushCurrentTaskToWhatsApp();
             return res.json({ success: true });
         }
@@ -2711,14 +2828,12 @@ const STOCK_WATCHLIST = {
     "INFY.NS": "Infosys"
 };
 
-// Lot Size, TradingView Chart Symbol aur Real Monthly/Weekly Premium Approximation ke saath F&O Config
 const FNO_WATCHLIST = {
     "^NSEI": { name: "NIFTY 50 (Weekly)", tvSym: "NSE:NIFTY", step: 50, lotSize: 75, slPts: 40, t1Pts: 80, t2Pts: 130, basePremPct: 0.0075 },
     "^NSEBANK": { name: "BANK NIFTY (Monthly)", tvSym: "NSE:BANKNIFTY", step: 100, lotSize: 30, slPts: 100, t1Pts: 200, t2Pts: 320, basePremPct: 0.0122 }
 };
 const alertedCloudOpportunities = new Set();
 
-// 💾 MONGODB SCHEMA FOR ₹10,000 AI AGENT WALLET & TRADES
 const AiAgentWalletSchema = new mongoose.Schema({
     adminPhone: { type: String, unique: true, default: STOCK_TARGET_PHONE },
     initialCapital: { type: Number, default: INITIAL_AI_CAPITAL },
@@ -2817,7 +2932,6 @@ function calcRSI(arr, period = 14) {
     return Number((100 - (100 / (1 + rs))).toFixed(2));
 }
 
-// 📐 15-Min Candlestick & Breakout Pattern Detector
 function detectCandlePattern(opens, highs, lows, closes, ema9, ema21, vwap) {
     const i = closes.length - 1;
     const o = opens[i], h = highs[i], l = lows[i], c = closes[i];
@@ -2844,7 +2958,6 @@ function detectCandlePattern(opens, highs, lows, closes, ema9, ema21, vwap) {
     return patterns.length > 0 ? patterns.join(" + ") : "15m Range Consolidation";
 }
 
-// 1. High-Accuracy F&O 15m Chart + Pattern Reference + Pullback Protection
 async function fetchFnO15mAnalysis(symbol, meta) {
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=15m&range=5d`;
@@ -2909,7 +3022,6 @@ async function fetchFnO15mAnalysis(symbol, meta) {
         } else if (spot > ema9 && isFallingFromTop) {
             signal = `PULLBACK WARNING (Top ₹${recentHigh.toFixed(0)} se gir raha hai - Reversal ka wait karein)`;
         } 
-        // 🟢 CONFIRMED CALL (CE) SETUP (Sweet Spot RSI 55-68 + Green Candle + Above VWAP & EMA)
         else if (spot > vwap && spot > ema9 && ema9 > ema21 && isCandleGreen && rsi >= prevRsi && rsi >= 55 && rsi <= 68) {
             signal = "BUY CALL (CE) - FRESH BREAKOUT";
             optionPick = `${atmStrike} CE`;
@@ -2919,7 +3031,6 @@ async function fetchFnO15mAnalysis(symbol, meta) {
             conviction = spot > prevHigh ? "9/10 🔥" : "8/10 ✅";
             if (spot > prevHigh && rsi >= 58 && rsi <= 66) isJackpot = true;
         } 
-        // 🔴 CONFIRMED PUT (PE) SETUP (Sweet Spot RSI 32-45 + Red Candle + Below VWAP & EMA)
         else if (spot < vwap && spot < ema9 && ema9 < ema21 && isCandleRed && rsi <= prevRsi && rsi >= 32 && rsi <= 45) {
             signal = "BUY PUT (PE) - FRESH BREAKDOWN";
             optionPick = `${atmStrike} PE`;
@@ -2942,7 +3053,6 @@ async function fetchFnO15mAnalysis(symbol, meta) {
     }
 }
 
-// 2. High-Accuracy Stock Data (Strict RSI 54-67 + Volume Surge + Pattern + Chart URL)
 async function fetchYahooStockData(symbol) {
     try {
         const url1d = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;
@@ -3011,13 +3121,11 @@ async function fetchGoogleStockNews(companyName) {
     }
 }
 
-// 🧠 3. AI AGENT AUTONOMOUS ₹10,000 PORTFOLIO MANAGER (Auto-Entry, Trailing SL & Auto-Exit)
 async function runAutonomousPortfolioManager(stocksList) {
     const wallet = await getOrInitWallet();
     const agentActions = [];
     const nowTime = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
 
-    // STEP A: Monitor Open Positions for Target / Stop-Loss / Trailing SL
     const remainingPositions = [];
     for (const pos of wallet.openPositions) {
         const liveStock = stocksList.find(s => s.symbol === pos.symbol);
@@ -3025,7 +3133,6 @@ async function runAutonomousPortfolioManager(stocksList) {
         const currentPnL = Number(((livePrice - pos.entryPrice) * pos.qty).toFixed(2));
         const movePct = Number((((livePrice - pos.entryPrice) / pos.entryPrice) * 100).toFixed(2));
 
-        // 1. Check Target 1 Hit (+6%)
         if (livePrice >= pos.target1) {
             const saleProceeds = Number((livePrice * pos.qty).toFixed(2));
             wallet.availableCash = Number((wallet.availableCash + saleProceeds).toFixed(2));
@@ -3044,7 +3151,6 @@ async function runAutonomousPortfolioManager(stocksList) {
                 `🏦 *Updated Wallet Cash:* ₹${wallet.availableCash.toLocaleString('en-IN')}`
             );
         }
-        // 2. Check Stop-Loss Hit (-3% or Cost-to-Cost Trailing SL)
         else if (livePrice <= pos.stopLoss) {
             const saleProceeds = Number((livePrice * pos.qty).toFixed(2));
             wallet.availableCash = Number((wallet.availableCash + saleProceeds).toFixed(2));
@@ -3064,7 +3170,6 @@ async function runAutonomousPortfolioManager(stocksList) {
                 `🏦 *Updated Wallet Cash:* ₹${wallet.availableCash.toLocaleString('en-IN')}`
             );
         }
-        // 3. Activate Risk-Free Trailing SL if Stock moves +3% up
         else {
             if (!pos.trailingActivated && movePct >= 3.0) {
                 pos.stopLoss = pos.entryPrice;
@@ -3079,7 +3184,6 @@ async function runAutonomousPortfolioManager(stocksList) {
     }
     wallet.openPositions = remainingPositions;
 
-    // STEP B: Smart Auto-Invest in New High-Accuracy Breakouts
     const negWords = ["fall", "drop", "loss", "crash", "down", "weak", "slump", "fraud", "penalty", "sell"];
     for (const item of stocksList) {
         const alreadyHolding = wallet.openPositions.some(p => p.symbol === item.symbol);
@@ -3131,7 +3235,6 @@ async function runAutonomousPortfolioManager(stocksList) {
     return { wallet, agentActions };
 }
 
-// 📲 Helper: Send Live ₹10,000 Wallet Status on "wallet" / "agent" Command
 async function sendWalletStatusToWhatsApp() {
     const wallet = await getOrInitWallet();
     let totalInvested = 0;
@@ -3173,7 +3276,6 @@ async function sendWalletStatusToWhatsApp() {
     await sendDirectWhatsApp(STOCK_TARGET_PHONE, msg);
 }
 
-// ⚡ Helper: 1.5-Second Instant F&O Radar on "fno" Command
 async function sendFastFnORadar() {
     const [nifty, bnf] = await Promise.all([
         fetchFnO15mAnalysis("^NSEI", FNO_WATCHLIST["^NSEI"]),
@@ -3200,7 +3302,6 @@ async function sendFastFnORadar() {
     await sendDirectWhatsApp(STOCK_TARGET_PHONE, lines.join("\n"));
 }
 
-// 4. Main Cloud Scanner + Autonomous AI Agent Execution
 async function sendScheduledStockNotification(onlyOpportunityMode = false) {
     try {
         const todayKey = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
@@ -3238,7 +3339,6 @@ async function sendScheduledStockNotification(onlyOpportunityMode = false) {
             }
         }
 
-        // 🤖 Run Autonomous ₹10,000 AI Agent (Checks SL/Target & Auto-Invests in Breakouts)
         const { wallet, agentActions } = await runAutonomousPortfolioManager(stocksList);
         if (agentActions.length > 0) {
             liveOpportunities.push(...agentActions);
@@ -3322,4 +3422,8 @@ app.listen(PORT, () => {
     console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
     connectToWhatsApp();
     updateFestivalCalendar();
+    // 🪔 Auto-send today's festival/birthday wishes 25s after boot if missed at 8:00 AM
+    setTimeout(() => {
+        processGreetingsAndWishes();
+    }, 25000);
 });
