@@ -98,62 +98,97 @@ async function connectToWhatsApp() {
                 const messageText = rawText.toLowerCase();
                 if (!messageText) return;
 
-                // Short Admin Commands allowed even if sent from self-chat (fromMe)
+                const upperText = rawText.toUpperCase().trim();
+
+                // 🎧 Check if it's a Customer Care Telecaller Command
+                const isTelecallerCmd = (
+                    upperText === 'START' || 
+                    upperText === 'TASK' || 
+                    upperText === 'TASKS' || 
+                    upperText === 'NEXT' ||
+                    upperText.includes('AJ KE TASK') || 
+                    upperText.includes('AAJ KE TASK') || 
+                    upperText.includes('AAJ KA TASK') ||
+                    upperText.includes('AJ KA TASK') ||
+                    upperText.startsWith('READ ') || 
+                    upperText === 'LEAVE' ||
+                    upperText === 'HOLD' || 
+                    upperText.startsWith('HOLD ') || 
+                    upperText === 'DONE' || 
+                    upperText.startsWith('DONE ') || 
+                    upperText.includes('TASK 1 DONE')
+                );
+
+                // 📈 Check if it's an Admin Stock / Wallet / Festival Wish Command
                 const exactAdminCommands = [
                     'stock', 'fno', 'f&o', 'f and o', 'best deal', 'nifty', 'banknifty',
                     'market', 'report', 'market report', 'stock report',
                     'wallet', 'portfolio', 'agent', 'fund', 'balance', 'reset wallet'
                 ];
-                const isExactStockCmd = exactAdminCommands.includes(messageText);
+                const isExactStockCmd = exactAdminCommands.includes(messageText) || messageText.startsWith('wish ');
 
-                if (msg.key.fromMe && !isExactStockCmd) return;
+                if (msg.key.fromMe && !isExactStockCmd && !isTelecallerCmd) return;
 
-                console.log(`📩 Message Mila: "${messageText}" from ${senderPhone}`);
+                console.log(`📩 Message Mila: "${rawText}" from ${senderPhone}`);
 
                 const cleanSenderNumber = senderPhone.replace(/[^0-9]/g, '');
                 const PORT = process.env.PORT || 3000;
 
                 // =========================================================================
-                // ⚡ 1. INSTANT 1.5s ADMIN F&O, STOCK & ₹10,000 AI WALLET COMMAND BRIDGE
+                // 🎧 1. CUSTOMER CARE TELECALLER WHATSAPP COMMAND BRIDGE (100% @lid SAFE)
                 // =========================================================================
-                const isStockOrAgentQuery = exactAdminCommands.some(
+                if (isTelecallerCmd) {
+                    console.log(`🎧 [Telecaller Router] Forwarding command "${rawText}" to Support Queue...`);
+                    await fetch(`http://127.0.0.1:${PORT}/api/support/whatsapp-command`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            senderPhone: cleanSenderNumber || senderPhone, 
+                            messageText: rawText,
+                            isTrustedBridge: true // ✅ Bypasses @lid mismatch so DONE always works!
+                        })
+                    }).catch(err => console.error("Telecaller Bridge Error:", err.message));
+                    return; // 🛑 Stop here so Property Bot doesn't reply!
+                }
+
+                // =========================================================================
+                // ⚡ 2. INSTANT 1.5s ADMIN F&O, STOCK, WALLET & FESTIVAL WISH BRIDGE
+                // =========================================================================
+                const isStockOrAgentQuery = isExactStockCmd || exactAdminCommands.some(
                     k => messageText === k || (messageText.length <= 25 && messageText.includes(k))
                 );
                 const isFromAdmin = cleanSenderNumber.includes('9399115595') || msg.key.fromMe || senderPhone.includes('@lid');
 
                 if (isStockOrAgentQuery && isFromAdmin) {
-                    console.log(`📈 [AI Stock Agent Router] Triggering Instant Command "${messageText}" for Admin...`);
+                    console.log(`📈 [AI Stock/Admin Router] Triggering Instant Command "${rawText}" for Admin...`);
                     await fetch(`http://127.0.0.1:${PORT}/api/whatsapp/incoming-bot`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             senderPhone: ADMIN_STOCK_PHONE,
-                            messageText: messageText
+                            messageText: rawText
                         })
                     }).catch(err => console.error("Stock Bot Local Trigger Error:", err.message));
                     return;
                 }
 
                 // =========================================================================
-                // 🎧 2. CUSTOMER CARE TELECALLER WHATSAPP COMMAND BRIDGE
+                // 🔗 3. TENANT INSTANT PAYMENT LINK RESEND ("1" or "LINK")
                 // =========================================================================
-                const upperText = rawText.toUpperCase();
-                const isTelecallerCmd = (
-                    upperText === 'START' || upperText === 'TASK' || upperText === 'TASKS' ||
-                    upperText.includes('AJ KE TASK') || upperText.includes('AAJ KE TASK') ||
-                    upperText.startsWith('READ ') || upperText === 'LEAVE' ||
-                    upperText.startsWith('HOLD') || upperText.includes('DONE')
-                );
-                if (isTelecallerCmd && !msg.key.fromMe) {
-                    fetch(`http://127.0.0.1:${PORT}/api/support/whatsapp-command`, {
+                if (messageText === '1' || messageText === 'link' || messageText.includes('payment link') || messageText.includes('link bhej')) {
+                    await fetch(`http://127.0.0.1:${PORT}/api/whatsapp/incoming-bot`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ senderPhone: cleanSenderNumber, messageText: rawText })
+                        body: JSON.stringify({
+                            senderPhone: senderPhone,
+                            messageText: rawText
+                        })
                     }).catch(() => {});
+                    return;
                 }
 
                 // =========================================================================
-                // 🎯 3. ROUTER: VIP PERSONAL BOT VS PROPERTY BOT (Sabhi VIP Numbers & @lid yahan hain)
+                // 🎯 4. ROUTER: VIP PERSONAL BOT VS PROPERTY BOT
                 // =========================================================================
                 const vipSpecialNumbers = [
                     '9575611622', 
