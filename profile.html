@@ -6,42 +6,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Settings - Bhopal Properties</title>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; display: flex; height: 100vh; overflow: hidden; }
         
         /* Sidebar Styling */
-        .sidebar { width: 250px; background-color: #34495e; color: white; display: flex; flex-direction: column; }
+        .sidebar { width: 250px; background-color: #34495e; color: white; display: flex; flex-direction: column; flex-shrink: 0; }
         .sidebar h2 { text-align: center; padding: 20px 0; margin: 0; background-color: #2c3e50; font-size: 18px; }
-        .nav-links { list-style: none; padding: 0; margin: 0; }
+        .nav-links { list-style: none; padding: 0; margin: 0; overflow-y: auto; }
         .nav-links li { padding: 0; }
         .nav-links a { display: block; padding: 15px 20px; color: #bdc3c7; text-decoration: none; border-left: 4px solid transparent; transition: 0.3s; }
         .nav-links a:hover, .nav-links a.active { background-color: #2c3e50; color: white; border-left-color: #2ecc71; }
 
         /* Main Content Area */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; height: 100vh; }
         
         /* Top Header */
-        .dashboard-header { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .dashboard-header { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .header-right { display: flex; align-items: center; gap: 15px; }
         .logout-btn { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .logout-btn:hover { background-color: #c0392b; }
 
         /* Form Area */
-        .content-body { padding: 30px; }
-        .form-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border-left: 5px solid #2ecc71; }
+        .content-body { padding: 30px; box-sizing: border-box; }
+        .form-card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 600px; margin: 0 auto; border-left: 5px solid #2ecc71; box-sizing: border-box; width: 100%; }
         .form-card h3 { margin-top: 0; color: #2c3e50; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
         
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-        .form-group input[type="text"], .form-group input[type="tel"], .form-group input[type="date"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .form-group input[type="text"], .form-group input[type="tel"], .form-group input[type="date"], .form-group input[type="file"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
         .form-group input:focus { outline: none; border-color: #3498db; }
         
-        .submit-btn { background-color: #2ecc71; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
+        .submit-btn { background-color: #2ecc71; color: white; border: none; padding: 12px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; box-sizing: border-box; }
         .submit-btn:hover { background-color: #27ae60; }
 
         .profile-preview-container { text-align: center; margin-bottom: 20px; }
         .profile-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #2ecc71; display: none; margin: 0 auto; }
         
         .alert-box { background-color: #fff3cd; color: #856404; padding: 12px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba; font-size: 13px; }
+
+        /* 📱 MOBILE RESPONSIVE FIXES (जब स्क्रीन छोटी होगी) */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; overflow: auto; }
+            .sidebar { width: 100%; height: auto; flex-direction: row; overflow-x: auto; }
+            .sidebar h2 { display: none; } /* मोबाइल में साइडबार हेडिंग छिपाकर जगह बचाई गई है */
+            .nav-links { display: flex; width: 100%; }
+            .nav-links a { padding: 10px 15px; white-space: nowrap; font-size: 13px; border-left: none; border-bottom: 3px solid transparent; }
+            .nav-links a:hover, .nav-links a.active { border-left-color: transparent; border-bottom-color: #2ecc71; }
+            .main-content { height: auto; overflow-y: visible; }
+            .dashboard-header { padding: 12px 15px; }
+            .content-body { padding: 15px; }
+            .form-card { padding: 15px; }
+        }
     </style>
 </head>
 
@@ -53,15 +67,15 @@
             <li><a href="dashboard.html">My Properties</a></li>
             <li><a href="add-property.html">Add New Property</a></li>
             <li><a href="profile.html" class="active">Profile Settings</a></li>
-            <li><a href="#">Messages / Enquiries</a></li>
+            <li><a href="#">Messages</a></li>
         </ul>
     </div>
 
     <div class="main-content">
         <header class="dashboard-header">
-            <div style="font-weight: bold; font-size: 18px;">Profile Settings</div>
+            <div style="font-weight: bold; font-size: 16px;">Profile Settings</div>
             <div class="header-right">
-                <span id="welcomeName">Welcome, Broker User</span>
+                <span id="welcomeName" style="font-size: 13px;">Welcome, User</span>
                 <button onclick="logout()" class="logout-btn">Log Out</button>
             </div>
         </header>
@@ -103,15 +117,15 @@
                         <p style="font-size: 11px; color: #0284c7; margin-bottom: 10px;">अपनी सटीक लोकेशन सेव करें ताकि सिस्टम ग्राहकों को आपके पास की प्रॉपर्टी दिखा सके।</p>
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button type="button" id="getLocBtn" style="background: #0284c7; color: white; padding: 10px 15px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; flex-shrink: 0;">
-                                📍 Detect My Location
+                                📍 Detect Location
                             </button>
-                            <input type="text" id="locDisplay" placeholder="Click button to detect... ➡️" readonly style="flex: 1; min-width: 150px; padding: 10px; border-radius: 5px; border: 1px solid #bae6fd; background: #f0f9ff; font-weight: bold; color: #64748b; cursor: not-allowed;">
+                            <input type="text" id="locDisplay" placeholder="Click button to detect..." readonly style="flex: 1; min-width: 150px; padding: 10px; border-radius: 5px; border: 1px solid #bae6fd; background: #f0f9ff; font-weight: bold; color: #64748b; cursor: not-allowed;">
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label>प्रोफाइल फोटो (Profile Photo)</label>
-                        <input type="file" id="profilePhoto" accept="image/*" style="padding: 10px 0;">
+                        <input type="file" id="profilePhoto" accept="image/*" style="padding: 6px 0;">
                         <p style="font-size: 12px; color: #7f8c8d; margin-top: 0;">* सिर्फ तभी चुनें जब फोटो बदलनी हो</p>
                     </div>
 
@@ -135,7 +149,7 @@
                 return;
             }
 
-            document.getElementById('welcomeName').innerText = `Welcome, Broker ${name}`;
+            document.getElementById('welcomeName').innerText = `Welcome, ${name}`;
 
             try {
                 const response = await fetch(`/api/get-profile?email=${email}`);
@@ -163,7 +177,7 @@
                     display.value = `✅ Lat: ${userLat.toFixed(4)}, Lng: ${userLng.toFixed(4)}`;
                     display.style.color = "#15803d"; 
                     display.style.background = "#dcfce3";
-                    document.getElementById('getLocBtn').innerText = "📍 Location Saved";
+                    document.getElementById('getLocBtn').innerText = "📍 Saved";
                     document.getElementById('getLocBtn').style.background = "#16a34a";
                 }
             } catch (error) { 
@@ -186,11 +200,11 @@
                         display.style.color = "#15803d"; 
                         display.style.background = "#dcfce3"; 
                         display.style.borderColor = "#86efac";
-                        btn.innerText = "📍 Location Saved"; 
+                        btn.innerText = "📍 Saved"; 
                         btn.style.background = "#16a34a";
                     },
                     (error) => {
-                        btn.innerText = "📍 Detect My Location";
+                        btn.innerText = "📍 Detect Location";
                         alert("⚠️ Location permission allow करें या मोबाइल का GPS चालू करें!");
                     },
                     { enableHighAccuracy: true }
@@ -204,7 +218,7 @@
         document.getElementById('profileForm').addEventListener('submit', async (e) => {
             e.preventDefault(); 
             const saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerText = "Saving Please Wait... ⏳"; 
+            saveBtn.innerText = "Saving... ⏳"; 
             saveBtn.disabled = true;
 
             const formData = new FormData();
