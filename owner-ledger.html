@@ -285,14 +285,18 @@
     </div>
 
     <script>
-        let activeRoom = 'Room 101';
-        const ownerEmail = localStorage.getItem('brokerEmail') || 'owner@test.com';
+        const rawEmail = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail') || 'owner@test.com';
+        const ownerEmail = rawEmail.toLowerCase().trim();
+        const roomStorageKey = `brokerRoomTabs_${ownerEmail}`;
+
+        let savedRoomsList = JSON.parse(localStorage.getItem(roomStorageKey)) || JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
+        let activeRoom = localStorage.getItem(`lastActiveRoom_${ownerEmail}`) || savedRoomsList[0] || 'Room 101';
         let isRegistered = false;
         let activeDynamicDates = [];
-        let savedRoomsList = JSON.parse(localStorage.getItem('brokerRoomTabs')) || ['Room 101', 'Room 102', 'Room 103'];
         let tenantNameMap = {};
         let globalArchivedData = []; 
         let currentTenantId = null;
+        let hasInitialAutoSelectRun = false;
 
         function setProfileLockState(locked) {
             isRegistered = locked;
@@ -336,19 +340,25 @@
         }
 
         function switchRoom(roomName) {
-            activeRoom = roomName;
+            activeRoom = roomName.trim();
+            localStorage.setItem(`lastActiveRoom_${ownerEmail}`, activeRoom);
             initRoomTabs();
             loadRoomConfigurationData();
         }
 
         function addNewRoomButton() {
-            const newRoom = prompt("नया रूम का नाम दर्ज करें (उदाहरण: Room 104):");
-            if (newRoom && newRoom.trim() !== '') {
-                if (!savedRoomsList.includes(newRoom)) {
-                    savedRoomsList.push(newRoom);
-                    localStorage.setItem('brokerRoomTabs', JSON.stringify(savedRoomsList));
+            const newRoomInput = prompt("नया रूम का नाम दर्ज करें (उदाहरण: Room 104):");
+            if (newRoomInput && newRoomInput.trim() !== '') {
+                const cleanRoom = newRoomInput.trim();
+                // Case-insensitive check so duplicate tabs aren't created
+                const existingMatch = savedRoomsList.find(r => r.toLowerCase() === cleanRoom.toLowerCase());
+                const finalRoomName = existingMatch || cleanRoom;
+
+                if (!existingMatch) {
+                    savedRoomsList.push(finalRoomName);
+                    localStorage.setItem(roomStorageKey, JSON.stringify(savedRoomsList));
                 }
-                switchRoom(newRoom);
+                switchRoom(finalRoomName);
             }
         }
 
@@ -502,14 +512,49 @@
 
                 if (result.success && result.data) {
                     tenantNameMap = {};
+                    let roomsChanged = false;
+
+                    // 🔄 AUTO-SYNC ALL ROOMS FROM DATABASE SO TABS NEVER DISAPPEAR
                     result.data.forEach(t => {
+                        const dbRoom = (t.roomOrFlatNo || '').trim();
+                        if (!dbRoom) return;
+
+                        const existsInTabs = savedRoomsList.some(r => r.trim().toLowerCase() === dbRoom.toLowerCase());
+                        if (!existsInTabs) {
+                            savedRoomsList.push(dbRoom);
+                            roomsChanged = true;
+                        }
+
                         if (t.status === 'Active') {
-                            tenantNameMap[t.roomOrFlatNo] = t.tenantName;
+                            const matchedTabName = savedRoomsList.find(r => r.trim().toLowerCase() === dbRoom.toLowerCase()) || dbRoom;
+                            tenantNameMap[matchedTabName] = t.tenantName;
                         }
                     });
+
+                    if (roomsChanged) {
+                        localStorage.setItem(roomStorageKey, JSON.stringify(savedRoomsList));
+                    }
+
+                    // 🎯 On first page load, if default Room 101 is empty, auto-switch to first occupied room
+                    if (!hasInitialAutoSelectRun) {
+                        hasInitialAutoSelectRun = true;
+                        const currentHasActive = result.data.some(
+                            t => (t.roomOrFlatNo || '').trim().toLowerCase() === activeRoom.trim().toLowerCase() && t.status === 'Active'
+                        );
+                        if (!currentHasActive) {
+                            const firstOccupied = result.data.find(t => t.status === 'Active' && t.roomOrFlatNo);
+                            if (firstOccupied) {
+                                activeRoom = firstOccupied.roomOrFlatNo.trim();
+                                localStorage.setItem(`lastActiveRoom_${ownerEmail}`, activeRoom);
+                            }
+                        }
+                    }
+
                     initRoomTabs(); 
 
-                    const activeTenant = result.data.find(t => t.roomOrFlatNo === activeRoom && t.status === 'Active');
+                    const activeTenant = result.data.find(
+                        t => (t.roomOrFlatNo || '').trim().toLowerCase() === activeRoom.trim().toLowerCase() && t.status === 'Active'
+                    );
                     if (activeTenant) {
                         currentTenantId = activeTenant._id;
                         setProfileLockState(true);
@@ -542,6 +587,7 @@
                                     document.getElementById(`waterBill_${i}`).value = entry.waterBill || 0;
                                     document.getElementById(`total_${i}`).innerText = entry.total || 0;
                                     document.getElementById(`paid_${i}`).value = entry.paidAmount || 0;
+                                    document.getElementById(`balance_${i}`).value = entry.balance || 0;
                                     document.getElementById(`balance_${i}`).innerText = entry.balance || 0;
                                 }
                             });
@@ -592,15 +638,15 @@
 
             const payload = {
                 ownerEmail: ownerEmail,
-                roomOrFlatNo: activeRoom,
-                tenantName: document.getElementById('tName').value,
-                tenantFatherName: document.getElementById('tFatherName').value,
+                roomOrFlatNo: activeRoom.trim(),
+                tenantName: document.getElementById('tName').value.trim(),
+                tenantFatherName: document.getElementById('tFatherName').value.trim(),
                 tenantDOB: document.getElementById('tDOB').value,
-                mobileNo: document.getElementById('tMobile').value,
+                mobileNo: document.getElementById('tMobile').value.trim(),
                 joiningDate: document.getElementById('rentStartDate').value,
                 unitRate: Number(document.getElementById('unitRate').value || 10),
                 familyMembers: Number(document.getElementById('familyMembers').value || 1),
-                aadharNumber: document.getElementById('tAadhar').value,
+                aadharNumber: document.getElementById('tAadhar').value.trim(),
                 jobStatus: document.getElementById('jobStatus').value,
                 currentMeterReading: Number(document.getElementById('currentMeterReading').value || 0),
                 monthlyEntries: entries
@@ -628,7 +674,7 @@
 
             const payload = {
                 ownerEmail: ownerEmail, 
-                roomOrFlatNo: activeRoom,
+                roomOrFlatNo: activeRoom.trim(),
                 tenantName: document.getElementById('tName').value,
                 status: 'Left'
             };

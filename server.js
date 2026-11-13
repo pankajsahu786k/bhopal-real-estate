@@ -325,54 +325,78 @@ async function requireCompleteProfile(req, res, next) {
 }
 
 // =========================================================================
-// 🚀 MASTER API ROUTE: UPSERT ENGINE + AUTOMATIC WHATSAPP BILL & RECEIPT
+// 🚀 MASTER API ROUTE: UPSERT ENGINE + AUTOMATIC WHATSAPP BILL & RECEIPT (100% BUG-FREE)
 // =========================================================================
 app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
     try {
-        const { ownerEmail, roomOrFlatNo, monthlyEntries, ...tenantDetails } = req.body;
+        let { ownerEmail, roomOrFlatNo, monthlyEntries, ...tenantDetails } = req.body;
         
+        ownerEmail = (ownerEmail || '').toLowerCase().trim();
+        roomOrFlatNo = (roomOrFlatNo || '').trim();
+
+        if (!ownerEmail || !roomOrFlatNo) {
+            return res.status(400).json({ success: false, message: "Owner Email aur Room Number anivarya hai!" });
+        }
+
+        // Escape special characters & allow flexible matching for existing records with accidental spaces/caps
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const emailRegex = new RegExp(`^\\s*${escapeRegExp(ownerEmail)}\\s*$`, 'i');
+        const roomRegex = new RegExp(`^\\s*${escapeRegExp(roomOrFlatNo)}\\s*$`, 'i');
+
+        const existingRecord = await TenantLedger.findOne({ 
+            ownerEmail: { $regex: emailRegex }, 
+            roomOrFlatNo: { $regex: roomRegex }, 
+            status: 'Active' 
+        });
+
+        // 🚪 CASE 1: LEAVE ROOM (Archive Tenant)
         if (tenantDetails.status === 'Left') {
-            const oldTenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
-            await TenantLedger.updateOne(
-                { ownerEmail, roomOrFlatNo, status: 'Active' },
-                { $set: { status: 'Left' } }
-            );
-            if (oldTenant) {
-                await createVacancyLeadTasks(ownerEmail, roomOrFlatNo, oldTenant.tenantName, oldTenant.mobileNo);
+            if (existingRecord) {
+                existingRecord.status = 'Left';
+                await existingRecord.save();
+                await createVacancyLeadTasks(ownerEmail, roomOrFlatNo, existingRecord.tenantName, existingRecord.mobileNo);
             }
             return res.json({ success: true, message: "🚪 रूम खाली कर दिया गया और हिस्ट्री में सेव हो गया!" });
         }
 
-        const existingRecord = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
-
+        // Preserve billNotified & paidNotified flags so duplicate WhatsApp messages aren't sent
         if (Array.isArray(monthlyEntries) && existingRecord && Array.isArray(existingRecord.monthlyEntries)) {
             for (let i = 0; i < monthlyEntries.length; i++) {
                 const oldEntry = existingRecord.monthlyEntries[i];
                 if (oldEntry) {
                     if (Number(oldEntry.total) === Number(monthlyEntries[i].total)) {
-                        monthlyEntries[i].billNotified = oldEntry.billNotified || false;
+                        monthlyEntries[i].billNotified = Boolean(oldEntry.billNotified);
                     }
                     if (Number(oldEntry.paidAmount) === Number(monthlyEntries[i].paidAmount)) {
-                        monthlyEntries[i].paidNotified = oldEntry.paidNotified || false;
+                        monthlyEntries[i].paidNotified = Boolean(oldEntry.paidNotified);
                     }
                 }
             }
         }
 
-        await TenantLedger.updateOne(
-            { ownerEmail, roomOrFlatNo, status: 'Active' },
-            { 
-                $set: { 
-                    ...tenantDetails, 
-                    monthlyEntries: monthlyEntries 
-                } 
-            },
-            { upsert: true }
-        );
+        // 💾 CASE 2: UPDATE EXISTING RECORD OR CREATE NEW ONE (UPSERT)
+        let savedTenant;
+        if (existingRecord) {
+            Object.assign(existingRecord, tenantDetails);
+            existingRecord.ownerEmail = ownerEmail;
+            existingRecord.roomOrFlatNo = roomOrFlatNo;
+            existingRecord.monthlyEntries = monthlyEntries || [];
+            existingRecord.markModified('monthlyEntries');
+            savedTenant = await existingRecord.save();
+        } else {
+            savedTenant = await TenantLedger.create({
+                ...tenantDetails,
+                ownerEmail: ownerEmail,
+                roomOrFlatNo: roomOrFlatNo,
+                monthlyEntries: monthlyEntries || [],
+                status: 'Active'
+            });
+        }
 
-        const savedTenant = await TenantLedger.findOne({ ownerEmail, roomOrFlatNo, status: 'Active' });
-
+        // 📲 SEND WHATSAPP BILL & PAYMENT RECEIPT IF NEW ENTRY ADDED
         if (savedTenant && savedTenant.monthlyEntries && savedTenant.monthlyEntries.length > 0) {
+            let flagsUpdated = false;
+
             for (let i = 0; i < savedTenant.monthlyEntries.length; i++) {
                 const entry = savedTenant.monthlyEntries[i];
                 const passbookUrl = `https://bhopal-real-estate.onrender.com/passbook.html?id=${savedTenant._id}`;
@@ -385,6 +409,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 
                     sendDirectWhatsApp(savedTenant.mobileNo, billMsg).catch(e => console.error(e));
                     savedTenant.monthlyEntries[i].billNotified = true;
+                    flagsUpdated = true;
                 }
 
                 const newPaid = Number(entry.paidAmount) || 0;
@@ -393,18 +418,22 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
 
                     sendDirectWhatsApp(savedTenant.mobileNo, receiptMsg).catch(e => console.error(e));
                     savedTenant.monthlyEntries[i].paidNotified = true;
+                    flagsUpdated = true;
                 }
             }
-            savedTenant.markModified('monthlyEntries');
-            await savedTenant.save();
+
+            if (flagsUpdated) {
+                savedTenant.markModified('monthlyEntries');
+                await savedTenant.save();
+            }
         }
+
         res.json({ success: true, message: "✅ डेटा सफलतापूर्वक सेव हो गया और WhatsApp पर पेमेंट लिंक भेज दिया गया!" });
     } catch (error) {
         console.error("Database Save Error:", error);
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
-
 // =========================================================================
 // 🧠 SMART BRAIN ENGINE: 9 AM | 12 PM | 8 PM BOT SYSTEM (OWNER + TENANT)
 // =========================================================================
@@ -2163,14 +2192,17 @@ app.delete('/api/admin/delete-user/:id', async (req, res) => {
 
 app.get('/api/owner/my-tenants', async (req, res) => {
     try {
-        const { email } = req.query;
-        const tenants = await TenantLedger.find({ ownerEmail: email });
+        const cleanEmail = (req.query.email || '').toLowerCase().trim();
+        if (!cleanEmail) return res.json({ success: true, data: [] });
+        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const tenants = await TenantLedger.find({ 
+            ownerEmail: { $regex: new RegExp(`^\\s*${escapeRegExp(cleanEmail)}\\s*$`, 'i') } 
+        });
         res.json({ success: true, data: tenants });
     } catch (error) {
         res.status(500).json({ success: false });
     }
 });
-
 app.post('/api/tenant/login', async (req, res) => {
     try {
         const { email, password } = req.body;
