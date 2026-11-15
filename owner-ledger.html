@@ -285,7 +285,15 @@
     </div>
 
     <script>
-        const rawEmail = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail') || 'owner@test.com';
+        // 🔒 STRICT LOGIN GUARD: Bina login ke ledger nahi khulega
+        const rawEmail = localStorage.getItem('brokerEmail') || localStorage.getItem('userEmail');
+
+        if (!rawEmail || rawEmail === 'null' || rawEmail === 'undefined' || rawEmail.trim() === '' || rawEmail.trim().toLowerCase() === 'owner@test.com') {
+            alert("⚠️ Digital Khata (Ledger) kholne ke liye pehle Login karna anivarya hai!");
+            window.location.replace('login.html');
+            throw new Error("Unauthorized: Redirecting to login...");
+        }
+
         const ownerEmail = rawEmail.toLowerCase().trim();
         const roomStorageKey = `brokerRoomTabs_${ownerEmail}`;
 
