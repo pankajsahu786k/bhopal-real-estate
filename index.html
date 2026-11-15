@@ -3,8 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bhopal Properties - Buy, Sell & Rent Real Estate</title>
+    <title>Bhopal Properties - Buy, Sell & Rent Real Estate | Digital Rent Khata</title>
     
+    <!-- 🔍 GOOGLE SEO & LOCAL BHOPAL META TAGS -->
+    <meta name="description" content="भोपाल (MP Nagar, Kolar Road, Arera Colony, Indrapuri) में किराये और बिक्री के लिए सबसे बेहतरीन घर, फ्लैट्स, PG और दुकानें खोजें। Free Owner Digital Khata व Online Police Verification सुविधा के साथ।">
+    <meta name="keywords" content="Bhopal Properties, Rent house in Bhopal, Flats in MP Nagar Bhopal, Room rent Kolar Road Bhopal, Bhopal Real Estate, Online Rent Agreement Bhopal">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="Bhopal Properties - Buy, Sell & Rent Real Estate">
+    <meta property="og:description" content="भोपाल में बिना झंझट के घर, फ्लैट और रूम खोजें या अपनी प्रॉपर्टी फ्री में लिस्ट करें।">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://bhopal-real-estate.onrender.com/">
+
     <!-- 📱 PWA / ANDROID APP SETUP -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1e1b4b">
@@ -114,7 +123,6 @@
             align-items: center;
             gap: 5px;
             white-space: nowrap;
-            margin-left: 8px;
             box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
             transition: 0.2s ease;
             text-decoration: none;
@@ -151,58 +159,91 @@
         }
 
         /* 🌆 Hero Section (Search Area) */
-        .hero { background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover; padding: 100px 20px; text-align: center; color: white; }
-        .hero h1 { font-size: 48px; margin-bottom: 10px; }
-        .hero p { font-size: 18px; margin-bottom: 40px; font-weight: 300; }
+        .hero { background: linear-gradient(rgba(30, 27, 75, 0.85), rgba(44, 62, 80, 0.88)), url('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-1.2.1&auto=format&fit=crop&w=1920&q=80') center/cover; padding: 80px 20px; text-align: center; color: white; }
+        .hero h1 { font-size: 44px; margin-bottom: 10px; font-weight: 800; }
+        .hero p { font-size: 18px; margin-bottom: 35px; font-weight: 400; color: #e2e8f0; }
         
-        .search-box { background: white; padding: 20px; border-radius: 10px; max-width: 900px; margin: 0 auto; display: flex; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); flex-wrap: wrap; }
-        .search-box select, .search-box button { padding: 15px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; flex: 1; min-width: 200px; }
-        .search-box button { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .search-box { background: white; padding: 18px; border-radius: 12px; max-width: 920px; margin: 0 auto; display: flex; gap: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.25); flex-wrap: wrap; }
+        .search-box select, .search-box button { padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; flex: 1; min-width: 190px; font-family: 'Poppins', sans-serif; font-weight: 600; }
+        .search-box button { background: #27ae60; color: white; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; }
         .search-box button:hover { background: #219653; }
         #nearbyBtn:hover { background: #2563eb !important; }
 
+        /* 🛡️ Trust & Owner Digital Khata Banner */
+        .trust-strip {
+            max-width: 1200px;
+            margin: -25px auto 20px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+        .trust-grid {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 15px;
+            border-top: 4px solid #f59e0b;
+        }
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+        .trust-icon { font-size: 28px; }
+        .trust-item h4 { margin: 0; font-size: 14px; color: #1e1b4b; font-weight: 700; }
+        .trust-item p { margin: 2px 0 0; font-size: 12px; color: #64748b; }
+
         /* 🏠 Properties Grid */
-        .section-title { text-align: center; margin: 50px 0 30px; color: #2c3e50; font-size: 32px; }
+        .section-title { text-align: center; margin: 45px 0 25px; color: #1e1b4b; font-size: 30px; font-weight: 800; }
         .properties-container { max-width: 1200px; margin: 0 auto 50px; padding: 0 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
         
-        .property-card { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); transition: 0.3s; display: flex; flex-direction: column; }
-        .property-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .property-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.06); transition: 0.3s; display: flex; flex-direction: column; border: 1px solid #e2e8f0; }
+        .property-card:hover { transform: translateY(-5px); box-shadow: 0 12px 28px rgba(0,0,0,0.12); }
         .card-img { width: 100%; height: 220px; object-fit: cover; }
         .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
         .badge { background: #e8f8f5; color: #27ae60; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; }
         .distance-badge { background: #e0f2fe; color: #0284c7; padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; display: inline-block; margin-left: 5px; }
-        .card-title { font-size: 20px; margin: 10px 0; color: #2c3e50; }
-        .card-location { color: #7f8c8d; font-size: 14px; margin-bottom: 15px; }
-        .card-price { font-size: 24px; font-weight: bold; color: #27ae60; margin-bottom: 15px; }
-        .view-btn { display: block; text-align: center; background: #3498db; color: white; padding: 10px; border-radius: 5px; font-weight: bold; margin-top: auto; transition: 0.3s; }
-        .view-btn:hover { background: #2980b9; }
+        .card-title { font-size: 19px; margin: 10px 0; color: #1e1b4b; font-weight: 700; }
+        .card-location { color: #64748b; font-size: 14px; margin-bottom: 12px; }
+        .card-price { font-size: 22px; font-weight: 800; color: #27ae60; margin-bottom: 15px; }
+        .view-btn { display: block; text-align: center; background: #1e1b4b; color: white; padding: 11px; border-radius: 6px; font-weight: 700; margin-top: auto; transition: 0.3s; }
+        .view-btn:hover { background: #2563eb; }
 
         /* 📱 Responsive Screen Matrix Overrides */
         @media (max-width: 1150px) {
             .header-container { flex-direction: column; gap: 10px; }
             .nav-matrix-links { flex-wrap: wrap; justify-content: center; }
-            .instant-access-badge { margin-left: 0; }
         }
         @media (max-width: 768px) {
-            .hero h1 { font-size: 32px; }
+            .super-app-header { padding: 10px 15px; }
+            .hero { padding: 60px 15px; }
+            .hero h1 { font-size: 28px; }
+            .hero p { font-size: 15px; }
             .search-box { flex-direction: column; }
+            .trust-strip { margin-top: 15px; }
         }
         
         /* 📜 Footer */
-        footer { background: #2c3e50; color: white; padding: 40px 20px 20px; text-align: center; margin-top: 50px; }
-        .footer-links { margin-bottom: 20px; }
-        .footer-links a { color: #bdc3c7; margin: 0 15px; font-size: 14px; transition: 0.3s; }
-        .footer-links a:hover { color: white; }
-        .footer-bottom { font-size: 14px; color: #7f8c8d; border-top: 1px solid #34495e; padding-top: 20px; margin-top: 20px; }
+        footer { background: #1e293b; color: white; padding: 40px 20px 20px; text-align: center; margin-top: 50px; }
+        .footer-links { margin-bottom: 20px; display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; }
+        .footer-links a { color: #cbd5e1; font-size: 14px; transition: 0.3s; }
+        .footer-links a:hover { color: #f59e0b; }
+        .footer-bottom { font-size: 13px; color: #94a3b8; border-top: 1px solid #334155; padding-top: 20px; margin-top: 20px; }
 
         /* 🤖 AI Virtual Broker Chat UI */
-        .ai-chat-btn { position: fixed; bottom: 30px; right: 30px; background: #1e1b4b; color: #f59e0b; width: 65px; height: 65px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; box-shadow: 0 8px 25px rgba(30,27,75,0.4); z-index: 1000; transition: 0.3s; border: 2px solid #f59e0b; animation: float 3s ease-in-out infinite; }
+        .ai-chat-btn { position: fixed; bottom: 25px; right: 25px; background: #1e1b4b; color: #f59e0b; width: 62px; height: 62px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 30px; cursor: pointer; box-shadow: 0 8px 25px rgba(30,27,75,0.4); z-index: 1000; transition: 0.3s; border: 2px solid #f59e0b; animation: float 3s ease-in-out infinite; }
         .ai-chat-btn:hover { transform: scale(1.1); }
-        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
-        .ai-chat-window { position: fixed; bottom: 110px; right: 30px; width: 360px; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; z-index: 1000; display: none; flex-direction: column; border: 1px solid #e2e8f0; font-family: 'Poppins', sans-serif; }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
+        .ai-chat-window { position: fixed; bottom: 100px; right: 25px; width: 350px; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); overflow: hidden; z-index: 1000; display: none; flex-direction: column; border: 1px solid #e2e8f0; font-family: 'Poppins', sans-serif; }
         .chat-header { background: linear-gradient(135deg, #1e1b4b, #2e2a72); color: white; padding: 15px 20px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
         .close-chat { cursor: pointer; color: #f1c40f; font-size: 20px; font-weight: bold; }
-        .chat-body { padding: 15px; height: 350px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; }
+        .chat-body { padding: 15px; height: 340px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 12px; }
         .bot-msg { background: white; color: #1e1b4b; padding: 12px 16px; border-radius: 15px 15px 15px 0; max-width: 85%; font-size: 13px; font-weight: 500; align-self: flex-start; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-left: 3px solid #f59e0b; }
         .user-msg { background: #27ae60; color: white; padding: 12px 16px; border-radius: 15px 15px 0 15px; max-width: 85%; font-size: 13px; font-weight: 500; align-self: flex-end; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .chat-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
@@ -217,7 +258,7 @@
         .bot-prop-card span { color: #64748b; font-weight: 500; }
         .bot-prop-card a { background: #3b82f6; color: white; text-align: center; padding: 8px; border-radius: 4px; text-decoration: none; font-weight: bold; transition: 0.2s; }
         
-        @media (max-width: 768px) { .ai-chat-window { width: 90%; right: 5%; bottom: 100px; } }
+        @media (max-width: 768px) { .ai-chat-window { width: 90%; right: 5%; bottom: 95px; } }
     </style>
 </head>
 <body>
@@ -233,22 +274,20 @@
             <nav class="navigation-hub">
                 <ul class="nav-matrix-links">
                     <li><a href="index.html" class="matrix-link active">Home</a></li>
-                    <li><a href="services.html?service=property" class="matrix-link">Properties</a></li>
-                    <li><a href="services.html?service=tenant" class="matrix-link">Tenant Verification</a></li>
+                    <li><a href="#properties" class="matrix-link">Buy / Rent</a></li>
+                    <li><a href="owner-ledger.html" class="matrix-link" style="border-color:#22c55e; color:#15803d;">📋 Digital Khata</a></li>
+                    <li><a href="services.html" class="matrix-link">⚡ Services</a></li>
                     <li><a href="rk-decorators.html" class="matrix-link">RK Decorators</a></li>
-                    <li><a href="services.html?service=transporter" class="matrix-link">Packers & Movers</a></li>
-                    <li><a href="services.html?service=loan" class="matrix-link">Home Loans</a></li>
-                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Broker Login</a></li>
+                    <li><a href="login.html" class="matrix-link broker-login-nav-btn">Owner / Broker Login</a></li>
                 </ul>
             </nav>
             
-            <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
                 <div class="instant-access-badge">
                     <span class="pulse-dot"></span> Open Access
                 </div>
-                <!-- 📲 DIRECT APK DOWNLOAD BUTTON IN HEADER -->
                 <a href="/download-app" download="Bhopal-Real-Estate.apk" class="apk-download-nav-btn">
-                    📲 Download App
+                    📲 App
                 </a>
             </div>
         </div>
@@ -256,7 +295,7 @@
 
     <div class="hero">
         <h1>भोपाल में अपनी सपनों की प्रॉपर्टी खोजें</h1>
-        <p>किराये और बिक्री के लिए सबसे बेहतरीन घर, फ्लैट्स और दुकानें।</p>
+        <p>MP Nagar, Kolar Road, Arera Colony व पूरे भोपाल में Verified घर, फ्लैट्स और दुकानें।</p>
         
         <div class="search-box">
             <select id="searchPurpose">
@@ -271,16 +310,45 @@
             <button id="nearbyBtn" onclick="findNearbyProperties()" style="background: #3b82f6;">📍 आस-पास खोजें</button>
         </div>
 
-        <!-- 📲 HERO DIRECT APP DOWNLOAD BANNER -->
-        <div style="margin-top: 25px;">
-            <a href="/download-app" download="Bhopal-Real-Estate.apk" style="display: inline-flex; align-items: center; gap: 10px; background: #f59e0b; color: #1e1b4b; font-weight: 800; padding: 12px 26px; border-radius: 30px; font-size: 15px; box-shadow: 0 8px 20px rgba(0,0,0,0.3); text-decoration: none;">
-                🤖 Download Official Android App (.APK)
+        <div style="margin-top: 25px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <a href="login.html" style="display: inline-flex; align-items: center; gap: 8px; background: #22c55e; color: white; font-weight: 800; padding: 12px 24px; border-radius: 30px; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.25);">
+                ➕ Post Property (Free)
+            </a>
+            <a href="/download-app" download="Bhopal-Real-Estate.apk" style="display: inline-flex; align-items: center; gap: 8px; background: #f59e0b; color: #1e1b4b; font-weight: 800; padding: 12px 24px; border-radius: 30px; font-size: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.25);">
+                🤖 Download Android App (.APK)
             </a>
         </div>
     </div>
 
+    <!-- 🛡️ TRUST & OWNER DIGITAL KHATA HIGHLIGHTS -->
+    <div class="trust-strip">
+        <div class="trust-grid">
+            <div class="trust-item" onclick="window.location.href='owner-ledger.html'" style="cursor:pointer;">
+                <span class="trust-icon">📋</span>
+                <div>
+                    <h4>Free Owner Digital Khata</h4>
+                    <p>ऑटोमैटिक किराया, बिजली बिल व WhatsApp रिमाइंडर</p>
+                </div>
+            </div>
+            <div class="trust-item" onclick="window.location.href='services.html'" style="cursor:pointer;">
+                <span class="trust-icon">🛡️</span>
+                <div>
+                    <h4>Online Rent Agreement & Police Verif.</h4>
+                    <p>घर बैठे डिजिटल रेंट एग्रीमेंट और किरायेदार वेरिफिकेशन</p>
+                </div>
+            </div>
+            <div class="trust-item">
+                <span class="trust-icon">📍</span>
+                <div>
+                    <h4>GPS Verified Bhopal Listings</h4>
+                    <p>सटीक लोकेशन दूरी (KM) और डायरेक्ट ओनर/ब्रोकर संपर्क</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <h2 class="section-title" id="properties">लेटेस्ट प्रॉपर्टीज़</h2>
-    <div id="loading" style="text-align: center; font-size: 18px; margin-bottom: 50px;">प्रॉपर्टीज़ लोड हो रही हैं... ⏳</div>
+    <div id="loading" style="text-align: center; font-size: 16px; color: #475569; margin-bottom: 40px;">प्रॉपर्टीज़ लोड हो रही हैं... ⏳</div>
     
     <div class="properties-container" id="propertyList"></div>
 
@@ -312,28 +380,39 @@
             <a href="refund.html">Cancellation & Refund Policy</a>
         </div>
         <div class="footer-bottom">
-            &copy; 2026 Bhopal Properties. All Rights Reserved.
+            &copy; 2026 Bhopal Properties (Arera Colony, Bhopal, MP). All Rights Reserved.
         </div>
     </footer>
 
     <script>
         let allProperties = [];
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        async function loadInitialProperties(retries = 3) {
+            const loadingEl = document.getElementById('loading');
             try {
                 const response = await fetch('/api/get-properties');
-                allProperties = await response.json();
+                if (!response.ok) throw new Error('Network response error');
+                const data = await response.json();
+                allProperties = Array.isArray(data) ? data : [];
                 
-                document.getElementById('loading').style.display = 'none';
+                loadingEl.style.display = 'none';
                 updateLocationDropdown(allProperties);
                 displayProperties(allProperties);
                 autoDetectAndFilterLocation(); 
-
             } catch (error) {
                 console.error("Error fetching properties:", error);
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('loading').innerText = "❌ प्रॉपर्टीज़ लोड करने में समस्या आई।";
+                if (retries > 0) {
+                    loadingEl.innerText = "सर्वर कनेक्ट हो रहा है, कृपया प्रतीक्षा करें... ⏳";
+                    setTimeout(() => loadInitialProperties(retries - 1), 2500);
+                } else {
+                    loadingEl.style.display = 'block';
+                    loadingEl.innerHTML = `⚠️ प्रॉपर्टीज़ लोड करने में देरी हो रही है। <button onclick="loadInitialProperties(2)" style="padding:5px 12px; background:#2563eb; color:white; border:none; border-radius:4px; cursor:pointer;">🔄 Retry</button>`;
+                }
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadInitialProperties();
         });
 
         async function findNearbyProperties() {
@@ -381,7 +460,7 @@
             const locationDropdown = document.getElementById('searchLocation');
             locationDropdown.innerHTML = '<option value="All">भोपाल की सभी लोकेशन्स...</option>';
 
-            let uniqueLocations = [...new Set(properties.map(prop => prop.location.trim()))];
+            let uniqueLocations = [...new Set(properties.map(prop => (prop.location || '').trim()))];
             uniqueLocations.sort();
 
             uniqueLocations.forEach(loc => {
@@ -423,13 +502,17 @@
             const container = document.getElementById('propertyList');
             container.innerHTML = '';
 
-            if (propertiesToShow.length === 0) {
-                container.innerHTML = '<p style="text-align:center; grid-column: 1 / -1; font-size: 18px; color: #e74c3c;">इस लोकेशन के आस-पास अभी कोई प्रॉपर्टी नहीं मिली।</p>';
+            if (!propertiesToShow || propertiesToShow.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align:center; grid-column: 1 / -1; padding: 40px 20px; background: white; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                        <p style="font-size: 18px; color: #475569; font-weight: 600; margin-bottom: 12px;">अभी इस कैटेगरी में कोई अप्रूव्ड प्रॉपर्टी उपलब्ध नहीं है।</p>
+                        <a href="login.html" style="display:inline-block; background:#27ae60; color:white; padding:10px 22px; border-radius:6px; font-weight:bold;">➕ अपनी प्रॉपर्टी फ्री में जोड़ें</a>
+                    </div>`;
                 return;
             }
 
             propertiesToShow.forEach(prop => {
-                let propImage = 'https://placehold.co/800x450?text=No+Image';
+                let propImage = 'https://placehold.co/800x450?text=Bhopal+Properties';
                 if (prop.images && prop.images.length > 0 && prop.images[0].trim() !== '') {
                     propImage = prop.images[0];
                 } else if (prop.image) {
@@ -446,7 +529,7 @@
 
                 const cardHtml = `
                     <div class="property-card">
-                        <img src="${propImage}" class="card-img" alt="${prop.title}">
+                        <img src="${propImage}" class="card-img" alt="${prop.title || 'Bhopal Property'}" loading="lazy">
                         <div class="card-body">
                             <div style="display: flex; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
                                 <span class="badge">${badgeText}</span>
@@ -469,7 +552,7 @@
 
             const filteredData = allProperties.filter(prop => {
                 const matchPurpose = purposeFilter === 'All' || prop.purpose === purposeFilter;
-                const matchLocation = locationFilter === 'All' || prop.location.toLowerCase().includes(locationFilter.toLowerCase());
+                const matchLocation = locationFilter === 'All' || (prop.location || '').toLowerCase().includes(locationFilter.toLowerCase());
                 
                 return matchPurpose && matchLocation;
             });
@@ -483,15 +566,13 @@
                 const response = await fetch('/api/get-properties', { cache: 'no-store' });
                 const newData = await response.json();
                 
-                if(JSON.stringify(newData) !== JSON.stringify(allProperties)) {
+                if(Array.isArray(newData) && JSON.stringify(newData) !== JSON.stringify(allProperties)) {
                     allProperties = newData;
                     updateLocationDropdown(allProperties); 
                     filterProperties(); 
                 }
-            } catch (error) {
-                console.log("Sync failed:", error);
-            }
-        }, 10000);
+            } catch (error) {}
+        }, 15000);
 
         let aiSearchType = '';
         

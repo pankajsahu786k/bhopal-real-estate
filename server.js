@@ -24,6 +24,9 @@ const customPaymentDB = {}; // 🚀 NEW: For 24-hr Async Payment Links
 const JWT_SECRET = process.env.JWT_SECRET || 'bhopal_super_secret_key_786';
 const { connectToWhatsApp, sendDirectWhatsApp, getLatestQr } = require('./whatsappService');
 
+// 🛡️ Helper: Safe Regex Escaper (Prevents Regex Crash & NoSQL Injection)
+const escapeRegExp = (str) => String(str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // ==========================================
 // 🛡️ SECURITY MIDDLEWARES
 // ==========================================
@@ -32,13 +35,13 @@ app.use(helmet({
     crossOriginResourcePolicy: false 
 }));
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(__dirname));
 
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 200, 
+    max: 300, 
     message: { success: false, message: "Too many requests, please try again later." }
 });
 app.use('/api/', apiLimiter);
@@ -312,7 +315,7 @@ async function requireCompleteProfile(req, res, next) {
 
         req.body.brokerEmail = email;
 
-        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${email}$`, 'i') } });
+        const brokerProfile = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(email)}$`, 'i') } });
 
         if (!brokerProfile || !brokerProfile.isProfileComplete) {
             return res.status(403).json({ success: false, requireProfileCompletion: true, message: "Aapko pehle apni Profile poori complete karni hogi (Photo, Phone, DOB, Dealing Areas)!" });
@@ -338,8 +341,6 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
             return res.status(400).json({ success: false, message: "Owner Email aur Room Number anivarya hai!" });
         }
 
-        // Escape special characters & allow flexible matching for existing records with accidental spaces/caps
-        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const emailRegex = new RegExp(`^\\s*${escapeRegExp(ownerEmail)}\\s*$`, 'i');
         const roomRegex = new RegExp(`^\\s*${escapeRegExp(roomOrFlatNo)}\\s*$`, 'i');
 
@@ -434,6 +435,7 @@ app.post('/api/owner/upsert-tenant-ledger', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Side Processing Interrupted.' });
     }
 });
+
 // =========================================================================
 // 🧠 SMART BRAIN ENGINE: 9 AM | 12 PM | 8 PM BOT SYSTEM (OWNER + TENANT)
 // =========================================================================
@@ -603,8 +605,8 @@ async function markTenantLedgerPaid(tenantId, paidAmt, txnRef) {
             let ownerPhone = '';
             let ownerName = 'Owner';
 
-            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
-            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(tenant.ownerEmail)}$`, 'i') } });
+            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(tenant.ownerEmail)}$`, 'i') } });
 
             if (userDoc && userDoc.name) ownerName = userDoc.name;
             if (brokerDoc && brokerDoc.phone) ownerPhone = brokerDoc.phone;
@@ -755,7 +757,6 @@ app.post('/api/custom-gateway/webhook', async (req, res) => {
 // =========================================================================
 // 🌐 100% AUTOMATIC YEARLY FESTIVAL & BIRTHDAY ENGINE (ZERO MANUAL UPDATES)
 // =========================================================================
-// Layer 1: Fixed Solar Holidays (Same every year)
 const FIXED_YEARLY_FESTIVALS = {
     "01-01": "Naya Saal (New Year)",
     "14-01": "Makar Sankranti",
@@ -766,7 +767,6 @@ const FIXED_YEARLY_FESTIVALS = {
     "25-12": "Christmas"
 };
 
-// Layer 2: Multi-Year Lunar Hindu Calendar Fallback (Auto-switches by year if internet is slow)
 const LUNAR_YEARLY_CALENDAR = {
     2026: {
         "15-02": "Maha Shivratri", "04-03": "Holi", "19-03": "Gudi Padwa / Chaitra Navratri",
@@ -803,18 +803,15 @@ const LUNAR_YEARLY_CALENDAR = {
 let festivalCache = { ...FIXED_YEARLY_FESTIVALS };
 let lastSyncedYear = null;
 
-// Layer 3: Auto-Fetch Every Year from Official Google Indian Holidays iCal + Nager.Date API
 async function updateFestivalCalendar() {
     const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
     const currentYear = nowIST.getFullYear();
 
-    // Start with Fixed + Current Year's Lunar Festivals
     const updated = {
         ...FIXED_YEARLY_FESTIVALS,
         ...(LUNAR_YEARLY_CALENDAR[currentYear] || {})
     };
 
-    // 1. Live Fetch from Google Official Indian Holidays Public iCal (Contains Dhanteras, Diwali, Holi, Eid, etc. for every year!)
     try {
         console.log(`📡 Auto-Syncing Live Indian Festival Calendar for year ${currentYear}...`);
         const icsUrl = "https://calendar.google.com/calendar/ical/en.indian%23holiday%40group.v.calendar.google.com/public/basic.ics";
@@ -826,7 +823,7 @@ async function updateFestivalCalendar() {
                 const dateMatch = ev.match(/DTSTART(?:;VALUE=DATE)?:(\d{4})(\d{2})(\d{2})/);
                 const sumMatch = ev.match(/SUMMARY:(.*)/);
                 if (dateMatch && sumMatch && Number(dateMatch[1]) === currentYear) {
-                    const key = `${dateMatch[3]}-${dateMatch[2]}`; // DD-MM
+                    const key = `${dateMatch[3]}-${dateMatch[2]}`;
                     let festTitle = sumMatch[1].replace(/\\,/g, ',').trim();
                     if (!festTitle.toLowerCase().includes('restricted') && !festTitle.toLowerCase().includes('bank holiday')) {
                         if (!updated[key]) updated[key] = festTitle;
@@ -838,7 +835,6 @@ async function updateFestivalCalendar() {
         console.log(`ℹ️ Google iCal sync fallback used: ${icsErr.message}`);
     }
 
-    // 2. Live Fetch from Nager.Date Public Holidays API
     try {
         const response = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${currentYear}/IN`);
         const text = await response.text();
@@ -866,14 +862,12 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         const currentMonth = String(nowIST.getMonth() + 1).padStart(2, '0');
         const todayKey = `${currentDay}-${currentMonth}`;
 
-        // Auto-refresh calendar if year changed or cache hasn't synced this year
         if (lastSyncedYear !== currentYear || Object.keys(festivalCache).length <= 10) {
             await updateFestivalCalendar();
         }
 
         const yearWishFlag = `wish_sent_${currentYear}_${todayKey}`;
 
-        // Prevent duplicate auto-send on the same day if Render restarts
         if (!forcedFestivalName) {
             const alreadySent = await Config.findOne({ key: yearWishFlag });
             if (alreadySent && alreadySent.value) {
@@ -933,7 +927,6 @@ async function processGreetingsAndWishes(forcedFestivalName = null) {
         if (festivalName) {
             console.log(`🎉 Tyohar Triggered: ${festivalName} (${todayKey}). Broadcasting wishes...`);
 
-            // Send instant confirmation to Admin WhatsApp
             await sendDirectWhatsApp("919399115595", `🪔 *Festival Auto-Broadcast Started:* Aaj *${festivalName}* (${todayKey}-${currentYear}) ki shubhkamnayein sabhi Brokers (${allBrokers.length}) aur Active Tenants (${activeTenants.length}) ko bheji ja rahi hain!`);
 
             for (const broker of allBrokers) {
@@ -1052,7 +1045,6 @@ app.post('/api/whatsapp/incoming-bot', async (req, res) => {
                 return res.json({ success: false, message: "Unauthorized stock command blocked" });
             }
 
-            // 1. Reset ₹10,000 Wallet Command
             if (query.includes('reset wallet')) {
                 await AiAgentWallet.deleteMany({ adminPhone: STOCK_TARGET_PHONE });
                 await getOrInitWallet();
@@ -1060,19 +1052,16 @@ app.post('/api/whatsapp/incoming-bot', async (req, res) => {
                 return res.json({ success: true });
             }
 
-            // 2. Check Live ₹10,000 Portfolio & P&L Status
             if (isWalletCmd) {
                 await sendWalletStatusToWhatsApp();
                 return res.json({ success: true });
             }
 
-            // 3. Instant 1.5-Second F&O Radar (Bina News/Stock Delay Ke)
             if (isFastFnO && !query.includes('stock')) {
                 await sendFastFnORadar();
                 return res.json({ success: true });
             }
 
-            // 4. Full Market + AI Agent Scan
             await sendDirectWhatsApp(STOCK_TARGET_PHONE, "🤖 *AI Trading Agent* live 15m chart patterns aur aapka ₹10,000 portfolio scan kar raha hai...");
             await sendScheduledStockNotification(false);
             return res.json({ success: true, message: "On-demand Stock & F&O report sent to Admin!" });
@@ -1080,16 +1069,16 @@ app.post('/api/whatsapp/incoming-bot', async (req, res) => {
 
         let filter = { status: 'approved' };
 
-        // Location match
         if (query.includes('arera')) filter.location = /arera/i;
         else if (query.includes('new market')) filter.location = /new market/i;
         else if (query.includes('mp nagar')) filter.location = /mp nagar/i;
+        else if (query.includes('kolar')) filter.location = /kolar/i;
+        else if (query.includes('indrapuri')) filter.location = /indrapuri/i;
 
-        // Purpose match (Rent / Sale)
         if (query.includes('rent') || query.includes('kiraye')) filter.purpose = /rent/i;
         else if (query.includes('buy') || query.includes('sale') || query.includes('kharidna')) filter.purpose = /sale/i;
 
-        const matchedProps = await Property.find(filter).limit(3).lean();
+        const matchedProps = await Property.find(filter).sort({ createdAt: -1 }).limit(3).lean();
 
         if (matchedProps.length === 0) {
             await sendDirectWhatsApp(senderPhone, `🙏 Namaste! Aapki khoj "${messageText}" ke liye abhi koi property uplabdh nahi hai. Kripya hamari website visit karein: https://bhopal-real-estate.onrender.com`);
@@ -1181,7 +1170,9 @@ app.get('/sitemap.xml', async (req, res) => {
         const mainPages = [
             { url: '/', priority: '1.0' },
             { url: '/login.html', priority: '0.8' },
-            { url: '/signup.html', priority: '0.8' }
+            { url: '/signup.html', priority: '0.8' },
+            { url: '/services.html', priority: '0.9' },
+            { url: '/owner-ledger.html', priority: '0.9' }
         ];
 
         mainPages.forEach(page => {
@@ -1190,7 +1181,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
         approvedProps.forEach(prop => {
             const lastMod = prop.updatedAt ? new Date(prop.updatedAt).toISOString() : new Date().toISOString();
-            xml += `  <url>\n    <loc>${baseUrl}/?property=${prop._id}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
+            xml += `  <url>\n    <loc>${baseUrl}/property-details.html?id=${prop._id}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.9</priority>\n  </url>\n`;
         });
 
         xml += `</urlset>`;
@@ -1269,7 +1260,7 @@ app.get('/api/check-payment-status', (req, res) => {
 app.post('/api/save-rent-agreement', async (req, res) => {
     try {
         const { userEmail, agreementData } = req.body;
-        const newAgreement = new RentAgreement({ userEmail: userEmail.toLowerCase().trim(), ...agreementData });
+        const newAgreement = new RentAgreement({ userEmail: (userEmail || '').toLowerCase().trim(), ...agreementData });
         await newAgreement.save();
         res.json({ success: true, message: '✅ Rent Agreement safely archived!' });
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
@@ -1305,14 +1296,14 @@ app.post('/api/save-receipt', async (req, res) => {
         let targetPhone = phone || '';
         let targetName = 'Partner / Customer';
 
-        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } });
+        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(cleanEmail)}$`, 'i') } });
         if (userDoc) {
             targetName = userDoc.name || targetName;
             if (userDoc.phone) targetPhone = userDoc.phone;
         }
 
         if (!targetPhone) {
-            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } });
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(cleanEmail)}$`, 'i') } });
             if (brokerDoc && brokerDoc.phone) targetPhone = brokerDoc.phone;
         }
 
@@ -1573,17 +1564,18 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
     return R * c; 
 }
 
-app.get('/api/get-properties', async(req, res) => {
+// 🏢 HOMEPAGE & BROKER PROPERTIES FETCH (Crash-Proof & Sorted Newest First)
+app.get('/api/get-properties', async (req, res) => {
     try {
         const brokerEmail = req.query.email;
         const userLat = parseFloat(req.query.lat);
         const userLng = parseFloat(req.query.lng);
 
-        let properties = (brokerEmail && brokerEmail !== "undefined") 
-            ? await Property.find({ brokerEmail: brokerEmail.toLowerCase().trim() }).lean()
-            : await Property.find({ status: 'approved' }).lean();
+        let properties = (brokerEmail && brokerEmail !== "undefined" && brokerEmail !== "null") 
+            ? await Property.find({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(brokerEmail.trim())}$`, 'i') } }).sort({ createdAt: -1 }).lean()
+            : await Property.find({ status: 'approved' }).sort({ createdAt: -1 }).lean();
 
-        if (userLat && userLng) {
+        if (!isNaN(userLat) && !isNaN(userLng)) {
             properties = properties.map(prop => {
                 let distance = null;
                 if (prop.latitude && prop.longitude) {
@@ -1599,10 +1591,10 @@ app.get('/api/get-properties', async(req, res) => {
             });
         }
 
-        res.json(properties);
+        res.json(properties || []);
     } catch (error) { 
-        console.error(error);
-        res.status(500).json({ message: 'Error' }); 
+        console.error("Get Properties Error:", error);
+        res.status(200).json([]); // Return empty array instead of 500 so frontend doesn't show red error banner
     }
 });
 
@@ -1612,8 +1604,8 @@ app.get('/api/get-profile', async (req, res) => {
         if (!email) return res.status(400).json({ message: 'Email required' });
 
         const cleanEmail = email.toLowerCase().trim();
-        const profile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
-        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } });
+        const profile = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(cleanEmail)}$`, 'i') } });
+        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(cleanEmail)}$`, 'i') } });
 
         let actualRole = userDoc ? (userDoc.role || 'user') : 'user';
         if (cleanEmail === "devilking786k@sahu.com") actualRole = 'admin';
@@ -1630,6 +1622,8 @@ app.get('/api/get-profile', async (req, res) => {
             photo: profile ? profile.photo : '',
             dealingAreas: profile ? profile.dealingAreas : [],
             dob: profile ? profile.dob : '',
+            latitude: profile ? profile.latitude : null,
+            longitude: profile ? profile.longitude : null,
             isProfileComplete: profile ? profile.isProfileComplete : false,
             empId: userDoc ? `BRE-2026-${userDoc._id.toString().slice(-4).toUpperCase()}` : 'BRE-2026-001'
         });
@@ -1672,6 +1666,7 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
                 areas = Array.isArray(req.body.dealingAreas) ? req.body.dealingAreas : req.body.dealingAreas.split(','); 
             }
         }
+        areas = areas.map(a => String(a).trim()).filter(Boolean);
 
         const currentProfile = await BrokerProfile.findOne({ brokerEmail: cleanEmail });
         const oldPhoneClean = (currentProfile && currentProfile.phone) ? currentProfile.phone.replace(/\D/g, '').slice(-10) : '';
@@ -1712,7 +1707,7 @@ app.post('/api/update-profile', upload.single('profilePhoto'), async (req, res) 
 
         if (finalPhone) {
             await User.updateOne(
-                { email: { $regex: new RegExp(`^${cleanEmail}$`, 'i') } }, 
+                { email: { $regex: new RegExp(`^${escapeRegExp(cleanEmail)}$`, 'i') } }, 
                 { $set: { phone: finalPhone } }
             );
         }
@@ -1862,8 +1857,8 @@ app.post('/api/forgot-password', async (req, res) => {
 
         if (cleanInput.includes('@')) {
             targetEmail = cleanInput;
-            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
-            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${cleanInput}$`, 'i') } });
+            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(cleanInput)}$`, 'i') } });
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(cleanInput)}$`, 'i') } });
             if (userDoc) {
                 targetName = userDoc.name || targetName;
                 targetPhone = userDoc.phone || '';
@@ -1977,7 +1972,7 @@ app.post('/api/reset-password', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         
         const updatedUser = await User.findOneAndUpdate(
-            { email: { $regex: new RegExp(`^${emailLower}$`, 'i') } },
+            { email: { $regex: new RegExp(`^${escapeRegExp(emailLower)}$`, 'i') } },
             { $set: { password: hashedPassword, phone: pendingRecord.phone } },
             { new: true }
         );
@@ -2022,7 +2017,7 @@ app.post('/api/login', async (req, res) => {
 
         const emailLower = email.toLowerCase().trim();
 
-        const user = await User.findOne({ email: { $regex: new RegExp(`^${emailLower}$`, 'i') } });
+        const user = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(emailLower)}$`, 'i') } });
         if (user) {
             const isMatch = await bcrypt.compare(password, user.password);
             const isPlainMatch = (password === user.password);
@@ -2062,7 +2057,7 @@ app.post('/api/login', async (req, res) => {
             });
         }
 
-        const tenant = await TenantLedger.findOne({ tenantEmail: { $regex: new RegExp(`^${emailLower}$`, 'i') }, tenantPassword: password });
+        const tenant = await TenantLedger.findOne({ tenantEmail: { $regex: new RegExp(`^${escapeRegExp(emailLower)}$`, 'i') }, tenantPassword: password });
         if (tenant) {
             const token = jwt.sign({ tenantId: tenant._id, role: 'tenant', email: tenant.tenantEmail }, JWT_SECRET, { expiresIn: '24h' });
             return res.json({ success: true, name: tenant.tenantName, email: tenant.tenantEmail, role: 'tenant', token: token, tenantData: tenant });
@@ -2119,7 +2114,7 @@ app.post('/api/admin/approve-property/:id', async (req, res) => {
                         price: property.purpose === 'Rent' ? `₹${property.price}/month` : `₹${property.price}`,
                         location: property.location || "Bhopal",
                         images: imagesList,
-                        propertyUrl: `https://bhopal-real-estate.onrender.com/property/${property._id}`,
+                        propertyUrl: `https://bhopal-real-estate.onrender.com/property-details.html?id=${property._id}`,
                         brokerEmail: property.brokerEmail || "info@bhopal.com"
                     })
                 });
@@ -2194,7 +2189,6 @@ app.get('/api/owner/my-tenants', async (req, res) => {
     try {
         const cleanEmail = (req.query.email || '').toLowerCase().trim();
         if (!cleanEmail) return res.json({ success: true, data: [] });
-        const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         const tenants = await TenantLedger.find({ 
             ownerEmail: { $regex: new RegExp(`^\\s*${escapeRegExp(cleanEmail)}\\s*$`, 'i') } 
         });
@@ -2203,6 +2197,7 @@ app.get('/api/owner/my-tenants', async (req, res) => {
         res.status(500).json({ success: false });
     }
 });
+
 app.post('/api/tenant/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -2433,8 +2428,8 @@ async function pushCurrentTaskToWhatsApp() {
 
 async function createVacancyLeadTasks(ownerEmail, roomNo, tenantName, tenantPhone) {
     try {
-        const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${ownerEmail}$`, 'i') } });
-        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${ownerEmail}$`, 'i') } });
+        const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(ownerEmail)}$`, 'i') } });
+        const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(ownerEmail)}$`, 'i') } });
         const ownerName = (userDoc && userDoc.name) ? userDoc.name : 'Sir';
         const ownerPhone = (brokerDoc && brokerDoc.phone) ? brokerDoc.phone : (userDoc ? userDoc.phone : '');
 
@@ -2475,8 +2470,8 @@ async function generateDailySupportTasks() {
         const activeTenants = await TenantLedger.find({ status: 'Active' });
 
         for (const tenant of activeTenants) {
-            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
-            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${tenant.ownerEmail}$`, 'i') } });
+            const brokerDoc = await BrokerProfile.findOne({ brokerEmail: { $regex: new RegExp(`^${escapeRegExp(tenant.ownerEmail)}$`, 'i') } });
+            const userDoc = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegExp(tenant.ownerEmail)}$`, 'i') } });
             const ownerName = (userDoc && userDoc.name) ? userDoc.name : 'Owner';
             const ownerPhone = (brokerDoc && brokerDoc.phone) ? brokerDoc.phone : (userDoc ? userDoc.phone : '');
 
@@ -3444,17 +3439,20 @@ cron.schedule('0 15 * * 1-5', () => sendScheduledStockNotification(false), { tim
 // 🚨 2. Live Opportunity Radar + AI Agent SL/Target Monitor: Har 15 Minute mein (Skips 9:15 AM Opening Trap)
 cron.schedule('*/15 9-15 * * 1-5', () => {
     const nowIST = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-    if (nowIST.getHours() === 9 && nowIST.getMinutes() === 15) return; // 🚫 Skip 9:15 AM trap
+    if (nowIST.getHours() === 9 && nowIST.getMinutes() === 15) return;
     sendScheduledStockNotification(true);
-    fetch('https://bhopal-real-estate.onrender.com/robots.txt').catch(() => {});
 }, { timezone: "Asia/Kolkata" });
+
+// ⚡ 3. 24x7 Render Keep-Alive Self-Ping (Every 10 Minutes so Website Never Sleeps)
+cron.schedule('*/10 * * * *', () => {
+    fetch('https://bhopal-real-estate.onrender.com/robots.txt').catch(() => {});
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server is LIVE on port ${PORT} (Secured 🔒)`);
     connectToWhatsApp();
     updateFestivalCalendar();
-    // 🪔 Auto-send today's festival/birthday wishes 25s after boot if missed at 8:00 AM
     setTimeout(() => {
         processGreetingsAndWishes();
     }, 25000);
